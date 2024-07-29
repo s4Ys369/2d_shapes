@@ -9,6 +9,7 @@
 class Render{
 public:
 
+    void set_fill_color(color_t color);
     void draw_ellipse(float cx, float cy, float rx, float ry, int segments, std::vector<Point>& points);
     void draw_fan_curved(const std::vector<Point>& points);
     void draw_line(float x1, float y1, float x2, float y2, float thickness);

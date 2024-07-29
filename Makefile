@@ -1,11 +1,8 @@
 BUILD_DIR = build
-T3D_DIR=$(HOME)/t3d
-T3D_INST=$(shell realpath $(T3D_DIR))
 
 include $(N64_INST)/include/n64.mk
-include $(T3D_INST)/t3d.mk
 
-PROJECT_NAME = animal-proc-anim
+PROJECT_NAME = 2d_shapes
 
 DEBUG = 0
 
@@ -26,11 +23,10 @@ N64_CXXFLAGS += -mno-check-zero-division \
 	-ffast-math \
     -mips3 \
 
-SRC = ProcAnim.cpp \
-      Chain.cpp \
-	  Fish.cpp \
-      PVector.cpp \
-      Snake.cpp \
+SRC = main.cpp \
+      Point.cpp \
+	  Render.cpp \
+      Shape.cpp \
       Utils.cpp
 
 OBJ = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
@@ -41,9 +37,10 @@ $(BUILD_DIR)/$(PROJECT_NAME).elf: $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 
 $(BUILD_DIR)/%.o: %.cpp
 	@mkdir -p $(BUILD_DIR)
+	@echo "    [CXX] $@"
 	$(CXX) $(N64_CXXFLAGS) -c $< -o $@
 
-$(PROJECT_NAME).z64: N64_ROM_TITLE="Procedural Anims"
+$(PROJECT_NAME).z64: N64_ROM_TITLE="2D Shapes"
 $(PROJECT_NAME).z64: $(BUILD_DIR)/$(PROJECT_NAME).elf
 
 clean:

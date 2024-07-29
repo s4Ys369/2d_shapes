@@ -4,49 +4,58 @@
 #include "Render.h"
 #include "Utils.h"
 
+void Render::set_fill_color(color_t color){
+    rdpq_set_prim_color(color);
+}
+
 // Function to draw an ellipse and store points around the perimeter
-void draw_ellipse(float cx, float cy, float rx, float ry, int segments, std::vector<Point>& points) {
+void Render::draw_ellipse(float cx, float cy, float rx, float ry, int segments, std::vector<Point>& points) {
     points.clear(); // Clear the vector to store new points
 
     // Calculate angles
     float theta = 2.0f * M_PI / float(segments);
-    float cos_theta = fm_cosf(theta);
-    float sin_theta = fm_sinf(theta);
+    float cos_theta = cosf(theta);
+    float sin_theta = sinf(theta);
 
-    // Set width and zero height
-    float x = rx;
-    float y = 0;
+    // Set initial positions
+    float x = 1.0f;
+    if(rx > 0.1f) {
+        x = rx;
+    }
+    float y = 0.0f;
 
     for (int i = 0; i < segments; ++i) {
+        // Store the current position
+        points.push_back({cx + x, cy + y});
 
-        // Return the current position
-        float currX = rx * cos_theta;
-        float currX = ry * sin_theta;
-        points.push_back({cx + currX, cy + currX});
-
-        // Calculate next position
-        float nextX = cos_theta * x - sin_theta * y;
-        float nextY = sin_theta * x + cos_theta * y;
-
-        // Set triangle vertices
-        float v1[] = { cx, cy };
-        float v2[] = { cx + x, cy + y };
-        float v3[] = { cx + nextX, cy + nextY };
-
-        // Draw =]
-        rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-        triCount++;
+        // Calculate the next position using rotation matrix
+        float nextX = cos_theta * x - sin_theta * (y * ry / rx);
+        float nextY = sin_theta * x + cos_theta * (y * ry / rx);
 
         // Set position for next iteration
         x = nextX;
         y = nextY;
     }
+
+    // Draw the ellipse using the calculated points
+    for (size_t i = 0; i < points.size(); ++i) {
+        Point p1 = points[i];
+        Point p2 = points[(i + 1) % points.size()];
+
+        float v1[] = { cx, cy };
+        float v2[] = { p1.x, p1.y };
+        float v3[] = { p2.x, p2.y };
+
+        // Draw the triangle
+        rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+        triCount++;
+    }
 }
 
 
 // Function to draw the curved triangle fan
-void draw_fan_curved(const std::vector<Point>& points) {
-    if (points.size() < 3) debugf("Need at least 3 points to form a triangle"); return;
+void Render::draw_fan_curved(const std::vector<Point>& points) {
+    if (points.size() < 3){ debugf("Need at least 3 points to form a triangle"); return; }
 
     // First point is the center of the fan
     Point center = points[0];
@@ -62,7 +71,7 @@ void draw_fan_curved(const std::vector<Point>& points) {
 }
 
 // Function to draw a line segment of certain thickness using two triangles
-void draw_line(float x1, float y1, float x2, float y2, float thickness) {
+void Render::draw_line(float x1, float y1, float x2, float y2, float thickness) {
     // Calculate direction vector of the line
     float dx = x2 - x1;
     float dy = y2 - y1;
@@ -103,7 +112,7 @@ void draw_line(float x1, float y1, float x2, float y2, float thickness) {
 }
 
 // Function to draw a Bézier curve using line segments and returns the curve as a point 
-void draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float thickness) {
+void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float thickness) {
   std::vector<Point> curvePoints;
 
   // Flush previous curve points
@@ -136,7 +145,7 @@ void draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const 
 
 
 // Function to fill area between 2 Bézier curves using triangles
-void fill_between_beziers(const std::vector<Point>& curve1, const std::vector<Point>& curve2) {
+void Render::fill_between_beziers(const std::vector<Point>& curve1, const std::vector<Point>& curve2) {
   size_t size = std::min(curve1.size(), curve2.size());
   for (size_t i = 0; i < size - 1; ++i) {
       float v1[] = { curve1[i].x, curve1[i].y };
@@ -152,7 +161,7 @@ void fill_between_beziers(const std::vector<Point>& curve1, const std::vector<Po
 }
 
 // Function to draw a filled shape between 2 Bézier curves
-void draw_filled_beziers(const Point& p0, const Point& p1, const Point& p2, const Point& p3, 
+void Render::draw_filled_beziers(const Point& p0, const Point& p1, const Point& p2, const Point& p3, 
                                const Point& q0, const Point& q1, const Point& q2, const Point& q3, 
                                int segments) {
     std::vector<Point> upper_curve;
@@ -193,7 +202,7 @@ void draw_filled_beziers(const Point& p0, const Point& p1, const Point& p2, cons
 }
 
 // Function to check ear clipping, An "ear" is a triangle formed by three consecutive vertices in a polygon that does not contain any other vertices of the polygon inside it.
-bool is_ear(const std::vector<Point>& polygon, int u, int v, int w, const std::vector<int>& V) {
+bool Render::is_ear(const std::vector<Point>& polygon, int u, int v, int w, const std::vector<int>& V) {
   const Point& A = polygon[V[u]];
   const Point& B = polygon[V[v]];
   const Point& C = polygon[V[w]];
@@ -215,7 +224,7 @@ bool is_ear(const std::vector<Point>& polygon, int u, int v, int w, const std::v
 }
 
 // A simple ear clipping algorithm for triangulation
-void triangulate_polygon(const std::vector<Point>& polygon, std::vector<Point>& triangles) {
+void Render::triangulate_polygon(const std::vector<Point>& polygon, std::vector<Point>& triangles) {
   std::vector<int> V(polygon.size());
   for (size_t i = 0; i < polygon.size(); ++i) {
     V[i] = i;
@@ -258,7 +267,7 @@ void triangulate_polygon(const std::vector<Point>& polygon, std::vector<Point>& 
 }
 
 // Function to draw a Bézier curve using line segments, then fill shape with triangles. Note the base will always be a straight line.
-void draw_filled_bezier_shape(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments) {
+void Render::draw_filled_bezier_shape(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments) {
   std::vector<Point> curvePoints;
 
   // Compute Bézier curve points
@@ -298,7 +307,7 @@ void draw_filled_bezier_shape(const Point& p0, const Point& p1, const Point& p2,
 }
 
 // Function to draw triangle fan by transforming points based on width
-void draw_fan_transform(const std::vector<Point>& point, const std::vector<float>& angle, int segments, float width) {
+void Render::draw_fan_transform(const std::vector<Point>& point, const std::vector<float>& angle, int segments, float width) {
   std::vector<Point> bottomPoints;
   std::vector<Point> topPoints;
   int midPoint = fm_ceilf(segments * (2.0f/3.0f));
@@ -325,7 +334,7 @@ void draw_fan_transform(const std::vector<Point>& point, const std::vector<float
 }
 
 // Function to fill point
-void fill_edge_to_ellipse(const std::vector<Point>& currentPoints, int segments, float scale) {
+void Render::fill_edge_to_ellipse(const std::vector<Point>& currentPoints, int segments, float scale) {
     static std::vector<Point> previousPoints;  // Static to persist between function calls
 
     if (!previousPoints.empty()) {

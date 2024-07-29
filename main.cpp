@@ -7,8 +7,24 @@
 // Global variables
 surface_t disp;
 int example;
+int triCount;
 float stickX;
 float stickY;
+
+// Shape pointers
+Shape* currShape;
+Shape* ellipse;
+Shape* line;
+Shape* fan;
+
+// Local variables
+Point currCenter = 0;
+float currRadiusX = 0;
+float currRadiusY = 0;
+float currThickness = 0;
+int currSegments = 0;
+std::vector<Point> currPoints; 
+color_t currShapeColor = BLACK;
 
 // Initialize libdragon
 void setup() {
@@ -19,7 +35,9 @@ void setup() {
   dfs_init(DFS_DEFAULT_LOCATION);
 
   display_init(RESOLUTION_320x240, DEPTH_16_BPP, 3, GAMMA_NONE, FILTERS_RESAMPLE_ANTIALIAS_DEDITHER);
-  disp = surface_alloc(FMT_RGBA16, display_get_width(), display_get_height());
+  float screenWidth = display_get_width();
+  float screenHeight = display_get_height();
+  disp = surface_alloc(FMT_RGBA16, screenWidth, screenHeight);
 
   rdpq_init();
   //rdpq_debug_start();
@@ -33,13 +51,28 @@ void setup() {
   stickX = 0.0f;
   stickY = 0.0f;
 
+  ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 1.0f, 14, RED);
+  line = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 1, GREEN);
+  fan = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 10, BLUE);
+
 }
 
 // Main rendering function
 void draw() {
 
+  Render renderer;
   switch (example) {
     case 0:
+      currShape = ellipse;
+      ellipse->resolve(stickX, stickY);
+      currCenter = currShape->get_center();
+      currRadiusX = currShape->get_scaleX();
+      currRadiusY = currShape->get_scaleY();
+      currSegments = currShape->get_segments();
+      currShapeColor = currShape->get_shape_fill_color();
+      renderer.set_fill_color(currShapeColor);
+      renderer.draw_ellipse(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currSegments, currPoints);
+      currPoints = currShape->get_points(); // Unnecessary?
       break;
     case 1:
       break;
@@ -53,6 +86,16 @@ void draw() {
 void switch_example() {
   if (++example > 2) {
     example = 0;
+  }
+}
+
+void scale_shape(Shape *currShape) {
+  if(currShape->get_scaleX() < (display_get_height()/2) && currShape->get_scaleY() < (display_get_width()/2)){
+    currShape->set_scaleX(currShape->get_scaleX() + 1.0f);
+    currShape->set_scaleY(currShape->get_scaleY() + 1.0f);
+  } else {
+    currShape->set_scaleX(1.0f);
+    currShape->set_scaleY(1.0f);
   }
 }
 
@@ -84,8 +127,8 @@ int main() {
 
     draw();
 
-    if(keysDown.b){
-
+    if(keysDown.l){
+      scale_shape(currShape);
     }
 
     rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 200, "Tris: %u", triCount);
