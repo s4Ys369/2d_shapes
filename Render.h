@@ -14,7 +14,9 @@ public:
     void draw_line(float x1, float y1, float x2, float y2, float thickness);
     void draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float thickness);
     void fill_between_beziers(const std::vector<Point>& curve1, const std::vector<Point>& curve2);
-    void draw_filled_beziers(const std::vector<Point>& upper_curve, const std::vector<Point>& lower_curve, int segments);
+    void draw_filled_beziers(const Point& p0, const Point& p1, const Point& p2, const Point& p3, 
+                               const Point& q0, const Point& q1, const Point& q2, const Point& q3, 
+                               int segments);
     bool is_ear(const std::vector<Point>& polygon, int u, int v, int w, const std::vector<int>& V);
     void triangulate_polygon(const std::vector<Point>& polygon, std::vector<Point>& triangles);
     void draw_filled_bezier_shape(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments);

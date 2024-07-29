@@ -1,5 +1,7 @@
 #include <libdragon.h>
 #include "Point.h"
+#include "Render.h"
+#include "Shape.h"
 #include "Utils.h"
 
 // Global variables

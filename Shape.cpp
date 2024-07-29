@@ -4,8 +4,15 @@
 #include "Shape.h"
 #include "Utils.h"
 
-void resolve(float stickX, float stickY) {
-  Point currPos = Shape::get_center();
+Shape::Shape() : scale(1.0f), center({0.0f, 0.0f}), segments(1) {}
+
+Shape::Shape(Point origin, float scale, int segments)
+    : center(origin),
+        scale(scale),
+        segments(segments) {}
+
+void Shape::resolve(float stickX, float stickY) {
+  Point currPos =  center;
   Point targetPos = currPos;
 
   // Apply deadzone to the joystick inputs
@@ -20,7 +27,7 @@ void resolve(float stickX, float stickY) {
   float offset = 32.0f;
   float width = display_get_width();
   float height = display_get_height();
-  Point center = {160.0f,120.f};
+  Point center = {width/2,height/2};
 
   if(currPos.x < offset){currPos.x = offset; targetPos = center;}
   if(currPos.x > width - offset){currPos.x = width - offset; targetPos = center;}
@@ -31,6 +38,7 @@ void resolve(float stickX, float stickY) {
   float move_mag = 3.5;
   targetPos = Point::add(currPos, direction.set_mag(move_mag));
 
-  spine.resolve(targetPos);
+  center = targetPos;
   //debugf("X %.1f\nY %.1f\n", targetPos.x, targetPos.y);
 }
+
