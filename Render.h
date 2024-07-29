@@ -10,7 +10,8 @@ class Render{
 public:
 
     void set_fill_color(color_t color);
-    void draw_ellipse(float cx, float cy, float rx, float ry, int segments, std::vector<Point>& points);
+    void get_ellipse_points(float cx, float cy, float rx, float ry, int segments, std::vector<Point>& points);
+    void draw_ellipse(float cx, float cy, float rx, float ry, int segments);
     void draw_fan_curved(const std::vector<Point>& points);
     void draw_line(float x1, float y1, float x2, float y2, float thickness);
     void draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float thickness);

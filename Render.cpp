@@ -8,47 +8,45 @@ void Render::set_fill_color(color_t color){
     rdpq_set_prim_color(color);
 }
 
-// Function to draw an ellipse and store points around the perimeter
-void Render::draw_ellipse(float cx, float cy, float rx, float ry, int segments, std::vector<Point>& points) {
-    points.clear(); // Clear the vector to store new points
+// Function to get points around an ellipse
+void Render::get_ellipse_points(float cx, float cy, float rx, float ry, int segments, std::vector<Point>& points) {
+    points.clear();
+    for (int i = 0; i <= segments; ++i) {
+        float theta = 2.0f * M_PI * float(i) / float(segments);
+        float x = rx * cosf(theta);
+        float y = ry * sinf(theta);
+        points.push_back({cx + x, cy + y});
+    }
+}
 
+// Function to draw an ellipse and store points around the perimeter
+void Render::draw_ellipse(float cx, float cy, float rx, float ry, int segments) {
     // Calculate angles
     float theta = 2.0f * M_PI / float(segments);
-    float cos_theta = cosf(theta);
-    float sin_theta = sinf(theta);
+    float cos_theta = fm_cosf(theta);
+    float sin_theta = fm_sinf(theta);
 
     // Set initial positions
-    float x = 1.0f;
-    if(rx > 0.1f) {
-        x = rx;
-    }
+    float x = rx;
     float y = 0.0f;
 
     for (int i = 0; i < segments; ++i) {
-        // Store the current position
-        points.push_back({cx + x, cy + y});
 
         // Calculate the next position using rotation matrix
-        float nextX = cos_theta * x - sin_theta * (y * ry / rx);
-        float nextY = sin_theta * x + cos_theta * (y * ry / rx);
-
-        // Set position for next iteration
-        x = nextX;
-        y = nextY;
-    }
-
-    // Draw the ellipse using the calculated points
-    for (size_t i = 0; i < points.size(); ++i) {
-        Point p1 = points[i];
-        Point p2 = points[(i + 1) % points.size()];
+        float nextX = cos_theta * x - sin_theta * y;
+        float nextY = sin_theta * x + cos_theta * y;
 
         float v1[] = { cx, cy };
-        float v2[] = { p1.x, p1.y };
-        float v3[] = { p2.x, p2.y };
+        float v2[] = { cx + x, cy + y };
+        float v3[] = { cx + nextX, cy + nextY };
 
         // Draw the triangle
         rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
         triCount++;
+
+        // Set position for next iteration
+        x = nextX;
+        y = nextY;
     }
 }
 

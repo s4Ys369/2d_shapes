@@ -14,6 +14,7 @@ public:
     Shape(Point origin, float scale1, float scale2, int segments, color_t shapeColor);
 
     const std::vector<Point>& get_points() const { return currPoints; }
+    void set_points(const std::vector<Point>& points) { this->currPoints = points; };
 
     void set_thickness(float thickness) { this->scaleX = thickness; }
     float get_thickness() const { return scaleX*scaleY; }

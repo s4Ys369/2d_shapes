@@ -58,9 +58,9 @@ void setup() {
 }
 
 // Main rendering function
+Render renderer;
 void draw() {
 
-  Render renderer;
   switch (example) {
     case 0:
       currShape = ellipse;
@@ -71,8 +71,7 @@ void draw() {
       currSegments = currShape->get_segments();
       currShapeColor = currShape->get_shape_fill_color();
       renderer.set_fill_color(currShapeColor);
-      renderer.draw_ellipse(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currSegments, currPoints);
-      currPoints = currShape->get_points(); // Unnecessary?
+      renderer.draw_ellipse(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currSegments);
       break;
     case 1:
       break;
@@ -97,6 +96,34 @@ void scale_shape(Shape *currShape) {
     currShape->set_scaleX(1.0f);
     currShape->set_scaleY(1.0f);
   }
+}
+
+void scale_segments(Shape *currShape) {
+  if(currShape->get_segments() < 100){
+    currShape->set_segments(currShape->get_segments() + 1);
+  } else {
+    currShape->set_segments(3);
+  }
+}
+
+void rotate_points(std::vector<Point>& currPoints, float angle) {
+  std::vector<Point> rotatedPoints;
+  Point center = currShape->get_center();
+    
+  for (const auto& point : currPoints) {
+    // Translate point back to origin
+    Point translatedPoint =  Point::sub(point, center);
+        
+    // Rotate the translated point
+    Point rotatedPoint = Point::rotate(translatedPoint, angle);
+        
+    // Translate point back to its original position
+    rotatedPoint = Point::add(rotatedPoint, center);
+        
+    rotatedPoints.push_back(rotatedPoint);
+  }
+    
+  currPoints = rotatedPoints;
 }
 
 // Main function with rendering loop
@@ -126,11 +153,26 @@ int main() {
     }
 
     draw();
+    currCenter = currShape->get_center();
+    currRadiusX = currShape->get_scaleX();
+    currRadiusY = currShape->get_scaleY();
+    currSegments = currShape->get_segments();
+    currShapeColor = currShape->get_shape_fill_color();
+    renderer.get_ellipse_points(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currSegments, currPoints);
+
+    if(keysDown.a){
+      rotate_points(currPoints, M_PI/12);
+    }
 
     if(keysDown.l){
       scale_shape(currShape);
     }
+    if(keysDown.r){
+      scale_segments(currShape);
+    }
 
+    
+    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 180, "Number of current points: %u\n", currPoints.size());
     rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 200, "Tris: %u", triCount);
     triCount = 0;
     rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 220, "FPS: %.2f", display_get_fps());
