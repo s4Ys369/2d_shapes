@@ -4,21 +4,27 @@
 #include "Shape.h"
 #include "Utils.h"
 
+// Default constructor
 Shape::Shape() : center({100.0f, 100.0f}), scaleX(1.0f), scaleY(1.0f), segments(1), lod(1.0f), shapeColor(BLACK) {}
 
+// Fan constructor
 Shape::Shape(Point origin, float scaleX, int segments, color_t shapeColor)
     : center(origin),
         scaleX(scaleX),
+        scaleY(scaleX),
         segments(segments),
         shapeColor(shapeColor) {}
 
+// Ellipse/line constructor
 Shape::Shape(Point origin, float scaleX, float lod, color_t shapeColor)
     : center(origin),
         scaleX(scaleX),
-        segments(1),
+        scaleY(scaleX),
+        segments(3), // base amount to draw a triangle
         lod(lod),
         shapeColor(shapeColor) {}
 
+// Strip constructor
 Shape::Shape(Point origin, float scaleX, float scaleY, int segments, color_t shapeColor)
     : center(origin),
         scaleX(scaleX),
@@ -26,14 +32,7 @@ Shape::Shape(Point origin, float scaleX, float scaleY, int segments, color_t sha
         segments(segments),
         shapeColor(shapeColor) {}
 
-Shape::Shape(Point origin, float scaleX, float scaleY, float lod, color_t shapeColor)
-    : center(origin),
-        scaleX(scaleX),
-        scaleY(scaleY),
-        segments(1),
-        lod(lod),
-        shapeColor(shapeColor) {}
-
+// Function to move shape around the screen using the Control Stick
 void Shape::resolve(float stickX, float stickY) {
     Point currPos = center;
     Point targetPos = currPos;

@@ -8,6 +8,7 @@
 surface_t disp;
 int example;
 int triCount;
+int vertCount;
 float stickX;
 float stickY;
 
@@ -27,6 +28,8 @@ float currLOD = 0.0f;
 float currAngle = 0.0f;
 std::vector<Point> currPoints; 
 color_t currShapeColor = BLACK;
+
+int ramUsed = 0;
 
 // Initialize libdragon
 void setup() {
@@ -53,8 +56,8 @@ void setup() {
   stickX = 0.0f;
   stickY = 0.0f;
 
-  ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.05f, RED);
-  line = new Shape(Point(screenWidth/2,screenHeight/2), 10.0f, 5.0f, 1.0f, GREEN);
+  ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 1.0f, RED);
+  line = new Shape(Point(screenWidth/2,screenHeight/2), 10.0f, 1.0f, GREEN);
   fan = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 10, BLUE);
 
 }
@@ -70,10 +73,13 @@ void draw() {
       currCenter = currShape->get_center();
       currRadiusX = currShape->get_scaleX();
       currRadiusY = currShape->get_scaleY();
+      currSegments = currShape->get_segments();
       currLOD = currShape->get_lod();
       currShapeColor = currShape->get_shape_fill_color();
       renderer.set_fill_color(currShapeColor);
+      currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
       renderer.draw_ellipse(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
+      currPoints = currShape->get_points();
       break;
     case 1:
       currShape = line;
@@ -83,6 +89,7 @@ void draw() {
       currRadiusY = currShape->get_scaleY();
       currThickness = currShape->get_lod();
       currShapeColor = currShape->get_shape_fill_color();
+      currShape->set_segments(1); // Initialized as 3 for ellipse, but a line has only one segment per draw
       renderer.set_fill_color(currShapeColor);
       renderer.draw_line(
         currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
@@ -92,6 +99,7 @@ void draw() {
       );
       break;
     case 2:
+    //
       break;
   }
 
@@ -99,7 +107,7 @@ void draw() {
 
 // Handles switching examples by incrementing an integer, and wrapping back around to the first 
 void switch_example() {
-  if (++example > 2) {
+  if (++example > 1) {
     example = 0;
   }
 }
@@ -223,6 +231,10 @@ int main() {
     joypad_buttons_t keys = joypad_get_buttons_pressed(JOYPAD_PORT_1);
     joypad_buttons_t keysDown = joypad_get_buttons_held(JOYPAD_PORT_1);
 
+    // Fazana's Puppyprint RAM used
+    struct mallinfo mem_info = mallinfo();
+    ramUsed = mem_info.uordblks - (size_t) (((display_get_width() * display_get_height()) * 2) - ((unsigned int) HEAP_START_ADDR - 0x80000000) - 0x10000);
+
     stickX = (float)input.stick_x;
     stickY = (float)input.stick_y;
 
@@ -232,9 +244,15 @@ int main() {
 
     draw();
 
+    // Shape update
     currCenter = currShape->get_center();
     currRadiusX = currShape->get_scaleX();
     currRadiusY = currShape->get_scaleY();
+    if(currShape == ellipse){
+      currShape->set_segments(triCount); // For the ellipse (ie fan) segments and triangles are essentially the same
+    } else {
+      currShape->set_segments(triCount/2); // 1 segment per 2 triangles for the line
+    }
     currSegments = currShape->get_segments();
     currLOD = currShape->get_lod();
     currShapeColor = currShape->get_shape_fill_color();
@@ -283,22 +301,23 @@ int main() {
         decrease_lod(currShape);
       }
 
-      // UI
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 140, 
-        "Scale: %.2f\n"
+      //=========== ~ UI ~ =============//
+
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 120, 
+        "Diameter: %.2f\n"
         "Rotation: %.2f\n"
-        "Segments: %u\n"
         "Verts: %u\n"
         "LOD: %.2f\n"
         "Tris: %u\n"
-        "FPS: %.2f",
-        currRadiusX,
+        "FPS: %.2f\n"
+        "RAM %dKB/%dKB",
+        currRadiusX, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
         currAngle,
-        triCount,
-        triCount*2,
+        vertCount+1, // All triangles in the fan use the center vertex and previous vertex, so only accumulate 1 per draw, then add center here
         currLOD,
         triCount,
-        display_get_fps()
+        display_get_fps(),
+        (ramUsed / 1024), (get_memory_size() / 1024)
       );
     } else {
       if(keysDown.d_up){
@@ -307,27 +326,28 @@ int main() {
       if(keysDown.d_down){
         decrease_thickness(currShape);
       }
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 140, 
-        "Scale X: %.2f\n"
-        "Scale Y: %.2f\n"
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 120, 
+        "Length: %.2f\n"
         "Rotation: %.2f\n"
         "Segments: %u\n"
         "Verts: %u\n"
         "Thickness: %.2f\n"
         "Tris: %u\n"
-        "FPS: %.2f",
-        currRadiusX,
-        currRadiusY,
+        "FPS: %.2f\n"
+        "RAM %dKB/%dKB",
+        currRadiusX, // For a line, both scale values are the same and used to change the length of the quad
         currAngle,
-        triCount,
-        triCount*2,
+        currSegments, // 1 segment per 2 triangles
+        vertCount, // Always 4 vertices per line
         currLOD,
-        triCount,
-        display_get_fps()
+        triCount, // Always 2 triangles per line
+        display_get_fps(),
+        (ramUsed / 1024), (get_memory_size() / 1024)
       );
     }
 
     triCount = 0;
+    vertCount = 0;
 
     rdpq_detach_show();
   }

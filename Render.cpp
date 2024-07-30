@@ -18,15 +18,40 @@ std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, 
     float y = center.y + ry * sinf(angle);
     points.push_back(Point(x, y));
   }
+  //debugf("Ellipse points: ");
+  for (const auto& point : points) {
+    //debugf("(%f, %f) ", point.x, point.y);
+  }
+  //debugf("\n");
   return points;
-  points.clear();
 }
 
-void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, float lod) {
+// Function to draw a triangle fan
+void Render::draw_fan(const std::vector<Point>& points) {
+  if (points.size() < 3){ debugf("Need at least 3 points to form a triangle"); return; }
 
-  // Determine the number of segments based on the level of detail
-  int base_segments = 100; // Base number of segments for the highest LOD
-  int  segments = static_cast<int>(base_segments * lod);
+  // First point is the center of the fan
+  Point center = points[0];
+
+  for (size_t i = 1; i < points.size() - 1; ++i) {
+    Point v1 = center;
+    Point v2 = points[i];
+    Point v3 = points[i + 1];
+
+    rdpq_triangle(&TRIFMT_FILL, &v1.x, &v2.x, &v3.x);
+    triCount++;
+    vertCount += 2;
+  }
+
+  //debugf("Drawing fan with points: ");
+  for (const auto& point : points) {
+    //debugf("(%f, %f) ", point.x, point.y);
+  }
+  //debugf("\n");
+}
+
+// Draw a uniformed closed shape of any number of vertices as a triangle fan
+void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, float lod) {
 
   /*
     Segments directly related to the number of triangles to be drawn.
@@ -55,70 +80,63 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
     at 3.
 
   */
-  segments = std::max(segments, 3);
 
-  // Calculate angles
+  int base_segments = 100; // Base number of segments for the highest LOD
+  int segments = std::max(static_cast<int>(base_segments * lod), 3);
+
   float theta = 2.0f * M_PI / float(segments);
+
+  // Calculate angles for position
   float cos_theta = fm_cosf(theta);
   float sin_theta = fm_sinf(theta);
-    
-  // Calculate rotation matrix
+
+  // Calculate angles for rotation
   float cos_angle = fm_cosf(angle);
   float sin_angle = fm_sinf(angle);
 
-  // Set initial positions
+  std::vector<float> vertices;
+  std::vector<int> indices;
+
+  // Center vertex
+  vertices.push_back(cx);
+  vertices.push_back(cy);
+
+  // Calculate perimeter vertices
   float x = rx;
   float y = 0.0f;
 
+  // For segment/triangle
   for (int i = 0; i < segments; ++i) {
-    // Rotate current point
+
+    // Apply rotation
     float rotatedX = x * cos_angle - y * sin_angle;
     float rotatedY = x * sin_angle + y * cos_angle;
+    vertices.push_back(cx + rotatedX);
+    vertices.push_back(cy + rotatedY);
 
-    // Calculate the next position using rotation matrix
+    // Calculate next position from rotation matrix
     float nextX = cos_theta * x - sin_theta * y;
     float nextY = sin_theta * x + cos_theta * y;
-
-    // Rotate the next point
-    float rotatedNextX = nextX * cos_angle - nextY * sin_angle;
-    float rotatedNextY = nextX * sin_angle + nextY * cos_angle;
-
-    float v1[] = { cx, cy };
-    float v2[] = { cx + rotatedX, cy + rotatedY };
-    float v3[] = { cx + rotatedNextX, cy + rotatedNextY };
-
-    // Debug prints to verify the points and triangles
-    //debugf("Triangle %d: (%f, %f) (%f, %f) (%f, %f)\n", i + 1, v1[0], v1[1], v2[0], v2[1], v3[0], v3[1]);
-
-    // Draw the triangle
-    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-    triCount++;
 
     // Set position for next iteration
     x = nextX;
     y = nextY;
+  
   }
+
+  // Create indices for a triangle fan
+  for (int i = 1; i <= segments; ++i) {
+      indices.push_back(0);         // Center vertex, always first index for a fan
+      indices.push_back(i);         // Current perimeter vertex
+      indices.push_back((i % segments) + 1); // Next perimeter vertex
+  }
+
+  // Draw the indexed vertices
+  rdpq_draw_indexed_triangles(&vertices[0], vertices.size(), &indices[0], indices.size());
+
 }
 
-
-// Function to draw the curved triangle fan
-void Render::draw_fan_curved(const std::vector<Point>& points) {
-    if (points.size() < 3){ debugf("Need at least 3 points to form a triangle"); return; }
-
-    // First point is the center of the fan
-    Point center = points[0];
-
-    for (size_t i = 1; i < points.size() - 1; ++i) {
-        Point v1 = center;
-        Point v2 = points[i];
-        Point v3 = points[i + 1];
-
-        rdpq_triangle(&TRIFMT_FILL, &v1.x, &v2.x, &v3.x);
-        triCount++;
-    }
-}
-
-// Function to draw a line segment of certain thickness using two triangles with rotation and scale
+// Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
 void Render::draw_line(float x1, float y1, float x2, float y2, float angle, float thickness) {
 
   // Define points
@@ -178,9 +196,10 @@ void Render::draw_line(float x1, float y1, float x2, float y2, float angle, floa
   rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
   rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
   triCount += 2; // Increment triangle count
+  vertCount += 4; // Increment vertex count
 }
 
-// Function to draw a Bézier curve using line segments and returns the curve as a point 
+// Function to draw a Bézier curve as a triangle strip and returns the curve as a point array
 void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float thickness) {
   std::vector<Point> curvePoints;
 
@@ -213,7 +232,7 @@ void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2
 }
 
 
-// Function to fill area between 2 Bézier curves using triangles
+// Function to fill area between 2 Bézier curves using quads/rectangles
 void Render::fill_between_beziers(const std::vector<Point>& curve1, const std::vector<Point>& curve2) {
   size_t size = std::min(curve1.size(), curve2.size());
   for (size_t i = 0; i < size - 1; ++i) {
@@ -226,6 +245,7 @@ void Render::fill_between_beziers(const std::vector<Point>& curve1, const std::v
       rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
       rdpq_triangle(&TRIFMT_FILL, v2, v3, v4);
       triCount += 2;
+      vertCount += 4; // Increment vertex count
   }
 }
 
@@ -369,6 +389,7 @@ void Render::draw_filled_bezier_shape(const Point& p0, const Point& p1, const Po
 
     rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
     triCount++;
+    vertCount += 2; // Increment vertex count
   }
 
   curvePoints.clear();
@@ -382,28 +403,28 @@ void Render::draw_fan_transform(const std::vector<Point>& point, const std::vect
   int midPoint = fm_ceilf(segments * (2.0f/3.0f));
   int loopPoint = segments - 1;
 
-    // Bottom of fan
-    for (int i = midPoint; i < segments; ++i) {
-        Point transformedPoint = Point::transform(point[i], angle[i] - M_PI / 2, width);
-        bottomPoints.push_back(transformedPoint);
-    }
+  // Bottom of fan
+  for (int i = midPoint; i < segments; ++i) {
+    Point transformedPoint = Point::transform(point[i], angle[i] - M_PI / 2, width);
+    bottomPoints.push_back(transformedPoint);
+  }
 
-    // Top of fan
-    for (int i = loopPoint; i >= midPoint; --i) {
-        Point transformedPoint = Point::transform(point[i], angle[i] + M_PI / 2, width);
-        topPoints.push_back(transformedPoint);
-    }
+  // Top of fan
+  for (int i = loopPoint; i >= midPoint; --i) {
+    Point transformedPoint = Point::transform(point[i], angle[i] + M_PI / 2, width);
+    topPoints.push_back(transformedPoint);
+  }
 
-    // Draw the bottom and top of the fan as a single closed shape
-    bottomPoints.insert(bottomPoints.end(), topPoints.begin(), topPoints.end());
-    draw_fan_curved(bottomPoints);
+  // Draw the bottom and top of the fan as a single closed shape
+  bottomPoints.insert(bottomPoints.end(), topPoints.begin(), topPoints.end());
+  draw_fan(bottomPoints);
 
-    bottomPoints.clear();
-    topPoints.clear();
+  bottomPoints.clear();
+  topPoints.clear();
 }
 
-// Function to fill point
-void Render::fill_edge_to_ellipse(const std::vector<Point>& currentPoints, int segments, float scale) {
+// Function to draw a quad/rectangle from the edge of an ellipse/fan to the edge of a "line" (ie another quad/rectangle)
+void Render::fill_edge_ellipse_to_line(const std::vector<Point>& currentPoints, int segments, float scale) {
     static std::vector<Point> previousPoints;  // Static to persist between function calls
 
     if (!previousPoints.empty()) {
@@ -441,6 +462,7 @@ void Render::fill_edge_to_ellipse(const std::vector<Point>& currentPoints, int s
             rdpq_triangle(&TRIFMT_FILL, v1f, v2f, v3f);
             rdpq_triangle(&TRIFMT_FILL, v2f, v4f, v3f);
             triCount++;
+            vertCount += 4; // Increment vertex count
         }
     }
 
