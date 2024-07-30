@@ -6,7 +6,7 @@
 
 // Constants
 const float TWO_PI = 2 * M_PI;
-const float DEADZONE = 0.7f; // Define the deadzone threshold
+const float DEADZONE = 0.02f; // Define the deadzone threshold
 
 extern int triCount;
 

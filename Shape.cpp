@@ -4,7 +4,7 @@
 #include "Shape.h"
 #include "Utils.h"
 
-Shape::Shape() : center({100.0f, 100.0f}), scaleX(1.0f), scaleY(1.0f), segments(1), shapeColor(BLACK) {}
+Shape::Shape() : center({100.0f, 100.0f}), scaleX(1.0f), scaleY(1.0f), segments(1), lod(1.0f), shapeColor(BLACK) {}
 
 Shape::Shape(Point origin, float scaleX, int segments, color_t shapeColor)
     : center(origin),
@@ -12,11 +12,26 @@ Shape::Shape(Point origin, float scaleX, int segments, color_t shapeColor)
         segments(segments),
         shapeColor(shapeColor) {}
 
+Shape::Shape(Point origin, float scaleX, float lod, color_t shapeColor)
+    : center(origin),
+        scaleX(scaleX),
+        segments(1),
+        lod(lod),
+        shapeColor(shapeColor) {}
+
 Shape::Shape(Point origin, float scaleX, float scaleY, int segments, color_t shapeColor)
     : center(origin),
         scaleX(scaleX),
         scaleY(scaleY),
         segments(segments),
+        shapeColor(shapeColor) {}
+
+Shape::Shape(Point origin, float scaleX, float scaleY, float lod, color_t shapeColor)
+    : center(origin),
+        scaleX(scaleX),
+        scaleY(scaleY),
+        segments(1),
+        lod(lod),
         shapeColor(shapeColor) {}
 
 void Shape::resolve(float stickX, float stickY) {

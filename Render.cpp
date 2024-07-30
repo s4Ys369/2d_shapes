@@ -9,45 +9,95 @@ void Render::set_fill_color(color_t color){
 }
 
 // Function to get points around an ellipse
-void Render::get_ellipse_points(float cx, float cy, float rx, float ry, int segments, std::vector<Point>& points) {
-    points.clear();
-    for (int i = 0; i <= segments; ++i) {
-        float theta = 2.0f * M_PI * float(i) / float(segments);
-        float x = rx * cosf(theta);
-        float y = ry * sinf(theta);
-        points.push_back({cx + x, cy + y});
-    }
+std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, int segments) {
+  std::vector<Point> points;
+  float angleStep = 2 * M_PI / segments;
+  for (int i = 0; i < segments; ++i) {
+    float angle = i * angleStep;
+    float x = center.x + rx * cosf(angle);
+    float y = center.y + ry * sinf(angle);
+    points.push_back(Point(x, y));
+  }
+  return points;
+  points.clear();
 }
 
-// Function to draw an ellipse and store points around the perimeter
-void Render::draw_ellipse(float cx, float cy, float rx, float ry, int segments) {
-    // Calculate angles
-    float theta = 2.0f * M_PI / float(segments);
-    float cos_theta = fm_cosf(theta);
-    float sin_theta = fm_sinf(theta);
+void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, float lod) {
 
-    // Set initial positions
-    float x = rx;
-    float y = 0.0f;
+  // Determine the number of segments based on the level of detail
+  int base_segments = 100; // Base number of segments for the highest LOD
+  int  segments = static_cast<int>(base_segments * lod);
 
-    for (int i = 0; i < segments; ++i) {
+  /*
+    Segments directly related to the number of triangles to be drawn.
 
-        // Calculate the next position using rotation matrix
-        float nextX = cos_theta * x - sin_theta * y;
-        float nextY = sin_theta * x + cos_theta * y;
+    1 segment will draw a triangle with all vertices equal, so invisible.
 
-        float v1[] = { cx, cy };
-        float v2[] = { cx + x, cy + y };
-        float v3[] = { cx + nextX, cy + nextY };
+    2 segments will draw 2 triangles with all vertices' Y positions equal,
+    so again imperceptible. 
 
-        // Draw the triangle
-        rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-        triCount++;
+    3 segments with draw 3 triangles radiating from the center,
+    effectively drawing one triangle wastefully.
 
-        // Set position for next iteration
-        x = nextX;
-        y = nextY;
-    }
+    4 segments with draw 4 triangles radiating from the center,
+    effectively drawing one rectangle wastefully.
+
+    5 segments with draw 5 triangles radiating from the center,
+    effectively drawing one pentagon, making 5 segments
+    the best canditate for the minimum required.
+
+    There may be some usecases for drawing triangles and rectangles,
+    because all of the transformations (ie rotation, scale, etc.)
+    can still be applied.
+
+    Until said transformations are readily available for
+    RDPQ tris and rects, keep the minimum amount of segments
+    at 3.
+
+  */
+  segments = std::max(segments, 3);
+
+  // Calculate angles
+  float theta = 2.0f * M_PI / float(segments);
+  float cos_theta = fm_cosf(theta);
+  float sin_theta = fm_sinf(theta);
+    
+  // Calculate rotation matrix
+  float cos_angle = fm_cosf(angle);
+  float sin_angle = fm_sinf(angle);
+
+  // Set initial positions
+  float x = rx;
+  float y = 0.0f;
+
+  for (int i = 0; i < segments; ++i) {
+    // Rotate current point
+    float rotatedX = x * cos_angle - y * sin_angle;
+    float rotatedY = x * sin_angle + y * cos_angle;
+
+    // Calculate the next position using rotation matrix
+    float nextX = cos_theta * x - sin_theta * y;
+    float nextY = sin_theta * x + cos_theta * y;
+
+    // Rotate the next point
+    float rotatedNextX = nextX * cos_angle - nextY * sin_angle;
+    float rotatedNextY = nextX * sin_angle + nextY * cos_angle;
+
+    float v1[] = { cx, cy };
+    float v2[] = { cx + rotatedX, cy + rotatedY };
+    float v3[] = { cx + rotatedNextX, cy + rotatedNextY };
+
+    // Debug prints to verify the points and triangles
+    //debugf("Triangle %d: (%f, %f) (%f, %f) (%f, %f)\n", i + 1, v1[0], v1[1], v2[0], v2[1], v3[0], v3[1]);
+
+    // Draw the triangle
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    triCount++;
+
+    // Set position for next iteration
+    x = nextX;
+    y = nextY;
+  }
 }
 
 
@@ -68,45 +118,66 @@ void Render::draw_fan_curved(const std::vector<Point>& points) {
     }
 }
 
-// Function to draw a line segment of certain thickness using two triangles
-void Render::draw_line(float x1, float y1, float x2, float y2, float thickness) {
-    // Calculate direction vector of the line
-    float dx = x2 - x1;
-    float dy = y2 - y1;
-    float length = sqrtf(dx * dx + dy * dy);
+// Function to draw a line segment of certain thickness using two triangles with rotation and scale
+void Render::draw_line(float x1, float y1, float x2, float y2, float angle, float thickness) {
 
-    // Normalize the direction vector
-    if (length != 0) {
-      dx /= length;
-      dy /= length;
-    } else {
-        debugf("Line length can not be 0");
-    }
+  // Define points
+  Point start(x1, y1);
+  Point end(x2, y2);
 
-    // Calculate the perpendicular vector for the thickness
-    float perp_x = -dy * thickness / 2;
-    float perp_y = dx * thickness / 2;
+  // Calculate the center of the line segment
+  Point center((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
 
-    // Define vertices of the trapezoid
-    float x1_left = x1 + perp_x;
-    float y1_left = y1 + perp_y;
-    float x1_right = x1 - perp_x;
-    float y1_right = y1 - perp_y;
-    float x2_left = x2 + perp_x;
-    float y2_left = y2 + perp_y;
-    float x2_right = x2 - perp_x;
-    float y2_right = y2 - perp_y;
+  // Calculate direction vector
+  Point direction = Point::sub(end, start);
+  float length = direction.magnitude();
 
-    // Define vertices for two triangles
-    float v1[] = { x1_left, y1_left };
-    float v2[] = { x1_right, y1_right };
-    float v3[] = { x2_left, y2_left };
-    float v4[] = { x2_right, y2_right };
+  // Check for non-zero length and normalize
+  if (length > 0) {
+    direction.normalize(); // Normalize the direction vector
+  } else {
+    debugf("Line length cannot be 0");
+    return;
+  }
 
-    // Draw two triangles to form the trapezoid
-    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
-    rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
-    triCount += 2;
+  // Calculate the perpendicular vector for the thickness
+  Point perp(-direction.y, direction.x); // Perpendicular to direction
+  perp.set_mag(thickness / 2); // Set the magnitude to half of the thickness
+
+  // Rotation matrix
+  float cos_angle = fm_cosf(angle);
+  float sin_angle = fm_sinf(angle);
+
+  // Compute the points for the line
+  Point p1_left = Point::add(start, perp);
+  Point p1_right = Point::sub(start, perp);
+  Point p2_left = Point::add(end, perp);
+  Point p2_right = Point::sub(end, perp);
+
+  // Rotate each vertex around the center of the line segment
+  auto rotate_line_point = [cos_angle, sin_angle](Point& p, const Point& center) {
+    float tx = p.x - center.x;
+    float ty = p.y - center.y;
+    p.x = center.x + (tx * cos_angle - ty * sin_angle);
+    p.y = center.y + (tx * sin_angle + ty * cos_angle);
+  };
+
+  // Rotate the trapezoid vertices
+  rotate_line_point(p1_left, center);
+  rotate_line_point(p1_right, center);
+  rotate_line_point(p2_left, center);
+  rotate_line_point(p2_right, center);
+
+  // Define vertices for two triangles to form the line with thickness
+  float v1[] = { p1_left.x, p1_left.y };
+  float v2[] = { p1_right.x, p1_right.y };
+  float v3[] = { p2_left.x, p2_left.y };
+  float v4[] = { p2_right.x, p2_right.y };
+
+  // Draw two triangles to form the line
+  rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
+  rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
+  triCount += 2; // Increment triangle count
 }
 
 // Function to draw a Bézier curve using line segments and returns the curve as a point 
@@ -136,7 +207,7 @@ void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2
     Point p1 = curvePoints[i];
     Point p2 = curvePoints[i + 1];
 
-    draw_line(p1.x, p1.y, p2.x, p2.y , thickness);
+    draw_line(p1.x, p1.y, p2.x, p2.y, 1.0f, thickness);
   }
 
 }

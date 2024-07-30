@@ -23,6 +23,8 @@ float currRadiusX = 0;
 float currRadiusY = 0;
 float currThickness = 0;
 int currSegments = 0;
+float currLOD = 0.0f;
+float currAngle = 0.0f;
 std::vector<Point> currPoints; 
 color_t currShapeColor = BLACK;
 
@@ -51,8 +53,8 @@ void setup() {
   stickX = 0.0f;
   stickY = 0.0f;
 
-  ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 1.0f, 14, RED);
-  line = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 1, GREEN);
+  ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.05f, RED);
+  line = new Shape(Point(screenWidth/2,screenHeight/2), 10.0f, 5.0f, 1.0f, GREEN);
   fan = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 10, BLUE);
 
 }
@@ -68,12 +70,26 @@ void draw() {
       currCenter = currShape->get_center();
       currRadiusX = currShape->get_scaleX();
       currRadiusY = currShape->get_scaleY();
-      currSegments = currShape->get_segments();
+      currLOD = currShape->get_lod();
       currShapeColor = currShape->get_shape_fill_color();
       renderer.set_fill_color(currShapeColor);
-      renderer.draw_ellipse(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currSegments);
+      renderer.draw_ellipse(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
       break;
     case 1:
+      currShape = line;
+      line->resolve(stickX, stickY);
+      currCenter = currShape->get_center();
+      currRadiusX = currShape->get_scaleX();
+      currRadiusY = currShape->get_scaleY();
+      currThickness = currShape->get_lod();
+      currShapeColor = currShape->get_shape_fill_color();
+      renderer.set_fill_color(currShapeColor);
+      renderer.draw_line(
+        currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
+        currCenter.x+currRadiusX, currCenter.y+currRadiusY, 
+        currAngle,
+        currThickness
+      );
       break;
     case 2:
       break;
@@ -88,8 +104,8 @@ void switch_example() {
   }
 }
 
-void scale_shape(Shape *currShape) {
-  if(currShape->get_scaleX() < (display_get_height()/2) && currShape->get_scaleY() < (display_get_width()/2)){
+void increase_scale(Shape *currShape) {
+  if(currShape->get_scaleX() < 100.0f && currShape->get_scaleY() < 100.0f){
     currShape->set_scaleX(currShape->get_scaleX() + 1.0f);
     currShape->set_scaleY(currShape->get_scaleY() + 1.0f);
   } else {
@@ -98,32 +114,94 @@ void scale_shape(Shape *currShape) {
   }
 }
 
+void decrease_scale(Shape *currShape) {
+  if(currShape->get_scaleX() > 1.0f && currShape->get_scaleY() > 1.0f){
+    currShape->set_scaleX(currShape->get_scaleX() - 1.0f);
+    currShape->set_scaleY(currShape->get_scaleY() - 1.0f);
+  } else {
+    currShape->set_scaleX(100.0f);
+    currShape->set_scaleY(100.0f);
+  }
+}
+
+void increase_x_scale(Shape *currShape) {
+  float currentScaleX = currShape->get_scaleX();
+  if(currentScaleX < 500.0f){
+    currShape->set_scaleX(currentScaleX + 1.0f);
+  } else {
+    currShape->set_scaleX(0.0f);
+  }
+}
+
+void decrease_x_scale(Shape *currShape) {
+  float currentScaleX = currShape->get_scaleX();
+  if(currentScaleX > 0.0f){
+    currShape->set_scaleX(currentScaleX - 1.0f);
+  } else {
+    currShape->set_scaleX(500.0f);
+  }
+}
+
+void increase_y_scale(Shape *currShape) {
+  float currentScaleY = currShape->get_scaleY();
+  if(currentScaleY < 500.0f){
+    currShape->set_scaleY(currentScaleY + 1.0f);
+  } else {
+    currShape->set_scaleY(0.0f);
+  }
+}
+
+void decrease_y_scale(Shape *currShape) {
+  float currentScaleY = currShape->get_scaleY();
+  if(currentScaleY > 0.0f){
+    currShape->set_scaleY(currentScaleY - 1.0f);
+  } else {
+    currShape->set_scaleY(500.0f);
+  }
+}
+
+void increase_lod(Shape *currShape) {
+  if(currShape->get_lod() < 1.0f){
+    currShape->set_lod(currShape->get_lod() + 0.01f);
+  } else {
+    currShape->set_lod(0.01f);
+  }
+}
+
+void decrease_lod(Shape *currShape) {
+  if(currShape->get_lod() >= 0.02f){
+    currShape->set_lod(currShape->get_lod() - 0.01f);
+  } else {
+    currShape->set_lod(1.0f);
+  }
+}
+
+void increase_thickness(Shape *currShape) {
+  if(currShape->get_lod() < 100.0f){
+    currShape->set_lod(currShape->get_lod() + 0.1f);
+  } else {
+    currShape->set_lod(0.1f);
+  }
+}
+
+void decrease_thickness(Shape *currShape) {
+  if(currShape->get_lod() >= 0.2f){
+    currShape->set_lod(currShape->get_lod() - 0.1f);
+  } else {
+    currShape->set_lod(100.0f);
+  }
+}
+
 void scale_segments(Shape *currShape) {
+  if(currShape != ellipse){
   if(currShape->get_segments() < 100){
     currShape->set_segments(currShape->get_segments() + 1);
   } else {
     currShape->set_segments(3);
   }
-}
-
-void rotate_points(std::vector<Point>& currPoints, float angle) {
-  std::vector<Point> rotatedPoints;
-  Point center = currShape->get_center();
-    
-  for (const auto& point : currPoints) {
-    // Translate point back to origin
-    Point translatedPoint =  Point::sub(point, center);
-        
-    // Rotate the translated point
-    Point rotatedPoint = Point::rotate(translatedPoint, angle);
-        
-    // Translate point back to its original position
-    rotatedPoint = Point::add(rotatedPoint, center);
-        
-    rotatedPoints.push_back(rotatedPoint);
+  } else {
+    increase_lod(currShape);
   }
-    
-  currPoints = rotatedPoints;
 }
 
 // Main function with rendering loop
@@ -153,29 +231,103 @@ int main() {
     }
 
     draw();
+
     currCenter = currShape->get_center();
     currRadiusX = currShape->get_scaleX();
     currRadiusY = currShape->get_scaleY();
     currSegments = currShape->get_segments();
+    currLOD = currShape->get_lod();
     currShapeColor = currShape->get_shape_fill_color();
-    renderer.get_ellipse_points(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currSegments, currPoints);
+    if(currShape == line){
+      currThickness = currLOD;
+    }
+    currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
+    currPoints = currShape->get_points();
 
+    // Add rotation
+    float rotation = (float)M_PI/18; // ~10 degrees
     if(keysDown.a){
-      rotate_points(currPoints, M_PI/12);
+      currAngle += rotation;
+    } else if (keysDown.b) {
+      currAngle -= rotation;
     }
 
+    // Adjust single scale shape
     if(keysDown.l){
-      scale_shape(currShape);
+      increase_scale(currShape);
     }
     if(keysDown.r){
-      scale_segments(currShape);
+      decrease_scale(currShape);
     }
 
-    
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 180, "Number of current points: %u\n", currPoints.size());
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 200, "Tris: %u", triCount);
+    // Fine tunes individual scales
+    if(keysDown.c_up){
+      increase_y_scale(currShape);
+    }
+    if(keysDown.c_down){
+      decrease_y_scale(currShape);
+    }
+    if(keysDown.c_left){
+      increase_x_scale(currShape);
+    }
+    if(keysDown.c_right){
+      decrease_x_scale(currShape);
+    }
+
+    // Adjusts LOD
+    if(currShape == ellipse){
+      if(keys.d_up){
+        increase_lod(currShape);
+      }
+      if(keys.d_down){
+        decrease_lod(currShape);
+      }
+
+      // UI
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 140, 
+        "Scale: %.2f\n"
+        "Rotation: %.2f\n"
+        "Segments: %u\n"
+        "Verts: %u\n"
+        "LOD: %.2f\n"
+        "Tris: %u\n"
+        "FPS: %.2f",
+        currRadiusX,
+        currAngle,
+        triCount,
+        triCount*2,
+        currLOD,
+        triCount,
+        display_get_fps()
+      );
+    } else {
+      if(keysDown.d_up){
+        increase_thickness(currShape);
+      }
+      if(keysDown.d_down){
+        decrease_thickness(currShape);
+      }
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 140, 
+        "Scale X: %.2f\n"
+        "Scale Y: %.2f\n"
+        "Rotation: %.2f\n"
+        "Segments: %u\n"
+        "Verts: %u\n"
+        "Thickness: %.2f\n"
+        "Tris: %u\n"
+        "FPS: %.2f",
+        currRadiusX,
+        currRadiusY,
+        currAngle,
+        triCount,
+        triCount*2,
+        currLOD,
+        triCount,
+        display_get_fps()
+      );
+    }
+
     triCount = 0;
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 220, "FPS: %.2f", display_get_fps());
 
     rdpq_detach_show();
   }

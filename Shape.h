@@ -11,7 +11,9 @@ public:
 
     Shape();
     Shape(Point origin, float scale, int segments, color_t shapeColor);
+    Shape(Point origin, float scale, float lod, color_t shapeColor);
     Shape(Point origin, float scale1, float scale2, int segments, color_t shapeColor);
+    Shape(Point origin, float scale1, float scale2, float lod, color_t shapeColor);
 
     const std::vector<Point>& get_points() const { return currPoints; }
     void set_points(const std::vector<Point>& points) { this->currPoints = points; };
@@ -31,6 +33,9 @@ public:
     void set_segments(int segments) { this->segments = segments; }
     int get_segments() const { return segments; }
 
+    void set_lod(float lod) { this->lod = lod; }
+    float get_lod() const { return lod; }
+
     void set_shape_fill_color(color_t shapeColor) { this->shapeColor = shapeColor; }
     color_t get_shape_fill_color() const { return shapeColor; }
 
@@ -43,6 +48,7 @@ private:
     float scaleX;
     float scaleY;
     int segments;
+    float lod;
     color_t shapeColor;
 };
 

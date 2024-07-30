@@ -74,15 +74,24 @@ Point Point::translate(Point p, float dx, float dy) {
     return p;
 }
 
-// Rotates a Point around the origin by a given angle
-Point Point::rotate(Point p, float angle) {
+// Rotates a Point around a given center by a given angle
+Point Point::rotate(Point p, Point center, float angle) {
     float s = fm_sinf(angle);
     float c = fm_cosf(angle);
-    float xnew = p.x * c - p.y * s;
-    float ynew = p.x * s + p.y * c;
-    p.x = xnew;
-    p.y = ynew;
-    return p;
+    
+    // Translate point to origin
+    float xnew = p.x - center.x;
+    float ynew = p.y - center.y;
+
+    // Rotate point
+    float xrot = xnew * c - ynew * s;
+    float yrot = xnew * s + ynew * c;
+
+    // Translate point back
+    xrot += center.x;
+    yrot += center.y;
+
+    return Point(xrot, yrot);
 }
 
 // Transforms a Point by translating it along a direction given by an angle and distance
