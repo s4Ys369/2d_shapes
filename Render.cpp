@@ -18,11 +18,7 @@ std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, 
     float y = center.y + ry * sinf(angle);
     points.push_back(Point(x, y));
   }
-  //debugf("Ellipse points: ");
-  for (const auto& point : points) {
-    //debugf("(%f, %f) ", point.x, point.y);
-  }
-  //debugf("\n");
+
   return points;
 }
 
@@ -43,11 +39,6 @@ void Render::draw_fan(const std::vector<Point>& points) {
     vertCount += 2;
   }
 
-  //debugf("Drawing fan with points: ");
-  for (const auto& point : points) {
-    //debugf("(%f, %f) ", point.x, point.y);
-  }
-  //debugf("\n");
 }
 
 // Draw a uniformed closed shape of any number of vertices as a triangle fan
