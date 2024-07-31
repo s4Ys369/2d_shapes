@@ -22,6 +22,23 @@ std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, 
   return points;
 }
 
+// Function to draw RDPQ triangles using vertex arrays
+void Render::draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count) {
+    for (int i = 0; i < index_count; i += 3) {
+        int idx1 = indices[i];
+        int idx2 = indices[i + 1];
+        int idx3 = indices[i + 2];
+        
+        float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
+        float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
+        float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
+        
+        rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+        triCount++;
+        vertCount += 1;
+    }
+}
+
 // Function to draw a triangle fan
 void Render::draw_fan(const std::vector<Point>& points) {
   if (points.size() < 3){ debugf("Need at least 3 points to form a triangle"); return; }
@@ -75,9 +92,61 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
   int base_segments = 100; // Base number of segments for the highest LOD
   int segments = std::max(static_cast<int>(base_segments * lod), 3);
 
-  float theta = 2.0f * M_PI / float(segments);
+  // Area thresholds
+  float area = rx * 2.0f;
+  float offset = (float)area * 0.3f;
+
+  debugf("Area %.0f\n", area);
+
+  if(area <= 0.9f) {
+
+    // If only drawing subpixels, exit
+    debugf("Do you really need subpixels?\n");
+    return;
+
+  } else if (area >= 1.0f && area < 2.9f) {
+
+    // If only drawing ~4 pixels or less, just draw a quad to save triangles
+    draw_line(cx-offset,cy-offset,cx+offset,cy+offset,angle,1.0f);
+    debugf("Simpilifed to quad\n");
+    return;
+
+  } else  if (area >= 3.0f && area <= 4.9f) {
+
+    segments = (int)(area)/2;
+    if(segments < 6){
+      segments = 6;
+    }
+    debugf("Segments %u\n", segments);
+
+  } else  if (area > 5.0f && area <= 9.9f) {
+
+    segments = (int)(area)/3;
+  
+    if(segments < 6){
+      segments = 6;
+    }
+
+    debugf("Segments %u\n", segments);
+
+  } else  if (area > 9.9f) {
+
+    segments = (int)(area)/2;
+
+    if(segments < 6){
+      segments = 6;
+    }
+
+    // CHANGE: Set highest level of detail, currently 100 triangles
+    if(segments > 100 || lod > 1.0f){
+      segments = 100;
+    }
+
+    debugf("Segments %u\n", segments);
+  }
 
   // Calculate angles for position
+  float theta = 2.0f * M_PI / float(segments);
   float cos_theta = fm_cosf(theta);
   float sin_theta = fm_sinf(theta);
 
@@ -96,7 +165,7 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
   float x = rx;
   float y = 0.0f;
 
-  // For segment/triangle
+  // Per segment/triangle
   for (int i = 0; i < segments; ++i) {
 
     // Apply rotation
@@ -123,7 +192,7 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
   }
 
   // Draw the indexed vertices
-  rdpq_draw_indexed_triangles(&vertices[0], vertices.size(), &indices[0], indices.size());
+  draw_indexed_triangles(&vertices[0], vertices.size(), &indices[0], indices.size());
 
 }
 

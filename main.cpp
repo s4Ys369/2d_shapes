@@ -9,7 +9,7 @@ surface_t disp;
 int example, triCount, vertCount;
 float stickX, stickY;
 uint64_t bootTime, firstTime, secondTime, dispTime, jpTime, drawTime;
-uint32_t screenWidth, screenHeight;
+uint32_t screenWidth, screenHeight, frameCounter;
 
 // Shape pointers
 Shape* currShape;
@@ -41,6 +41,7 @@ void setup() {
   jpTime = 0;
   dispTime = 0;
   drawTime = 0;
+  frameCounter = 0;
     
   dfs_init(DFS_DEFAULT_LOCATION);
 
@@ -58,6 +59,7 @@ void setup() {
 
   example = 0;
   triCount = 0;
+  vertCount = 0;
   stickX = 0.0f;
   stickY = 0.0f;
 
@@ -80,6 +82,9 @@ void draw() {
       currRadiusY = currShape->get_scaleY();
       currSegments = currShape->get_segments();
       currLOD = currShape->get_lod();
+      if(currLOD < ((float)currSegments*0.01f)){
+        currLOD = ((float)currSegments*0.01f);
+      }
       currShapeColor = currShape->get_shape_fill_color();
       renderer.set_fill_color(currShapeColor);
       currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
@@ -126,7 +131,7 @@ void reset_example() {
   } else {
     currShape->set_center(Point(screenWidth/2,screenHeight/2));
     currShape->set_scaleX(20.0f);
-    currShape->set_scaleX(20.0f);
+    currShape->set_scaleY(20.0f);
   }
 }
 
@@ -152,26 +157,26 @@ void decrease_scale(Shape *currShape) {
 
 void increase_x_scale(Shape *currShape) {
   float currentScaleX = currShape->get_scaleX();
-  if(currentScaleX < 500.0f){
-    currShape->set_scaleX(currentScaleX + 1.0f);
+  if(currentScaleX < (display_get_height()/2)){
+    currShape->set_scaleX(currentScaleX + 0.1f);
   } else {
-    currShape->set_scaleX(0.1f);
+    currShape->set_scaleX(1.0f);
   }
 }
 
 void decrease_x_scale(Shape *currShape) {
   float currentScaleX = currShape->get_scaleX();
-  if(currentScaleX > 0.1f){
-    currShape->set_scaleX(currentScaleX - 1.0f);
+  if(currentScaleX > 1.1f){
+    currShape->set_scaleX(currentScaleX - 0.1f);
   } else {
-    currShape->set_scaleX(500.0f);
+    currShape->set_scaleX((display_get_height()/2));
   }
 }
 
 void increase_y_scale(Shape *currShape) {
   float currentScaleY = currShape->get_scaleY();
-  if(currentScaleY < 500.0f){
-    currShape->set_scaleY(currentScaleY + 1.0f);
+  if(currentScaleY < (display_get_width()/2)){
+    currShape->set_scaleY(currentScaleY + 0.1f);
   } else {
     currShape->set_scaleY(0.1f);
   }
@@ -182,7 +187,7 @@ void decrease_y_scale(Shape *currShape) {
   if(currentScaleY > 0.1f){
     currShape->set_scaleY(currentScaleY - 1.0f);
   } else {
-    currShape->set_scaleY(500.0f);
+    currShape->set_scaleY((display_get_width()/2));
   }
 }
 
@@ -277,18 +282,24 @@ int main() {
     // Shape update
     currCenter = currShape->get_center();
     currRadiusX = currShape->get_scaleX();
-    currRadiusY = currShape->get_scaleY();
-    if(currShape == ellipse){
-      currShape->set_segments(triCount); // For the ellipse (ie fan) segments and triangles are essentially the same
-    } else {
-      currShape->set_segments(triCount/2); // 1 segment per 2 triangles for the quad
-    }
     currSegments = currShape->get_segments();
     currLOD = currShape->get_lod();
-    currShapeColor = currShape->get_shape_fill_color();
-    if(currShape == quad){
+
+    if(currShape == ellipse){
+      currShape->set_segments(triCount); // For the ellipse (ie fan) segments and triangles are essentially the same
+      //currShape->set_scaleY(currRadiusX);
+      //currRadiusY = currShape->get_scaleY();
+      if(currLOD < ((float)currSegments*0.01f)){
+        currLOD = ((float)currSegments*0.01f);
+      }
+    } else {
+      currShape->set_segments(triCount/2); // 1 segment per 2 triangles for the quad
+      currRadiusY = currShape->get_scaleY();
       currThickness = currLOD;
     }
+
+    currShapeColor = currShape->get_shape_fill_color();
+
     currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
     currPoints = currShape->get_points();
 
@@ -302,10 +313,10 @@ int main() {
     }
 
     // Adjust single scale shape
-    if(keysDown.l){
+    if(keysDown.r){
       increase_scale(currShape);
     }
-    if(keysDown.r){
+    if(keysDown.l){ // CHANGE: Z for console?
       decrease_scale(currShape);
     }
 
@@ -316,10 +327,10 @@ int main() {
     if(keysDown.c_down){
       decrease_y_scale(currShape);
     }
-    if(keysDown.c_left){
+    if(keysDown.c_right){
       increase_x_scale(currShape);
     }
-    if(keysDown.c_right){
+    if(keysDown.c_left){
       decrease_x_scale(currShape);
     }
 
@@ -339,7 +350,11 @@ int main() {
         decrease_lod(currShape);
       }
 
-      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
+      // Every econd we profile the CPU time to draw 
+      if(frameCounter > 59){
+        drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
+        frameCounter = 0;
+      }
 
       //=========== ~ UI ~ =============//
 
@@ -402,7 +417,8 @@ int main() {
     secondTime = 0;
     jpTime = 0;
     dispTime = 0;
-    drawTime = 0;
+
+    frameCounter++;
 
     rdpq_detach_show();
   }

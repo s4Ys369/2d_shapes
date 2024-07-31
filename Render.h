@@ -11,6 +11,7 @@ public:
 
     void set_fill_color(color_t color);
     std::vector<Point> get_ellipse_points(Point center, float rx, float ry, int segments);
+    void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
     void draw_fan(const std::vector<Point>& points);
     void draw_ellipse(float cx, float cy, float rx, float ry, float angle, float lod);
     void draw_line(float x1, float y1, float x2, float y2, float angle, float thickness);

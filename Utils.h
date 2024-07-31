@@ -29,6 +29,5 @@ float simplify_angle(float angle);
 float rel_angle_diff(float angle, float anchor);
 float constrain_angle(float angle, float anchor, float constraint);
 float apply_deadzone(float value);
-void rdpq_draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
 
 #endif // UTILS_H

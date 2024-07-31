@@ -52,20 +52,3 @@ float apply_deadzone(float value) {
     }
   }
 }
-
-// Prototype: Function to draw RDPQ triangles using vertex arrays
-void rdpq_draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count) {
-    for (int i = 0; i < index_count; i += 3) {
-        int idx1 = indices[i];
-        int idx2 = indices[i + 1];
-        int idx3 = indices[i + 2];
-        
-        float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
-        float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
-        float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
-        
-        rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-        triCount++;
-        vertCount += 1;
-    }
-}
