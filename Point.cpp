@@ -13,7 +13,7 @@ void Point::add(const Point& v) {
 }
 
 // Returns a new Point that is the result of adding two Point objects
-Point Point::add(const Point& v1, const Point& v2) {
+Point Point::sum(const Point& v1, const Point& v2) {
     return Point(v1.x + v2.x, v1.y + v2.y);
 }
 
@@ -49,9 +49,12 @@ void Point::normalize() {
 
 // Sets the magnitude of the vector represented by the current Point to a new value
 Point& Point::set_mag(float newMag) {
-    normalize();
-    x *= newMag;
-    y *= newMag;
+    float mag = magnitude();
+    if (mag != 0) {
+        normalize();
+        x *= newMag;
+        y *= newMag;
+    }
     return *this;
 }
 

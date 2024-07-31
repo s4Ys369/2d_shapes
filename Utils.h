@@ -7,6 +7,7 @@
 
 // Constants
 const float TWO_PI = 2 * M_PI;
+const float radiansToDegrees = 180.0f / M_PI;
 const float DEADZONE = 0.02f; // Define the deadzone threshold
 
 extern int triCount;

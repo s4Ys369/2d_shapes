@@ -6,16 +6,15 @@
 
 // Global variables
 surface_t disp;
-int example;
-int triCount;
-int vertCount;
-float stickX;
-float stickY;
+int example, triCount, vertCount;
+float stickX, stickY;
+uint64_t bootTime, firstTime, secondTime, dispTime, jpTime, drawTime;
+uint32_t screenWidth, screenHeight;
 
 // Shape pointers
 Shape* currShape;
 Shape* ellipse;
-Shape* line;
+Shape* quad;
 Shape* fan;
 
 // Local variables
@@ -36,12 +35,18 @@ void setup() {
 
   debug_init_isviewer();
   debug_init_usblog();
+  bootTime= 0;
+  firstTime = 0;
+  secondTime = 0;
+  jpTime = 0;
+  dispTime = 0;
+  drawTime = 0;
     
   dfs_init(DFS_DEFAULT_LOCATION);
 
   display_init(RESOLUTION_320x240, DEPTH_16_BPP, 3, GAMMA_NONE, FILTERS_RESAMPLE_ANTIALIAS_DEDITHER);
-  float screenWidth = display_get_width();
-  float screenHeight = display_get_height();
+  screenWidth = display_get_width();
+  screenHeight = display_get_height();
   disp = surface_alloc(FMT_RGBA16, screenWidth, screenHeight);
 
   rdpq_init();
@@ -56,8 +61,8 @@ void setup() {
   stickX = 0.0f;
   stickY = 0.0f;
 
-  ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 1.0f, RED);
-  line = new Shape(Point(screenWidth/2,screenHeight/2), 10.0f, 1.0f, GREEN);
+  ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 0.05f, RED);
+  quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, GREEN);
   fan = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 10, BLUE);
 
 }
@@ -82,14 +87,14 @@ void draw() {
       currPoints = currShape->get_points();
       break;
     case 1:
-      currShape = line;
-      line->resolve(stickX, stickY);
+      currShape = quad;
+      quad->resolve(stickX, stickY);
       currCenter = currShape->get_center();
       currRadiusX = currShape->get_scaleX();
       currRadiusY = currShape->get_scaleY();
       currThickness = currShape->get_lod();
       currShapeColor = currShape->get_shape_fill_color();
-      currShape->set_segments(1); // Initialized as 3 for ellipse, but a line has only one segment per draw
+      currShape->set_segments(1); // Initialized as 3 for ellipse, but a quad has only one segment per draw
       renderer.set_fill_color(currShapeColor);
       renderer.draw_line(
         currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
@@ -112,8 +117,21 @@ void switch_example() {
   }
 }
 
+void reset_example() {
+  currAngle = 0;
+  if(currShape == ellipse){
+    currShape->set_center(Point(screenWidth/2,screenHeight/2));
+    currShape->set_scaleX(20.0f);
+    currShape->set_lod(0.05f);
+  } else {
+    currShape->set_center(Point(screenWidth/2,screenHeight/2));
+    currShape->set_scaleX(20.0f);
+    currShape->set_scaleX(20.0f);
+  }
+}
+
 void increase_scale(Shape *currShape) {
-  if(currShape->get_scaleX() < 100.0f && currShape->get_scaleY() < 100.0f){
+  if(currShape->get_scaleX() < (display_get_height()/2) && currShape->get_scaleX() < (display_get_width()/2)){
     currShape->set_scaleX(currShape->get_scaleX() + 1.0f);
     currShape->set_scaleY(currShape->get_scaleY() + 1.0f);
   } else {
@@ -127,8 +145,8 @@ void decrease_scale(Shape *currShape) {
     currShape->set_scaleX(currShape->get_scaleX() - 1.0f);
     currShape->set_scaleY(currShape->get_scaleY() - 1.0f);
   } else {
-    currShape->set_scaleX(100.0f);
-    currShape->set_scaleY(100.0f);
+    currShape->set_scaleX((display_get_height()/2));
+    currShape->set_scaleY((display_get_width()/2));
   }
 }
 
@@ -137,13 +155,13 @@ void increase_x_scale(Shape *currShape) {
   if(currentScaleX < 500.0f){
     currShape->set_scaleX(currentScaleX + 1.0f);
   } else {
-    currShape->set_scaleX(0.0f);
+    currShape->set_scaleX(0.1f);
   }
 }
 
 void decrease_x_scale(Shape *currShape) {
   float currentScaleX = currShape->get_scaleX();
-  if(currentScaleX > 0.0f){
+  if(currentScaleX > 0.1f){
     currShape->set_scaleX(currentScaleX - 1.0f);
   } else {
     currShape->set_scaleX(500.0f);
@@ -155,13 +173,13 @@ void increase_y_scale(Shape *currShape) {
   if(currentScaleY < 500.0f){
     currShape->set_scaleY(currentScaleY + 1.0f);
   } else {
-    currShape->set_scaleY(0.0f);
+    currShape->set_scaleY(0.1f);
   }
 }
 
 void decrease_y_scale(Shape *currShape) {
   float currentScaleY = currShape->get_scaleY();
-  if(currentScaleY > 0.0f){
+  if(currentScaleY > 0.1f){
     currShape->set_scaleY(currentScaleY - 1.0f);
   } else {
     currShape->set_scaleY(500.0f);
@@ -169,34 +187,34 @@ void decrease_y_scale(Shape *currShape) {
 }
 
 void increase_lod(Shape *currShape) {
-  if(currShape->get_lod() < 1.0f){
+  if(currShape->get_lod() < 2.0f){
+    currShape->set_lod(currShape->get_lod() + 0.05f);
+  } else {
+    currShape->set_lod(0.05f);
+  }
+}
+
+void decrease_lod(Shape *currShape) {
+  if(currShape->get_lod() >= 0.1f){
+    currShape->set_lod(currShape->get_lod() - 0.05f);
+  } else {
+    currShape->set_lod(2.0f);
+  }
+}
+
+void increase_thickness(Shape *currShape) {
+  if(currShape->get_lod() < 10.0f){
     currShape->set_lod(currShape->get_lod() + 0.01f);
   } else {
     currShape->set_lod(0.01f);
   }
 }
 
-void decrease_lod(Shape *currShape) {
+void decrease_thickness(Shape *currShape) {
   if(currShape->get_lod() >= 0.02f){
     currShape->set_lod(currShape->get_lod() - 0.01f);
   } else {
-    currShape->set_lod(1.0f);
-  }
-}
-
-void increase_thickness(Shape *currShape) {
-  if(currShape->get_lod() < 100.0f){
-    currShape->set_lod(currShape->get_lod() + 0.1f);
-  } else {
-    currShape->set_lod(0.1f);
-  }
-}
-
-void decrease_thickness(Shape *currShape) {
-  if(currShape->get_lod() >= 0.2f){
-    currShape->set_lod(currShape->get_lod() - 0.1f);
-  } else {
-    currShape->set_lod(100.0f);
+    currShape->set_lod(10.0f);
   }
 }
 
@@ -215,8 +233,11 @@ void scale_segments(Shape *currShape) {
 // Main function with rendering loop
 int main() {
   setup();
+  bootTime = get_ticks_ms();
 
-  while (1) {
+  for (;;) {
+
+    firstTime = get_ticks_ms();// set loop time
 
     rdpq_attach(display_get(), &disp);
     rdpq_clear(WHITE);
@@ -225,6 +246,9 @@ int main() {
     rdpq_sync_pipe();
     rdpq_set_mode_standard();
     rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+
+    dispTime = get_ticks_ms() - firstTime; // set display time
+    secondTime = get_ticks_ms();
 
     joypad_poll();
     joypad_inputs_t input = joypad_get_inputs(JOYPAD_PORT_1);
@@ -238,8 +262,14 @@ int main() {
     stickX = (float)input.stick_x;
     stickY = (float)input.stick_y;
 
+    jpTime = get_ticks_ms() - secondTime; // set input time
+
     if (keys.z) {
       switch_example();
+    }
+
+    if (keys.start) {
+      reset_example();
     }
 
     draw();
@@ -251,19 +281,20 @@ int main() {
     if(currShape == ellipse){
       currShape->set_segments(triCount); // For the ellipse (ie fan) segments and triangles are essentially the same
     } else {
-      currShape->set_segments(triCount/2); // 1 segment per 2 triangles for the line
+      currShape->set_segments(triCount/2); // 1 segment per 2 triangles for the quad
     }
     currSegments = currShape->get_segments();
     currLOD = currShape->get_lod();
     currShapeColor = currShape->get_shape_fill_color();
-    if(currShape == line){
+    if(currShape == quad){
       currThickness = currLOD;
     }
     currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
     currPoints = currShape->get_points();
 
     // Add rotation
-    float rotation = (float)M_PI/18; // ~10 degrees
+    float rotation = (float)(M_PI)/18.0f; // ~10 degrees
+
     if(keysDown.a){
       currAngle += rotation;
     } else if (keysDown.b) {
@@ -292,6 +323,13 @@ int main() {
       decrease_x_scale(currShape);
     }
 
+    float rotationDegrees = currAngle * radiansToDegrees;
+
+    if(fabsf(rotationDegrees) > 360.0f) {
+      currAngle = 0;
+      rotationDegrees = 0;
+    }
+
     // Adjusts LOD
     if(currShape == ellipse){
       if(keys.d_up){
@@ -301,53 +339,70 @@ int main() {
         decrease_lod(currShape);
       }
 
+      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
+
       //=========== ~ UI ~ =============//
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 120, 
-        "Diameter: %.2f\n"
-        "Rotation: %.2f\n"
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100, 
+        "Ellipse\n"
+        "\n"
+        "Diameter: %.0fpx\n"
+        "Rotation: %.0f\n"
         "Verts: %u\n"
         "LOD: %.2f\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
+        "Draw Time: %lldms\n"
         "RAM %dKB/%dKB",
-        currRadiusX, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
-        currAngle,
+        currRadiusX*2, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
+        rotationDegrees,
         vertCount+1, // All triangles in the fan use the center vertex and previous vertex, so only accumulate 1 per draw, then add center here
         currLOD,
         triCount,
         display_get_fps(),
+        drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)
       );
     } else {
+
       if(keysDown.d_up){
         increase_thickness(currShape);
       }
       if(keysDown.d_down){
         decrease_thickness(currShape);
       }
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 120, 
-        "Length: %.2f\n"
-        "Rotation: %.2f\n"
-        "Segments: %u\n"
+
+      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
+
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
+        "Quad\n"
+        "\n"
+        "Width: %.0fpx\n"
+        "Height: %.0fpx\n"
+        "Rotation: %.0f\n"
         "Verts: %u\n"
-        "Thickness: %.2f\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
+        "Draw Time: %lldms\n"
         "RAM %dKB/%dKB",
-        currRadiusX, // For a line, both scale values are the same and used to change the length of the quad
-        currAngle,
-        currSegments, // 1 segment per 2 triangles
-        vertCount, // Always 4 vertices per line
-        currLOD,
-        triCount, // Always 2 triangles per line
+        currRadiusX*2,
+        currRadiusY*2,
+        rotationDegrees,
+        vertCount, // Always 4 vertices per quad
+        triCount, // Always 2 triangles per quad
         display_get_fps(),
+        drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)
       );
     }
 
     triCount = 0;
     vertCount = 0;
+    firstTime = 0;
+    secondTime = 0;
+    jpTime = 0;
+    dispTime = 0;
+    drawTime = 0;
 
     rdpq_detach_show();
   }

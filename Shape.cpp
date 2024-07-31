@@ -15,17 +15,17 @@ Shape::Shape(Point origin, float scaleX, int segments, color_t shapeColor)
         segments(segments),
         shapeColor(shapeColor) {}
 
-// Ellipse/line constructor
+// Ellipse
 Shape::Shape(Point origin, float scaleX, float lod, color_t shapeColor)
     : center(origin),
         scaleX(scaleX),
-        scaleY(scaleX),
+        scaleY(1.0f),
         segments(3), // base amount to draw a triangle
         lod(lod),
         shapeColor(shapeColor) {}
 
-// Strip constructor
-Shape::Shape(Point origin, float scaleX, float scaleY, int segments, color_t shapeColor)
+// Strip/line constructor
+Shape::Shape(Point origin, float scaleX, float scaleY, float thickness, int segments, color_t shapeColor)
     : center(origin),
         scaleX(scaleX),
         scaleY(scaleY),
@@ -70,7 +70,7 @@ void Shape::resolve(float stickX, float stickY) {
 
     // Determine the target position based on the direction and a fixed magnitude
     float move_mag = 3.5f;
-    targetPos = Point::add(currPos, direction.set_mag(move_mag));
+    targetPos = Point::sum(currPos, direction.set_mag(move_mag));
 
     set_center(targetPos);
     // debugf("X %.1f\nY %.1f\n", targetPos.x, targetPos.y);

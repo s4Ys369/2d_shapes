@@ -5,7 +5,7 @@
 
 // Function to adjust a point's position to be within a certain range relative to an anchor point, constrained by a given amount
 Point constrain_distance(Point pos, Point anchor, float constraint) {
-    return Point::add(anchor, Point::sub(pos, anchor).set_mag(constraint));
+    return Point::sum(anchor, Point::sub(pos, anchor).set_mag(constraint));
 }
 
 // Function to normalize an angle to be within the range [0,2pi]

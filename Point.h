@@ -11,7 +11,7 @@ public:
     Point(float x = 0, float y = 0);
 
     void add(const Point& v);
-    static Point add(const Point& v1, const Point& v2);
+    static Point sum(const Point& v1, const Point& v2);
     static Point sub(const Point& v1, const Point& v2);
     float heading() const;
     static Point from_angle(float angle);

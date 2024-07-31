@@ -138,66 +138,66 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
 
 // Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
 void Render::draw_line(float x1, float y1, float x2, float y2, float angle, float thickness) {
+    // Define points
+    Point start(x1, y1);
+    Point end(x2, y2);
 
-  // Define points
-  Point start(x1, y1);
-  Point end(x2, y2);
+    // Calculate the center of the line segment
+    Point center((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
 
-  // Calculate the center of the line segment
-  Point center((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
+    // Calculate direction vector
+    Point direction = Point::sub(end, start);
+    float length = direction.magnitude();
 
-  // Calculate direction vector
-  Point direction = Point::sub(end, start);
-  float length = direction.magnitude();
+    // Check for non-zero length and normalize
+    if (length > 0) {
+        direction.normalize(); // Normalize the direction vector
+    } else {
+        debugf("Line length cannot be 0");
+        return;
+    }
 
-  // Check for non-zero length and normalize
-  if (length > 0) {
-    direction.normalize(); // Normalize the direction vector
-  } else {
-    debugf("Line length cannot be 0");
-    return;
-  }
+    // Calculate the perpendicular vector for the thickness
+    Point perp(-direction.y, direction.x); // Perpendicular to direction
+    perp.set_mag(thickness / 2); // Set the magnitude to half of the thickness
 
-  // Calculate the perpendicular vector for the thickness
-  Point perp(-direction.y, direction.x); // Perpendicular to direction
-  perp.set_mag(thickness / 2); // Set the magnitude to half of the thickness
+    // Rotation matrix
+    float cos_angle = fm_cosf(angle);
+    float sin_angle = fm_sinf(angle);
 
-  // Rotation matrix
-  float cos_angle = fm_cosf(angle);
-  float sin_angle = fm_sinf(angle);
+    // Compute the points for the line
+    Point p1_left = { start.x , start.y - perp.y };
+    Point p1_right = { end.x , start.y - perp.y };
+    Point p2_left = { start.x , end.y};
+    Point p2_right = end;
 
-  // Compute the points for the line
-  Point p1_left = Point::add(start, perp);
-  Point p1_right = Point::sub(start, perp);
-  Point p2_left = Point::add(end, perp);
-  Point p2_right = Point::sub(end, perp);
+    // Rotate each vertex around the center of the line segment
+    auto rotate_line_point = [cos_angle, sin_angle](Point& p, const Point& center) {
+        float tx = p.x - center.x;
+        float ty = p.y - center.y;
+        p.x = center.x + (tx * cos_angle - ty * sin_angle);
+        p.y = center.y + (tx * sin_angle + ty * cos_angle);
+    };
 
-  // Rotate each vertex around the center of the line segment
-  auto rotate_line_point = [cos_angle, sin_angle](Point& p, const Point& center) {
-    float tx = p.x - center.x;
-    float ty = p.y - center.y;
-    p.x = center.x + (tx * cos_angle - ty * sin_angle);
-    p.y = center.y + (tx * sin_angle + ty * cos_angle);
-  };
+    // Rotate the trapezoid vertices
+    rotate_line_point(p1_left, center);
+    rotate_line_point(p1_right, center);
+    rotate_line_point(p2_left, center);
+    rotate_line_point(p2_right, center);
 
-  // Rotate the trapezoid vertices
-  rotate_line_point(p1_left, center);
-  rotate_line_point(p1_right, center);
-  rotate_line_point(p2_left, center);
-  rotate_line_point(p2_right, center);
+    // Define vertices for two triangles to form the line with thickness
+    float v1[] = { p1_left.x, p1_left.y };
+    float v2[] = { p1_right.x, p1_right.y };
+    float v3[] = { p2_left.x, p2_left.y };
+    float v4[] = { p2_right.x, p2_right.y };
 
-  // Define vertices for two triangles to form the line with thickness
-  float v1[] = { p1_left.x, p1_left.y };
-  float v2[] = { p1_right.x, p1_right.y };
-  float v3[] = { p2_left.x, p2_left.y };
-  float v4[] = { p2_right.x, p2_right.y };
-
-  // Draw two triangles to form the line
-  rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
-  rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
-  triCount += 2; // Increment triangle count
-  vertCount += 4; // Increment vertex count
+    // Draw two triangles to form the line
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
+    rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
+    triCount += 2; // Increment triangle count
+    vertCount += 4; // Increment vertex count
 }
+
 
 // Function to draw a Bézier curve as a triangle strip and returns the curve as a point array
 void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float thickness) {
