@@ -43,7 +43,7 @@ std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, 
     float angle = i * angleStep;
     float x = center.x + rx * cosf(angle);
     float y = center.y + ry * sinf(angle);
-    points.push_back(Point(x, y));
+    points.emplace_back(Point(x, y));
   }
 
   return points;
@@ -203,8 +203,8 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
   std::vector<int> indices;
 
   // Center vertex
-  vertices.push_back(cx);
-  vertices.push_back(cy);
+  vertices.emplace_back(cx);
+  vertices.emplace_back(cy);
 
   // Calculate perimeter vertices
   float x = rx;
@@ -216,8 +216,8 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
     // Apply rotation
     float rotatedX = x * cos_angle - y * sin_angle;
     float rotatedY = x * sin_angle + y * cos_angle;
-    vertices.push_back(cx + rotatedX);
-    vertices.push_back(cy + rotatedY);
+    vertices.emplace_back(cx + rotatedX);
+    vertices.emplace_back(cy + rotatedY);
 
     // Calculate next position from rotation matrix
     float nextX = cos_theta * x - sin_theta * y;
@@ -231,9 +231,9 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
 
   // Create indices for a triangle fan
   for (int i = 1; i <= segments; ++i) {
-      indices.push_back(0);         // Center vertex, always first index for a fan
-      indices.push_back(i);         // Current perimeter vertex
-      indices.push_back((i % segments) + 1); // Next perimeter vertex
+      indices.emplace_back(0);         // Center vertex, always first index for a fan
+      indices.emplace_back(i);         // Current perimeter vertex
+      indices.emplace_back((i % segments) + 1); // Next perimeter vertex
   }
 
   // Draw the indexed vertices
@@ -310,19 +310,24 @@ void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2
   std::vector<float> vertices;
   std::vector<int> indices;
 
+  curvePoints.clear();
+  curvePoints.reserve(segments + 1);
+
+  float step = 1.0f / float(segments);
+
   // Compute Bézier curve points
   for (int i = 0; i <= segments; ++i) {
-    float t = float(i) / float(segments);
+    float t = i * step;
     float u = 1 - t;
     float tt = t * t;
     float uu = u * u;
     float uuu = uu * u;
     float ttt = tt * t;
 
-    Point p = { uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
-                uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y };
+    float x = uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x;
+    float y = uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y;
 
-    curvePoints.push_back(p);
+    curvePoints.emplace_back(Point{x, y});
   }
 
   // Center of the curve for rotation
@@ -351,10 +356,10 @@ void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2
     Point right = p - perp * (thickness / 2);
 
     // Add vertices for the strip
-    vertices.push_back(left.x);
-    vertices.push_back(left.y);
-    vertices.push_back(right.x);
-    vertices.push_back(right.y);
+    vertices.emplace_back(left.x);
+    vertices.emplace_back(left.y);
+    vertices.emplace_back(right.x);
+    vertices.emplace_back(right.y);
 
     // Add indices for the strip
     if (i > 0) {
@@ -362,13 +367,13 @@ void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2
       int currIndex = i * 2;
 
       // Two triangles per segment
-      indices.push_back(prevIndex);    // Left side of previous segment
-      indices.push_back(currIndex);    // Left side of current segment
-      indices.push_back(prevIndex + 1); // Right side of previous segment
+      indices.emplace_back(prevIndex);    // Left side of previous segment
+      indices.emplace_back(currIndex);    // Left side of current segment
+      indices.emplace_back(prevIndex + 1); // Right side of previous segment
 
-      indices.push_back(prevIndex + 1); // Right side of previous segment
-      indices.push_back(currIndex);    // Left side of current segment
-      indices.push_back(currIndex + 1); // Right side of current segment
+      indices.emplace_back(prevIndex + 1); // Right side of previous segment
+      indices.emplace_back(currIndex);    // Left side of current segment
+      indices.emplace_back(currIndex + 1); // Right side of current segment
     }
   }
 
@@ -412,7 +417,7 @@ void Render::draw_filled_beziers(const Point& p0, const Point& p1, const Point& 
 
         Point p = { uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
                       uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y };
-        upper_curve.push_back(p);
+        upper_curve.emplace_back(p);
     }
 
     // Generate points for the lower Bézier curve
@@ -426,7 +431,7 @@ void Render::draw_filled_beziers(const Point& p0, const Point& p1, const Point& 
 
         Point q = { uuu * q0.x + 3 * uu * t * q1.x + 3 * u * tt * q2.x + ttt * q3.x,
                       uuu * q0.y + 3 * uu * t * q1.y + 3 * u * tt * q2.y + ttt * q3.y };
-        lower_curve.push_back(q);
+        lower_curve.emplace_back(q);
     }
 
     // Fill the area between the two curves
@@ -516,11 +521,11 @@ void Render::draw_filled_bezier_shape(const Point& p0, const Point& p1, const Po
     Point p = { uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
                   uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y };
 
-    curvePoints.push_back(p);
+    curvePoints.emplace_back(p);
   }
 
   // Close the polygon by connecting the last point back to the first
-  curvePoints.push_back(curvePoints[0]);
+  curvePoints.emplace_back(curvePoints[0]);
 
   // Triangulate the closed polygon (using a simple ear clipping method)
   std::vector<Point> triangles;
