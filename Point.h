@@ -21,7 +21,7 @@ public:
     Point copy() const;
     static Point scale(const Point& center, const Point& point, float scale);
     static Point translate(Point p, float dx, float dy);
-    static Point rotate(Point p, Point center, float angle);
+    void rotate(Point center, float angle);
     static Point transform(const Point& point, float angle, float width);
     static float epsilon_test(const Point& A, const Point& B, const Point& C);
     static bool point_in_triangle(const Point& P, const Point& A, const Point& B, const Point& C);

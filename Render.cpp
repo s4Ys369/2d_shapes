@@ -16,7 +16,19 @@ void Render::move_point(std::vector<Point>& points, std::vector<Point>::size_typ
 
 void Render::move_shape_points(std::vector<Point>& points, float dx, float dy) {
   for (auto& point : points) {
-      point.add(Point(dx, dy));;
+    point.add(Point(dx, dy));;
+  }
+}
+
+void Render::rotate_point(std::vector<Point>& points, std::vector<Point>::size_type index, Point center, float angle) {
+  if (index < points.size()) {
+    points[index].rotate(center, angle);
+  }
+}
+
+void Render::rotate_shape_points(std::vector<Point>& points, Point center, float angle) {
+  for (auto& point : points) {
+    point.rotate(center, angle);
   }
 }
 

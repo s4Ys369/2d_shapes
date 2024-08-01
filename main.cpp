@@ -122,7 +122,11 @@ void draw() {
       currPoints = currShape->get_points();
 
       renderer.move_point(currPoints, controlPoint, stickX, stickY);
-      if(controlPoint == currPoints.size())renderer.move_shape_points(currPoints, stickX, stickY);
+      renderer.rotate_point(currPoints, controlPoint, currCenter, currAngle);
+      if(controlPoint == currPoints.size()){
+        renderer.move_shape_points(currPoints, stickX, stickY);
+        renderer.rotate_shape_points(currPoints, currCenter, currAngle);
+      }
       
       renderer.set_fill_color(currShapeColor);
       renderer.draw_fan(currPoints);
@@ -476,7 +480,7 @@ int main() {
 
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
-        "Fan\n"
+        "Fan (Transform)\n"
         "\n"
         "Width: %.0fpx\n"
         "Height: %.0fpx\n"
