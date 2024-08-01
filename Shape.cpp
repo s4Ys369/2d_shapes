@@ -30,7 +30,7 @@ Shape::Shape(Point origin, float scaleX, float scaleY, int segments, color_t sha
         scaleX(scaleX),
         scaleY(scaleY),
         segments(segments),
-        lod(1.0f),
+        lod(0.1f),
         shapeColor(shapeColor) {}
 
 // Strip/line constructor

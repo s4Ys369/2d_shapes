@@ -11,6 +11,7 @@ public:
 
     void set_fill_color(color_t color);
     void move_point(std::vector<Point>& points, std::vector<Point>::size_type index, float dx, float dy);
+    void move_shape_points(std::vector<Point>& points, float dx, float dy);
     std::vector<Point> get_ellipse_points(Point center, float rx, float ry, int segments);
     void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
     void draw_fan(const std::vector<Point>& points);

@@ -14,6 +14,12 @@ void Render::move_point(std::vector<Point>& points, std::vector<Point>::size_typ
   }
 }
 
+void Render::move_shape_points(std::vector<Point>& points, float dx, float dy) {
+  for (auto& point : points) {
+      point.add(Point(dx, dy));;
+  }
+}
+
 // Function to get points around an ellipse
 std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, int segments) {
   std::vector<Point> points;
@@ -44,7 +50,7 @@ void Render::draw_indexed_triangles(float* vertices, int vertex_count, int* indi
         
         rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
         triCount++;
-        vertCount += 1;
+        vertCount++;
     }
 }
 
@@ -62,7 +68,7 @@ void Render::draw_fan(const std::vector<Point>& points) {
 
     rdpq_triangle(&TRIFMT_FILL, &v1.x, &v2.x, &v3.x);
     triCount++;
-    vertCount += 2;
+    vertCount++;
   }
 
 }

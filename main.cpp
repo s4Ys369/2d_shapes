@@ -26,6 +26,7 @@ int currSegments = 0;
 float currLOD = 0.0f;
 float currAngle = 0.0f;
 std::vector<Point> currPoints; 
+std::size_t controlPoint = 0;
 color_t currShapeColor = BLACK;
 
 int ramUsed = 0;
@@ -65,7 +66,7 @@ void setup() {
 
   ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 0.05f, RED);
   quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
-  fan = new Shape(Point(screenWidth/2,screenHeight/2), 50.0f, 50.0f, 10, BLUE);
+  fan = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 5, BLUE);
 
 }
 
@@ -110,20 +111,33 @@ void draw() {
       break;
     case 2:
       currShape = fan;
+
       currCenter = currShape->get_center();
       currRadiusX = currShape->get_scaleX();
       currRadiusY = currShape->get_scaleY();
       currSegments = currShape->get_segments();
       currLOD = currShape->get_lod();
-      if(currLOD < ((float)currSegments*0.01f)){
-        currLOD = ((float)currSegments*0.01f);
-      }
-      currShape->set_points(renderer.get_ellipse_points(Point(160,120), currRadiusX, currRadiusY, 5));
-      currShapeColor = currShape->get_shape_fill_color();
-      renderer.set_fill_color(currShapeColor);
+
+      currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
       currPoints = currShape->get_points();
-      renderer.move_point(currPoints, 3, stickX, stickY);
+
+      renderer.move_point(currPoints, controlPoint, stickX, stickY);
+      if(controlPoint == currPoints.size())renderer.move_shape_points(currPoints, stickX, stickY);
+      
+      renderer.set_fill_color(currShapeColor);
       renderer.draw_fan(currPoints);
+
+      if ( controlPoint < currPoints.size()){
+        renderer.set_fill_color(BLACK);
+        renderer.draw_ellipse(currPoints[controlPoint].x, currPoints[controlPoint].y, 3.0f, 3.0f, 0.0f, 0.05f);
+        renderer.set_fill_color(WHITE);
+        renderer.draw_ellipse(currPoints[controlPoint].x, currPoints[controlPoint].y, 2.0f, 2.0f, 0.0f, 0.05f);
+      } else {
+        renderer.set_fill_color(BLACK);
+        renderer.draw_ellipse(currCenter.x, currCenter.y, 3.0f, 3.0f, 0.0f, 0.05f);
+        renderer.set_fill_color(WHITE);
+        renderer.draw_ellipse(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
+      }
       break;
   }
 
@@ -140,6 +154,8 @@ void reset_example() {
     currShape->set_scaleX(20.0f);
     currShape->set_scaleY(20.0f);
     currShape->set_lod(0.05f);
+    currShape->set_segments(5);
+    controlPoint = 0;
   } else {
     currShape->set_center(Point(screenWidth/2,screenHeight/2));
     currShape->set_scaleX(20.0f);
@@ -242,15 +258,37 @@ void decrease_thickness(Shape *currShape) {
   }
 }
 
-void scale_segments(Shape *currShape) {
+void increase_segments(Shape *currShape) {
   if(currShape != ellipse){
-  if(currShape->get_segments() < 100){
-    currShape->set_segments(currShape->get_segments() + 1);
-  } else {
-    currShape->set_segments(3);
-  }
+    if(currShape->get_segments() < 100){
+      currShape->set_segments(currShape->get_segments() + 1);
+    } else {
+      currShape->set_segments(5);
+    }
   } else {
     increase_lod(currShape);
+  }
+}
+
+void decrease_segments(Shape *currShape) {
+  if(currShape != ellipse){
+    if(currShape->get_segments() > 5){
+      currShape->set_segments(currShape->get_segments() - 1);
+    } else {
+      currShape->set_segments(100);
+    }
+  } else {
+    decrease_lod(currShape);
+  }
+}
+
+void cycle_control_point() {
+  currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
+  currPoints = currShape->get_points();
+  if(controlPoint < currPoints.size()){
+    controlPoint++;
+  } else {
+    controlPoint = 0;
   }
 }
 
@@ -285,7 +323,6 @@ int main() {
 
     stickX = (float)input.stick_x;
     stickY = (float)input.stick_y;
-    renderer.move_point(currPoints, 3, stickX, stickY);
 
     jpTime = get_ticks_ms() - secondTime; // set input time
 
@@ -305,21 +342,23 @@ int main() {
     currSegments = currShape->get_segments();
     currLOD = currShape->get_lod();
 
-    if(currShape == ellipse || currShape == fan){
+    if(currShape == ellipse){
       currShape->set_segments(triCount); // For the ellipse (ie fan) segments and triangles are essentially the same
-      //currShape->set_scaleY(currRadiusX);
-      //currRadiusY = currShape->get_scaleY();
       if(currLOD < ((float)currSegments*0.01f)){
         currLOD = ((float)currSegments*0.01f);
       }
-    } else {
+    } else if(currShape == quad){
       currShape->set_segments(triCount/2); // 1 segment per 2 triangles for the quad
       currRadiusY = currShape->get_scaleY();
       currThickness = currLOD;
+    } else {
+      if(currLOD < ((float)currSegments*0.01f)){
+        currLOD = ((float)currSegments*0.01f);
+      }
     }
 
     currShapeColor = currShape->get_shape_fill_color();
-
+    
     currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
     currPoints = currShape->get_points();
 
@@ -362,7 +401,7 @@ int main() {
     }
 
     // Adjusts LOD
-    if(currShape == ellipse || currShape == fan){
+    if(currShape == ellipse){
       if(keys.d_up){
         increase_lod(currShape);
       }
@@ -398,14 +437,7 @@ int main() {
         drawTime /*,
         (ramUsed / 1024), (get_memory_size() / 1024)*/
       );
-    } else {
-
-      if(keysDown.d_up){
-        increase_thickness(currShape);
-      }
-      if(keysDown.d_down){
-        decrease_thickness(currShape);
-      }
+    } else if (currShape == quad) {
 
       drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
 
@@ -425,6 +457,43 @@ int main() {
         rotationDegrees,
         vertCount, // Always 4 vertices per quad
         triCount, // Always 2 triangles per quad
+        display_get_fps(),
+        drawTime/*,
+        (ramUsed / 1024), (get_memory_size() / 1024)*/
+      );
+    } else {
+      if(keysDown.d_up){
+        increase_segments(currShape);
+      }
+      if(keysDown.d_down){
+        increase_segments(currShape);
+      }
+      if(keys.d_right){
+        cycle_control_point();
+      }
+
+      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
+
+
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
+        "Fan\n"
+        "\n"
+        "Width: %.0fpx\n"
+        "Height: %.0fpx\n"
+        "Rotation: %.0f\n"
+        "Segments: %u\n"
+        "Verts: %d/%d\n"
+        "Tris: %u\n"
+        "FPS: %.2f\n"
+        "Draw Time: %lldms\n",
+        /*"RAM %dKB/%dKB",*/
+        currRadiusX*2,
+        currRadiusY*2,
+        rotationDegrees,
+        currSegments,
+        controlPoint+1, // Point being transformed, where the last of the current Points is the center of the fan
+        (currPoints.size()+1), // Always triangles + center
+        currSegments, // Always verts - center
         display_get_fps(),
         drawTime/*,
         (ramUsed / 1024), (get_memory_size() / 1024)*/
