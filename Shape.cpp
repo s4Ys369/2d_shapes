@@ -24,6 +24,15 @@ Shape::Shape(Point origin, float scaleX, float lod, color_t shapeColor)
         lod(lod),
         shapeColor(shapeColor) {}
 
+// Fan Transform
+Shape::Shape(Point origin, float scaleX, float scaleY, int segments, color_t shapeColor)
+    : center(origin),
+        scaleX(scaleX),
+        scaleY(scaleY),
+        segments(segments),
+        lod(1.0f),
+        shapeColor(shapeColor) {}
+
 // Strip/line constructor
 Shape::Shape(Point origin, float scaleX, float scaleY, float thickness, int segments, color_t shapeColor)
     : center(origin),

@@ -64,8 +64,8 @@ void setup() {
   stickY = 0.0f;
 
   ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 0.05f, RED);
-  quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, GREEN);
-  fan = new Shape(Point(screenWidth/2,screenHeight/2), 1.0f, 10, BLUE);
+  quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
+  fan = new Shape(Point(screenWidth/2,screenHeight/2), 50.0f, 50.0f, 10, BLUE);
 
 }
 
@@ -109,17 +109,24 @@ void draw() {
       );
       break;
     case 2:
-    //
+      currShape = fan;
+      currCenter = currShape->get_center();
+      currRadiusX = currShape->get_scaleX();
+      currRadiusY = currShape->get_scaleY();
+      currSegments = currShape->get_segments();
+      currLOD = currShape->get_lod();
+      if(currLOD < ((float)currSegments*0.01f)){
+        currLOD = ((float)currSegments*0.01f);
+      }
+      currShape->set_points(renderer.get_ellipse_points(Point(160,120), currRadiusX, currRadiusY, 5));
+      currShapeColor = currShape->get_shape_fill_color();
+      renderer.set_fill_color(currShapeColor);
+      currPoints = currShape->get_points();
+      renderer.move_point(currPoints, 3, stickX, stickY);
+      renderer.draw_fan(currPoints);
       break;
   }
 
-}
-
-// Handles switching examples by incrementing an integer, and wrapping back around to the first 
-void switch_example() {
-  if (++example > 1) {
-    example = 0;
-  }
 }
 
 void reset_example() {
@@ -128,10 +135,22 @@ void reset_example() {
     currShape->set_center(Point(screenWidth/2,screenHeight/2));
     currShape->set_scaleX(20.0f);
     currShape->set_lod(0.05f);
+  } else if(currShape == fan){
+    currShape->set_center(Point(screenWidth/2,screenHeight/2));
+    currShape->set_scaleX(20.0f);
+    currShape->set_scaleY(20.0f);
+    currShape->set_lod(0.05f);
   } else {
     currShape->set_center(Point(screenWidth/2,screenHeight/2));
     currShape->set_scaleX(20.0f);
     currShape->set_scaleY(20.0f);
+  }
+}
+
+void switch_example() {
+  if (++example > 2) {
+    example = 0;
+    reset_example();
   }
 }
 
@@ -178,13 +197,13 @@ void increase_y_scale(Shape *currShape) {
   if(currentScaleY < (display_get_width()/2)){
     currShape->set_scaleY(currentScaleY + 0.1f);
   } else {
-    currShape->set_scaleY(0.1f);
+    currShape->set_scaleY(1.0f);
   }
 }
 
 void decrease_y_scale(Shape *currShape) {
   float currentScaleY = currShape->get_scaleY();
-  if(currentScaleY > 0.1f){
+  if(currentScaleY > 1.1f){
     currShape->set_scaleY(currentScaleY - 1.0f);
   } else {
     currShape->set_scaleY((display_get_width()/2));
@@ -245,7 +264,7 @@ int main() {
     firstTime = get_ticks_ms();// set loop time
 
     rdpq_attach(display_get(), &disp);
-    rdpq_clear(WHITE);
+    rdpq_clear(GREY);
     rdpq_clear_z(0xFFFC);
 
     rdpq_sync_pipe();
@@ -266,6 +285,7 @@ int main() {
 
     stickX = (float)input.stick_x;
     stickY = (float)input.stick_y;
+    renderer.move_point(currPoints, 3, stickX, stickY);
 
     jpTime = get_ticks_ms() - secondTime; // set input time
 
@@ -285,7 +305,7 @@ int main() {
     currSegments = currShape->get_segments();
     currLOD = currShape->get_lod();
 
-    if(currShape == ellipse){
+    if(currShape == ellipse || currShape == fan){
       currShape->set_segments(triCount); // For the ellipse (ie fan) segments and triangles are essentially the same
       //currShape->set_scaleY(currRadiusX);
       //currRadiusY = currShape->get_scaleY();
@@ -342,7 +362,7 @@ int main() {
     }
 
     // Adjusts LOD
-    if(currShape == ellipse){
+    if(currShape == ellipse || currShape == fan){
       if(keys.d_up){
         increase_lod(currShape);
       }
@@ -359,24 +379,24 @@ int main() {
       //=========== ~ UI ~ =============//
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100, 
-        "Ellipse\n"
+        "Circle\n"
         "\n"
-        "Diameter: %.0fpx\n"
+        "Diameter: %.0f px\n"
         "Rotation: %.0f\n"
         "Verts: %u\n"
         "LOD: %.2f\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "Draw Time: %lldms\n"
-        "RAM %dKB/%dKB",
+        "Draw Time: %lldms\n",
+        /*"RAM %dKB/%dKB",*/
         currRadiusX*2, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
         rotationDegrees,
         vertCount+1, // All triangles in the fan use the center vertex and previous vertex, so only accumulate 1 per draw, then add center here
         currLOD,
         triCount,
         display_get_fps(),
-        drawTime,
-        (ramUsed / 1024), (get_memory_size() / 1024)
+        drawTime /*,
+        (ramUsed / 1024), (get_memory_size() / 1024)*/
       );
     } else {
 
@@ -398,16 +418,16 @@ int main() {
         "Verts: %u\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "Draw Time: %lldms\n"
-        "RAM %dKB/%dKB",
+        "Draw Time: %lldms\n",
+        /*"RAM %dKB/%dKB",*/
         currRadiusX*2,
         currRadiusY*2,
         rotationDegrees,
         vertCount, // Always 4 vertices per quad
         triCount, // Always 2 triangles per quad
         display_get_fps(),
-        drawTime,
-        (ramUsed / 1024), (get_memory_size() / 1024)
+        drawTime/*,
+        (ramUsed / 1024), (get_memory_size() / 1024)*/
       );
     }
 

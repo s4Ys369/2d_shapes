@@ -12,6 +12,7 @@ public:
     Shape();
     Shape(Point origin, float scale, int segments, color_t shapeColor);
     Shape(Point origin, float scale, float lod, color_t shapeColor);
+    Shape(Point origin, float scaleX, float scaleY, int segments, color_t shapeColor);
     Shape(Point origin, float scaleX, float scaleY, float thickness, int segments, color_t shapeColor);
 
     const std::vector<Point>& get_points() const { return currPoints; }

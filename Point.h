@@ -25,6 +25,7 @@ public:
     static Point transform(const Point& point, float angle, float width);
     static float epsilon_test(const Point& A, const Point& B, const Point& C);
     static bool point_in_triangle(const Point& P, const Point& A, const Point& B, const Point& C);
+    Point move(float stickX, float stickY);
 };
 
 #endif // POINT_H

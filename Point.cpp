@@ -1,5 +1,6 @@
 #include <libdragon.h>
 #include "Point.h"
+#include "Utils.h"
 
 // Point, the API's internal Vector2f
 
@@ -125,4 +126,46 @@ bool Point::point_in_triangle(const Point& P, const Point& A, const Point& B, co
     float bCROSScp = bx * cpy - by * cpx;
 
     return ((aCROSSbp >= 0) && (bCROSScp >= 0) && (cCROSSap >= 0));
+}
+
+// Function to move point around the screen using the Control Stick
+Point Point::move(float stickX, float stickY) {
+    Point targetPos = Point(x,y);
+
+    // Apply deadzone to the joystick inputs
+    float adjustedX = apply_deadzone(stickX);
+    float adjustedY = apply_deadzone(stickY);
+
+    // Normalize the joystick input to get the direction
+    Point direction(adjustedX, -adjustedY);
+    direction.normalize();
+
+    // Limit movement to inside screen with offset
+    float offset = 32.0f;
+    float width = display_get_width();
+    float height = display_get_height();
+    Point screenCenter = {width / 2.0f, height / 2.0f};
+
+    if (x < offset) {
+        x = offset;
+        targetPos = screenCenter;
+    }
+    if (x > width - offset) {
+        x = width - offset;
+        targetPos = screenCenter;
+    }
+    if (y < offset) {
+        y = offset;
+        targetPos = screenCenter;
+    }
+    if (y > height - offset) {
+        y = height - offset;
+        targetPos = screenCenter;
+    }
+
+    // Determine the target position based on the direction and a fixed magnitude
+    float move_mag = 3.5f;
+    targetPos = Point::sum(*this, direction.set_mag(move_mag));
+
+    return Point::sum(*this, targetPos);
 }

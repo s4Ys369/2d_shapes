@@ -5,12 +5,21 @@
 #include "Utils.h"
 
 void Render::set_fill_color(color_t color){
-    rdpq_set_prim_color(color);
+  rdpq_set_prim_color(color);
+}
+
+void Render::move_point(std::vector<Point>& points, std::vector<Point>::size_type index, float dx, float dy) {
+  if (index < points.size()) {
+    points[index].add(Point(dx, dy));
+  }
 }
 
 // Function to get points around an ellipse
 std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, int segments) {
   std::vector<Point> points;
+  if(segments == 0){
+    segments = 1;
+  }
   float angleStep = 2 * M_PI / segments;
   for (int i = 0; i < segments; ++i) {
     float angle = i * angleStep;
@@ -39,7 +48,7 @@ void Render::draw_indexed_triangles(float* vertices, int vertex_count, int* indi
     }
 }
 
-// Function to draw a triangle fan
+// Function to draw a triangle fan from an array of points
 void Render::draw_fan(const std::vector<Point>& points) {
   if (points.size() < 3){ debugf("Need at least 3 points to form a triangle"); return; }
 
@@ -96,7 +105,7 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
   float area = rx * 2.0f;
   float offset = (float)area * 0.3f;
 
-  debugf("Area %.0f\n", area);
+  //debugf("Area %.0f\n", area);
 
   if(area <= 0.9f) {
 
@@ -108,7 +117,7 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
 
     // If only drawing ~4 pixels or less, just draw a quad to save triangles
     draw_line(cx-offset,cy-offset,cx+offset,cy+offset,angle,1.0f);
-    debugf("Simpilifed to quad\n");
+    //debugf("Simpilifed to quad\n");
     return;
 
   } else  if (area >= 3.0f && area <= 4.9f) {
@@ -117,7 +126,7 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
     if(segments < 6){
       segments = 6;
     }
-    debugf("Segments %u\n", segments);
+    //debugf("Segments %u\n", segments);
 
   } else  if (area > 5.0f && area <= 9.9f) {
 
@@ -127,7 +136,7 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
       segments = 6;
     }
 
-    debugf("Segments %u\n", segments);
+    //debugf("Segments %u\n", segments);
 
   } else  if (area > 9.9f) {
 
@@ -138,11 +147,11 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
     }
 
     // CHANGE: Set highest level of detail, currently 100 triangles
-    if(segments > 100 || lod > 1.0f){
-      segments = 100;
+    if(segments > 200 || lod > 2.0f){
+      segments = 200;
     }
 
-    debugf("Segments %u\n", segments);
+    //debugf("Segments %u\n", segments);
   }
 
   // Calculate angles for position
@@ -456,31 +465,38 @@ void Render::draw_filled_bezier_shape(const Point& p0, const Point& p1, const Po
   triangles.clear();
 }
 
-// Function to draw triangle fan by transforming points based on width
-void Render::draw_fan_transform(const std::vector<Point>& point, const std::vector<float>& angle, int segments, float width) {
-  std::vector<Point> bottomPoints;
-  std::vector<Point> topPoints;
-  int midPoint = fm_ceilf(segments * (2.0f/3.0f));
-  int loopPoint = segments - 1;
+void Render::draw_fan_transform(const std::vector<Point>& points, float angle, int segments, float rx, float ry) {
 
-  // Bottom of fan
-  for (int i = midPoint; i < segments; ++i) {
-    Point transformedPoint = Point::transform(point[i], angle[i] - M_PI / 2, width);
-    bottomPoints.push_back(transformedPoint);
+  // Copy original points
+  std::vector<Point> transformedPoints = points;
+
+  // Move only the outer points base on radii
+  for (size_t i = 0; i < transformedPoints.size(); ++i) {
+    transformedPoints[i].add(Point(rx, ry));
   }
 
-  // Top of fan
-  for (int i = loopPoint; i >= midPoint; --i) {
-    Point transformedPoint = Point::transform(point[i], angle[i] + M_PI / 2, width);
-    topPoints.push_back(transformedPoint);
+  // Draw the ellipse using transformed points
+  // Calculate the center and radii of the transformed points for drawing
+  float cx = 0.0f, cy = 0.0f;
+  float rx2 = 0.0f, ry2 = 0.0f;
+
+  for (const auto& point : transformedPoints) {
+    cx += point.x;
+    cy += point.y;
   }
 
-  // Draw the bottom and top of the fan as a single closed shape
-  bottomPoints.insert(bottomPoints.end(), topPoints.begin(), topPoints.end());
-  draw_fan(bottomPoints);
+  cx /= transformedPoints.size();
+  cy /= transformedPoints.size();
 
-  bottomPoints.clear();
-  topPoints.clear();
+  for (const auto& point : transformedPoints) {
+    float dx = point.x - cx;
+    float dy = point.y - cy;
+    rx2 = fmaxf(rx, fabsf(dx));
+    ry2 = fmaxf(ry, fabsf(dy));
+  }
+
+  // Draw the ellipse with the calculated center and radii
+  draw_ellipse(cx, cy, rx2, ry2, angle, (float)segments*0.01f);
 }
 
 // Function to draw a quad/rectangle from the edge of an ellipse/fan to the edge of a "line" (ie another quad/rectangle)
