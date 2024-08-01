@@ -19,7 +19,7 @@ public:
     void set_points(const std::vector<Point>& points) { this->currPoints = points; };
 
     void set_thickness(float thickness) { this->scaleX = thickness; }
-    float get_thickness() const { return scaleX*scaleY; }
+    float get_thickness() const { return lod; }
 
     void set_scaleX(float scaleX) { this->scaleX = scaleX; }
     float get_scaleX() const { return scaleX; }

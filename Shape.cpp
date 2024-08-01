@@ -39,6 +39,7 @@ Shape::Shape(Point origin, float scaleX, float scaleY, float thickness, int segm
         scaleX(scaleX),
         scaleY(scaleY),
         segments(segments),
+        lod(thickness),
         shapeColor(shapeColor) {}
 
 // Function to move shape around the screen using the Control Stick

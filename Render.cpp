@@ -51,19 +51,19 @@ std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, 
 
 // Function to draw RDPQ triangles using vertex arrays
 void Render::draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count) {
-    for (int i = 0; i < index_count; i += 3) {
-        int idx1 = indices[i];
-        int idx2 = indices[i + 1];
-        int idx3 = indices[i + 2];
+  for (int i = 0; i < index_count; i += 3) {
+    int idx1 = indices[i];
+    int idx2 = indices[i + 1];
+    int idx3 = indices[i + 2];
         
-        float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
-        float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
-        float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
+    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
+    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
+    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
         
-        rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-        triCount++;
-        vertCount++;
-    }
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    triCount++;
+    vertCount++;
+  }
 }
 
 // Function to draw a triangle fan from an array of points
@@ -225,73 +225,72 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
 
 // Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
 void Render::draw_line(float x1, float y1, float x2, float y2, float angle, float thickness) {
-    // Define points
-    Point start(x1, y1);
-    Point end(x2, y2);
+  // Define points
+  Point start(x1, y1);
+  Point end(x2, y2);
 
-    // Calculate the center of the line segment
-    Point center((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
+  // Calculate the center of the line segment
+  Point center((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
 
-    // Calculate direction vector
-    Point direction = Point::sub(end, start);
-    float length = direction.magnitude();
+  // Calculate direction vector
+  Point direction = Point::sub(end, start);
+  float length = direction.magnitude();
 
-    // Check for non-zero length and normalize
-    if (length > 0) {
-        direction.normalize(); // Normalize the direction vector
-    } else {
-        debugf("Line length cannot be 0");
-        return;
-    }
+  // Check for non-zero length and normalize
+  if (length > 0) {
+    direction.normalize(); // Normalize the direction vector
+  } else {
+    debugf("Line length cannot be 0");
+    return;
+  }
 
-    // Calculate the perpendicular vector for the thickness
-    Point perp(-direction.y, direction.x); // Perpendicular to direction
-    perp.set_mag(thickness / 2); // Set the magnitude to half of the thickness
+  // Calculate the perpendicular vector for the thickness
+  Point perp(-direction.y, direction.x); // Perpendicular to direction
+  perp.set_mag(thickness / 2); // Set the magnitude to half of the thickness
 
-    // Rotation matrix
-    float cos_angle = fm_cosf(angle);
-    float sin_angle = fm_sinf(angle);
+  // Rotation matrix
+  float cos_angle = fm_cosf(angle);
+  float sin_angle = fm_sinf(angle);
 
-    // Compute the points for the line
-    Point p1_left = { start.x , start.y - perp.y };
-    Point p1_right = { end.x , start.y - perp.y };
-    Point p2_left = { start.x , end.y};
-    Point p2_right = end;
+  // Compute the points for the line
+  Point p1_left = { start.x , start.y - perp.y };
+  Point p1_right = { end.x , start.y - perp.y };
+  Point p2_left = { start.x , end.y};
+  Point p2_right = end;
 
-    // Rotate each vertex around the center of the line segment
-    auto rotate_line_point = [cos_angle, sin_angle](Point& p, const Point& center) {
-        float tx = p.x - center.x;
-        float ty = p.y - center.y;
-        p.x = center.x + (tx * cos_angle - ty * sin_angle);
-        p.y = center.y + (tx * sin_angle + ty * cos_angle);
-    };
+  // Rotate each vertex around the center of the line segment
+  auto rotate_line_point = [cos_angle, sin_angle](Point& p, const Point& center) {
+      float tx = p.x - center.x;
+      float ty = p.y - center.y;
+      p.x = center.x + (tx * cos_angle - ty * sin_angle);
+      p.y = center.y + (tx * sin_angle + ty * cos_angle);
+  };
 
-    // Rotate the trapezoid vertices
-    rotate_line_point(p1_left, center);
-    rotate_line_point(p1_right, center);
-    rotate_line_point(p2_left, center);
-    rotate_line_point(p2_right, center);
+  // Rotate the trapezoid vertices
+  rotate_line_point(p1_left, center);
+  rotate_line_point(p1_right, center);
+  rotate_line_point(p2_left, center);
+  rotate_line_point(p2_right, center);
 
-    // Define vertices for two triangles to form the line with thickness
-    float v1[] = { p1_left.x, p1_left.y };
-    float v2[] = { p1_right.x, p1_right.y };
-    float v3[] = { p2_left.x, p2_left.y };
-    float v4[] = { p2_right.x, p2_right.y };
+  // Define vertices for two triangles to form the line with thickness
+  float v1[] = { p1_left.x, p1_left.y };
+  float v2[] = { p1_right.x, p1_right.y };
+  float v3[] = { p2_left.x, p2_left.y };
+  float v4[] = { p2_right.x, p2_right.y };
 
-    // Draw two triangles to form the line
-    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
-    rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
-    triCount += 2; // Increment triangle count
-    vertCount += 4; // Increment vertex count
+  // Draw two triangles to form the line
+  rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
+  rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
+  triCount += 2; // Increment triangle count
+  vertCount += 4; // Increment vertex count
 }
 
 
-// Function to draw a Bézier curve as a triangle strip and returns the curve as a point array
-void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float thickness) {
+// Function to draw a Bézier curve as a triangle strip with a given thickness
+void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float angle, float thickness) {
   std::vector<Point> curvePoints;
-
-  // Flush previous curve points
-  curvePoints.clear();  
+  std::vector<float> vertices;
+  std::vector<int> indices;
 
   // Compute Bézier curve points
   for (int i = 0; i <= segments; ++i) {
@@ -303,19 +302,60 @@ void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2
     float ttt = tt * t;
 
     Point p = { uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
-                  uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y };
+                uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y };
 
     curvePoints.push_back(p);
   }
 
-  // Draw the Bézier curve as a series of connected line segments
-  for (size_t i = 0; i < curvePoints.size() - 1; ++i) {
-    Point p1 = curvePoints[i];
-    Point p2 = curvePoints[i + 1];
+  // Center of the curve for rotation
+  Point center = { (p0.x + p3.x) / 2.0f, (p0.y + p3.y) / 2.0f };
 
-    draw_line(p1.x, p1.y, p2.x, p2.y, 1.0f, thickness);
+  // Apply rotation to all curve points
+  for (auto& p : curvePoints) {
+    p.rotate(center,angle);
   }
 
+  // Create left and right side points for the curve
+  for (size_t i = 0; i < curvePoints.size(); ++i) {
+    Point p = curvePoints[i];
+
+    // Calculate the direction vector
+    Point dir;
+    if (i < curvePoints.size() - 1) {
+      dir = (curvePoints[i + 1] - p).normalized();
+    } else {
+      dir = (p - curvePoints[i - 1]).normalized();
+    }
+
+    // Calculate the perpendicular vector for thickness
+    Point perp = {-dir.y, dir.x};
+    Point left = p + perp * (thickness / 2);
+    Point right = p - perp * (thickness / 2);
+
+    // Add vertices for the strip
+    vertices.push_back(left.x);
+    vertices.push_back(left.y);
+    vertices.push_back(right.x);
+    vertices.push_back(right.y);
+
+    // Add indices for the strip
+    if (i > 0) {
+      int prevIndex = (i - 1) * 2;
+      int currIndex = i * 2;
+
+      // Two triangles per segment
+      indices.push_back(prevIndex);    // Left side of previous segment
+      indices.push_back(currIndex);    // Left side of current segment
+      indices.push_back(prevIndex + 1); // Right side of previous segment
+
+      indices.push_back(prevIndex + 1); // Right side of previous segment
+      indices.push_back(currIndex);    // Left side of current segment
+      indices.push_back(currIndex + 1); // Right side of current segment
+    }
+  }
+
+  // Draw the triangles using the indexed triangle function
+  draw_indexed_triangles(vertices.data(), vertices.size() / 2, indices.data(), indices.size());
 }
 
 

@@ -48,6 +48,7 @@ void Point::normalize() {
     }
 }
 
+
 // Sets the magnitude of the vector represented by the current Point to a new value
 Point& Point::set_mag(float newMag) {
     float mag = magnitude();

@@ -19,7 +19,7 @@ public:
     void draw_fan(const std::vector<Point>& points);
     void draw_ellipse(float cx, float cy, float rx, float ry, float angle, float lod);
     void draw_line(float x1, float y1, float x2, float y2, float angle, float thickness);
-    void draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float thickness);
+    void draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float angle, float thickness);
     void fill_between_beziers(const std::vector<Point>& curve1, const std::vector<Point>& curve2);
     void draw_filled_beziers(const Point& p0, const Point& p1, const Point& p2, const Point& p3, 
                                const Point& q0, const Point& q1, const Point& q2, const Point& q3, 

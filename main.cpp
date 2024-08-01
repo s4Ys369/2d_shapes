@@ -16,6 +16,12 @@ Shape* currShape;
 Shape* ellipse;
 Shape* quad;
 Shape* fan;
+Shape* curve;
+Point pointA;
+Point pointB;
+Point pointC;
+Point pointD;
+
 
 // Local variables
 Point currCenter = 0;
@@ -67,6 +73,7 @@ void setup() {
   ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 0.05f, RED);
   quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
   fan = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 5, BLUE);
+  curve = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, BLUE);
 
 }
 
@@ -143,6 +150,49 @@ void draw() {
         renderer.draw_ellipse(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
       }
       break;
+    case 3:
+      currShape = curve;
+      curve->resolve(stickX, stickY);
+      currCenter = currShape->get_center();
+      currRadiusX = currShape->get_scaleX();
+      currRadiusY = currShape->get_scaleY();
+      currSegments = currShape->get_segments();
+      if(currSegments > 100){
+        currSegments = 5;
+      }
+      currThickness = currShape->get_thickness();
+      if(currThickness > 10.0f){
+        currThickness = 1.0f;
+      }
+      currShapeColor = currShape->get_shape_fill_color();
+      renderer.set_fill_color(currShapeColor);
+
+
+      // Control points
+      pointA = Point( (currCenter.x - (currRadiusX*2.0f)), (currCenter.y + currRadiusY) );
+      pointB = Point( (currCenter.x - (currRadiusX)), (currCenter.y - currRadiusY*2.0f) );
+      pointC = Point( (currCenter.x + (currRadiusX)), (currCenter.y - currRadiusY*2.0f) );
+      pointD = Point( (currCenter.x + (currRadiusX*2.0f)), (currCenter.y + currRadiusY) );
+
+      renderer.draw_bezier_curve(
+        pointA, pointB, pointC, pointD,
+        currSegments, // 3 segments
+        currAngle,
+        currThickness
+      );
+
+      //debugf(
+      //  "A (%.2f,%.2f)\n"
+      //  "B (%.2f,%.2f)\n"
+      //  "C (%.2f,%.2f)\n"
+      //  "D (%.2f,%.2f)\n", 
+      //  pointA.x, pointA.y,
+      //  pointB.x, pointB.y,
+      //  pointC.x, pointC.y,
+      //  pointD.x, pointD.y
+      //);
+      
+      break;
   }
 
 }
@@ -160,15 +210,22 @@ void reset_example() {
     currShape->set_lod(0.05f);
     currShape->set_segments(5);
     controlPoint = 0;
+  } else if (currShape == curve) {
+    currShape->set_center(Point(screenWidth/2,screenHeight/2));
+    currShape->set_scaleX(20.0f);
+    currShape->set_scaleY(20.0f);
+    currShape->set_lod(2.0f);
+    currShape->set_segments(10);
   } else {
     currShape->set_center(Point(screenWidth/2,screenHeight/2));
     currShape->set_scaleX(20.0f);
     currShape->set_scaleY(20.0f);
+    currShape->set_lod(0.01f);
   }
 }
 
 void switch_example() {
-  if (++example > 2) {
+  if (++example > 3) {
     example = 0;
     reset_example();
   }
@@ -264,7 +321,7 @@ void decrease_thickness(Shape *currShape) {
 
 void increase_segments(Shape *currShape) {
   if(currShape != ellipse){
-    if(currShape->get_segments() < 100){
+    if(currShape->get_segments() < 20){
       currShape->set_segments(currShape->get_segments() + 1);
     } else {
       currShape->set_segments(5);
@@ -279,7 +336,7 @@ void decrease_segments(Shape *currShape) {
     if(currShape->get_segments() > 5){
       currShape->set_segments(currShape->get_segments() - 1);
     } else {
-      currShape->set_segments(100);
+      currShape->set_segments(20);
     }
   } else {
     decrease_lod(currShape);
@@ -355,6 +412,10 @@ int main() {
       currShape->set_segments(triCount/2); // 1 segment per 2 triangles for the quad
       currRadiusY = currShape->get_scaleY();
       currThickness = currLOD;
+    } else if(currShape == curve){
+      if(currSegments > 30){
+        currSegments = 5;
+      }
     } else {
       if(currLOD < ((float)currSegments*0.01f)){
         currLOD = ((float)currSegments*0.01f);
@@ -461,6 +522,47 @@ int main() {
         rotationDegrees,
         vertCount, // Always 4 vertices per quad
         triCount, // Always 2 triangles per quad
+        display_get_fps(),
+        drawTime/*,
+        (ramUsed / 1024), (get_memory_size() / 1024)*/
+      );
+    } else if (currShape == curve) {
+      if(keysDown.d_up){
+        increase_segments(currShape);
+      }
+      if(keysDown.d_down){
+        decrease_segments(currShape);
+      }
+      if(keysDown.d_right){
+        increase_thickness(currShape);
+      }
+      if(keysDown.d_left){
+        decrease_thickness(currShape);
+      }
+
+      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
+
+
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
+        "Bezier Curve\n"
+        "\n"
+        "Width: %.0fpx\n"
+        "Height: %.0fpx\n"
+        "Rotation: %.0f\n"
+        "Thickness %.2f\n"
+        "Segments: %u\n"
+        "Verts: %u\n"
+        "Tris: %u\n"
+        "FPS: %.2f\n"
+        "Draw Time: %lldms\n",
+        /*"RAM %dKB/%dKB",*/
+        currRadiusX*2,
+        currRadiusY*2,
+        rotationDegrees,
+        currLOD,
+        currSegments,
+        vertCount,
+        triCount,
         display_get_fps(),
         drawTime/*,
         (ramUsed / 1024), (get_memory_size() / 1024)*/

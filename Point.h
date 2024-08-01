@@ -10,6 +10,23 @@ public:
 
     Point(float x = 0, float y = 0);
 
+    Point operator-(const Point& other) const {
+        return {x - other.x, y - other.y};
+    }
+
+    Point operator+(const Point& other) const {
+        return {x + other.x, y + other.y};
+    }
+
+    Point operator*(float scalar) const {
+        return {x * scalar, y * scalar};
+    }
+
+    Point normalized() const {
+        float length = std::sqrt(x * x + y * y);
+        return {x / length, y / length};
+    }
+
     void add(const Point& v);
     static Point sum(const Point& v1, const Point& v2);
     static Point sub(const Point& v1, const Point& v2);
