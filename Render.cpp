@@ -49,6 +49,24 @@ std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, 
   return points;
 }
 
+// Texture test
+void Render::draw_triangle(float* v1, float* v2, float* v3) {
+
+  const rdpq_trifmt_t trifmt = (rdpq_trifmt_t){
+    .pos_offset = 0,
+    .tex_offset = 3,
+    .tex_tile = TILE0,
+  };
+
+  float A[] = {v1[0],v1[1],0,0,1};
+  float B[] = {v2[0],v2[1],0,0,1};
+  float C[] = {v3[0],v3[1],0,0,1};
+
+        
+  rdpq_triangle(&TRIFMT_TEX, A, B, C);
+
+}
+
 // Function to draw RDPQ triangles using vertex arrays
 void Render::draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count) {
   for (int i = 0; i < index_count; i += 3) {

@@ -35,6 +35,9 @@ std::vector<Point> currPoints;
 std::size_t controlPoint = 0;
 color_t currShapeColor = BLACK;
 
+// Texture test
+static sprite_t *test_sprite;
+
 int ramUsed = 0;
 
 // Initialize libdragon
@@ -58,7 +61,7 @@ void setup() {
   disp = surface_alloc(FMT_RGBA16, screenWidth, screenHeight);
 
   rdpq_init();
-  //rdpq_debug_start();
+  rdpq_debug_start();
 
   joypad_init();
 
@@ -73,14 +76,20 @@ void setup() {
   ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 0.05f, RED);
   quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
   fan = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 5, BLUE);
-  curve = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, BLUE);
+  curve = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, ORANGE);
+
+  // Texture test
+  test_sprite = sprite_load("rom:/n64brew.sprite");
+  rdpq_sprite_upload(TILE0, test_sprite, NULL);
+
+  
 
 }
 
 // Main rendering function
 Render renderer;
 void draw() {
-
+  
   switch (example) {
     case 0:
       currShape = ellipse;
@@ -378,7 +387,7 @@ int main() {
     joypad_buttons_t keys = joypad_get_buttons_pressed(JOYPAD_PORT_1);
     joypad_buttons_t keysDown = joypad_get_buttons_held(JOYPAD_PORT_1);
 
-    // Fazana's Puppyprint RAM used
+    // RAM used from RDPQ Demo
     struct mallinfo mem_info = mallinfo();
     ramUsed = mem_info.uordblks - (size_t) (((display_get_width() * display_get_height()) * 2) - ((unsigned int) HEAP_START_ADDR - 0x80000000) - 0x10000);
 

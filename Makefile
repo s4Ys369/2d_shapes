@@ -31,8 +31,19 @@ SRC = main.cpp \
 
 OBJ = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 
-all: $(PROJECT_NAME).z64
+assets_png = $(wildcard assets/*.png)
 
+assets_conv = $(addprefix filesystem/,$(notdir $(assets_png:%.png=%.sprite)))
+
+all: $(PROJECT_NAME).z64
+filesystem/%.sprite: assets/%.png
+	@mkdir -p $(dir $@)
+	@echo "    [SPRITE] $@"
+	@$(N64_MKSPRITE) $(MKSPRITE_FLAGS) -o filesystem "$<"
+
+filesystem/n64brew.sprite: MKSPRITE_FLAGS=--format RGBA16
+
+$(BUILD_DIR)/$(PROJECT_NAME).dfs: $(assets_conv)
 $(BUILD_DIR)/$(PROJECT_NAME).elf: $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 
 $(BUILD_DIR)/%.o: %.cpp
@@ -42,6 +53,7 @@ $(BUILD_DIR)/%.o: %.cpp
 
 $(PROJECT_NAME).z64: N64_ROM_TITLE="2D Shapes"
 $(PROJECT_NAME).z64: $(BUILD_DIR)/$(PROJECT_NAME).elf
+$(PROJECT_NAME).z64: $(BUILD_DIR)/$(PROJECT_NAME).dfs
 
 clean:
 	rm -rf $(BUILD_DIR) *.z64
