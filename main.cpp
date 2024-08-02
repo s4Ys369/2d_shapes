@@ -6,7 +6,7 @@
 
 // Global variables
 surface_t disp;
-int example, triCount, vertCount;
+int example, triCount, vertCount, currVerts, currTris;
 float stickX, stickY;
 uint64_t bootTime, firstTime, secondTime, dispTime, jpTime, drawTime;
 uint32_t screenWidth, screenHeight, frameCounter;
@@ -62,7 +62,7 @@ void setup() {
   disp = surface_alloc(FMT_RGBA16, screenWidth, screenHeight);
 
   rdpq_init();
-  rdpq_debug_start();
+  //rdpq_debug_start();
 
   joypad_init();
 
@@ -71,6 +71,8 @@ void setup() {
   example = 0;
   triCount = 0;
   vertCount = 0;
+  currTris = 0;
+  currVerts = 0;
   stickX = 0.0f;
   stickY = 0.0f;
 
@@ -148,10 +150,10 @@ void draw() {
       currPoints.clear();
       currPoints = currShape->get_points();
 
-      renderer.move_point(currPoints, controlPoint, stickX, stickY);
+      renderer.move_point(currPoints, controlPoint, stickX, -stickY);
       renderer.rotate_point(currPoints, controlPoint, currCenter, currAngle);
       if(controlPoint == currPoints.size()){
-        renderer.move_shape_points(currPoints, stickX, stickY);
+        renderer.move_shape_points(currPoints, stickX, -stickY);
         renderer.rotate_shape_points(currPoints, currCenter, currAngle);
       }
       
@@ -193,7 +195,7 @@ void draw() {
         renderer.rotate_shape_points(bezierPoints, currCenter, currAngle*0.05f);
       }
 
-      debugf("bp %d\n", bezierPoints.size());
+      //debugf("bp %d\n", bezierPoints.size());
 
       currShapeColor = currShape->get_shape_fill_color();
       renderer.set_fill_color(currShapeColor);
@@ -611,8 +613,8 @@ int main() {
         rotationDegrees,
         currLOD,
         currSegments,
-        vertCount,
-        triCount,
+        currVerts,
+        currTris,
         display_get_fps(),
         drawTime/*,
         (ramUsed / 1024), (get_memory_size() / 1024)*/
@@ -658,6 +660,8 @@ int main() {
 
     triCount = 0;
     vertCount = 0;
+    currTris = 0;
+    currVerts = 0;
     firstTime = 0;
     secondTime = 0;
     jpTime = 0;

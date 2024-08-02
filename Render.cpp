@@ -375,10 +375,14 @@ void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2
       indices.emplace_back(currIndex);    // Left side of current segment
       indices.emplace_back(currIndex + 1); // Right side of current segment
     }
+
   }
 
   // Draw the triangles using the indexed triangle function
   draw_indexed_triangles(vertices.data(), vertices.size() / 2, indices.data(), indices.size());
+
+  currTris = indices.size() / 3;
+  currVerts = vertices.size() / 2;
 }
 
 
