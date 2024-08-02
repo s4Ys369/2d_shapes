@@ -128,7 +128,7 @@ bool Point::point_in_triangle(const Point& P, const Point& A, const Point& B, co
 }
 
 // Function to move point around the screen using the Control Stick
-Point Point::move(float stickX, float stickY) {
+void Point::move(float stickX, float stickY) {
     Point targetPos = Point(x,y);
 
     // Apply deadzone to the joystick inputs
@@ -163,8 +163,10 @@ Point Point::move(float stickX, float stickY) {
     }
 
     // Determine the target position based on the direction and a fixed magnitude
-    float move_mag = 3.5f;
-    targetPos = Point::sum(*this, direction.set_mag(move_mag));
+    float move_mag = 100.0f;
+    targetPos.x = this->x - direction.set_mag(move_mag).x;
+    targetPos.y = this->y - direction.set_mag(move_mag).y;
 
-    return Point::sum(*this, targetPos);
+    this->x = targetPos.x;
+    this->y = targetPos.y;
 }

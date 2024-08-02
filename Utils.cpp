@@ -42,7 +42,7 @@ float constrain_angle(float angle, float anchor, float constraint) {
 // Function to apply deadzone to a joystick axis input
 float apply_deadzone(float value) {
   if (fabsf(value) < DEADZONE) {
-      return 0.0f; // Within deadzone, treat as zero
+    return 0.0f; // Within deadzone, treat as zero
   } else {
     // Remap the value outside the deadzone
     if (value > 0) {

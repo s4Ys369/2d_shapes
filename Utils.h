@@ -8,10 +8,12 @@
 // Constants
 const float TWO_PI = 2 * M_PI;
 const float radiansToDegrees = 180.0f / M_PI;
-const float DEADZONE = 0.02f; // Define the deadzone threshold
+const float DEADZONE = 20.0f; // Define the deadzone threshold
 
 extern int triCount;
 extern int vertCount;
+extern int currTris;
+extern int currVerts;
 
 // Colors
 const color_t RED = (color_t){209, 0, 0, 255};

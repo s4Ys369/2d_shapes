@@ -44,7 +44,7 @@ Shape::Shape(Point origin, float scaleX, float scaleY, float thickness, int segm
 
 // Function to move shape around the screen using the Control Stick
 void Shape::resolve(float stickX, float stickY) {
-    Point currPos = center;
+    Point currPos = this->center;
     Point targetPos = currPos;
 
     // Apply deadzone to the joystick inputs
@@ -80,7 +80,7 @@ void Shape::resolve(float stickX, float stickY) {
 
     // Determine the target position based on the direction and a fixed magnitude
     float move_mag = 3.5f;
-    targetPos = Point::sum(currPos, direction.set_mag(move_mag));
+    targetPos = Point::sub(currPos, direction.set_mag(move_mag));
 
     set_center(targetPos);
     // debugf("X %.1f\nY %.1f\n", targetPos.x, targetPos.y);
