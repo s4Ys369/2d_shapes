@@ -5,6 +5,8 @@
 #include <malloc.h>
 #include "Point.h"
 
+//#define DEBUG_RDPQ
+
 // Constants
 const float TWO_PI = 2 * M_PI;
 const float radiansToDegrees = 180.0f / M_PI;

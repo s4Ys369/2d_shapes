@@ -7,7 +7,7 @@
 #include "rspq_constants.h"
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
 #include "profile_print.h"
-#endif
+#endif // RSPQ_PROFILE
 
 // Global variables
 surface_t disp;
@@ -71,11 +71,14 @@ void setup() {
   disp = surface_alloc(FMT_RGBA16, screenWidth, screenHeight);
 
   rdpq_init();
-  //rdpq_debug_start();
+#ifdef DEBUG_RDPQ
+  rdpq_debug_start();
+#endif // DEBUG_RDPQ
+
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
   profile_data.frame_count = 0;
   rspq_profile_start();
-#endif
+#endif // RSPQ_PROFILE
 
   joypad_init();
 
@@ -777,7 +780,7 @@ int main() {
     }
 
     rspq_profile_get_data(&profile_data);
-#endif
+#endif // RSPQ_PROFILE
 
   }
 
