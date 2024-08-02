@@ -1,0 +1,84 @@
+Stick X
+Stick Y
+
+D Up
+D Down
+D Left
+D Right
+
+C Up
+C Down
+C Left
+C Right
+
+A
+B
+
+L
+R
+Z
+
+Start
+
+
+L: switch
+start: reset
+Stick: move
+a: - rot
+b: + rot
+
+Circle:
+    c left: + lod
+    c down: - lod
+    R: - scale
+    Z: + scale
+
+Quad:
+    c up: + scale y
+    c down: - scale y
+    c left: - scale x
+    c right: + scale x
+    R: - scale
+    Z: + scale
+
+Fan:
+    c up: + scale y
+    c down: - scale y
+    c left: + scale x
+    c right: - scale x
+    d up: + segs
+    d down: - segs
+    d left: cyc
+    d right: cyc
+    R: - scale
+    Z: + scale
+
+Curve:
+    c up: + scale y
+    c down: - scale y
+    c left: + scale x
+    c right: - scale x
+    R: cycle
+    Z: + segs
+
+if(currShape == ellipse){
+    if(keys.a){
+      increase_lod(currShape);
+    }
+    if(keys.d_down){
+      decrease_lod(currShape);
+    }
+    if(keys.d_up){
+      increase_lod(currShape);
+    }
+    if(keys.d_down){
+      decrease_lod(currShape);
+    }
+    if(keys.d_up){
+      increase_lod(currShape);
+    }
+    if(keys.d_down){
+      decrease_lod(currShape);
+    }
+  }
+

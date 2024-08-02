@@ -52,11 +52,11 @@ std::vector<Point> Render::get_ellipse_points(Point center, float rx, float ry, 
 // Texture test
 void Render::draw_triangle(float* v1, float* v2, float* v3) {
 
-  const rdpq_trifmt_t trifmt = (rdpq_trifmt_t){
-    .pos_offset = 0,
-    .tex_offset = 3,
-    .tex_tile = TILE0,
-  };
+  //const rdpq_trifmt_t trifmt = (rdpq_trifmt_t){
+  //  .pos_offset = 0,
+  //  .tex_offset = 3,
+  //  .tex_tile = TILE0,
+  //};
 
   float A[] = {v1[0],v1[1],0,0,1};
   float B[] = {v2[0],v2[1],0,0,1};
@@ -400,7 +400,7 @@ void Render::fill_between_beziers(const std::vector<Point>& curve1, const std::v
       rdpq_triangle(&TRIFMT_FILL, v2, v3, v4);
       fillTris += 2;
       currVerts += 4; // Increment vertex count
-      debugf("After quad %d: Triangle count: %u, Vertex count: %u\n", i + 1, fillTris, currVerts);
+      //debugf("After quad %d: Triangle count: %u, Vertex count: %u\n", i + 1, fillTris, currVerts);
   }
 }
 
@@ -413,7 +413,7 @@ void Render::draw_filled_beziers(const Point& p0, const Point& p1, const Point& 
 
     currVerts = 0;
     fillTris = 0;
-    debugf("After reset: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
+    //debugf("After reset: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
 
     // Generate points for the upper Bézier curve
     for (int i = 0; i <= segments; ++i) {
@@ -445,7 +445,7 @@ void Render::draw_filled_beziers(const Point& p0, const Point& p1, const Point& 
 
     // Fill the area between the two curves
     fill_between_beziers(lower_curve, upper_curve);
-    debugf("After fill_between_beziers: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
+    //debugf("After fill_between_beziers: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
     lower_curve.clear();
     upper_curve.clear();
 }

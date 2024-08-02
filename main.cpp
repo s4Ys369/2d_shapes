@@ -4,6 +4,11 @@
 #include "Shape.h"
 #include "Utils.h"
 
+#include "rspq_constants.h"
+#if defined(RSPQ_PROFILE) && RSPQ_PROFILE
+#include "profile_print.h"
+#endif
+
 // Global variables
 surface_t disp;
 int example, triCount, vertCount, currVerts, currTris, fillTris;
@@ -31,6 +36,7 @@ int resetCurve = 0;
 std::size_t controlPoint = 0;
 std::vector<Point> bezierPoints;
 std::vector<Point> basePoints;
+int bezierMode = 0;
 
 
 // Local variables
@@ -54,15 +60,11 @@ int ramUsed = 0;
 // Initialize libdragon
 void setup() {
 
+#if defined(RSPQ_PROFILE) && RSPQ_PROFILE
+  profile_data.frame_count = 0;
+#endif
   debug_init_isviewer();
   debug_init_usblog();
-  bootTime= 0;
-  firstTime = 0;
-  secondTime = 0;
-  jpTime = 0;
-  dispTime = 0;
-  drawTime = 0;
-  frameCounter = 0;
     
   dfs_init(DFS_DEFAULT_LOCATION);
 
@@ -78,6 +80,15 @@ void setup() {
 
   rdpq_text_register_font(FONT_BUILTIN_DEBUG_MONO, rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_MONO));
 
+
+  // Initialize acummulators
+  bootTime= 0;
+  firstTime = 0;
+  secondTime = 0;
+  jpTime = 0;
+  dispTime = 0;
+  drawTime = 0;
+  frameCounter = 0;
   example = 0;
   triCount = 0;
   vertCount = 0;
@@ -87,6 +98,7 @@ void setup() {
   stickX = 0.0f;
   stickY = 0.0f;
 
+  // Initialize shapes
   ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 0.05f, RED);
   quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
   fan = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 5, BLUE);
@@ -97,6 +109,8 @@ void setup() {
   test_sprite = sprite_load("rom:/n64brew.sprite");
   rdpq_sprite_upload(TILE0, test_sprite, NULL);
 
+
+  // Set up control points for Bezier examples
   pointA = Point( ((float)(screenWidth/2) - 40.0f), ((float)(screenHeight/2) + 20.0f) );
   pointB = Point( ((float)(screenWidth/2) - 20.0f), ((float)(screenHeight/2) - 40.0f) );
   pointC = Point( ((float)(screenWidth/2) + 20.0f), ((float)(screenHeight/2) - 40.0f) );
@@ -147,7 +161,7 @@ void draw() {
       currRadiusY = currShape->get_scaleY();
       currThickness = currShape->get_lod();
       currShapeColor = currShape->get_shape_fill_color();
-      currShape->set_segments(1); // Initialized as 3 for ellipse, but a quad has only one segment per draw
+      currShape->set_segments(1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
       renderer.set_fill_color(currShapeColor);
       renderer.draw_line(
         currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
@@ -193,7 +207,6 @@ void draw() {
       break;
     case 3:
       currShape = curve;
-      //curve->resolve(stickX, stickY);
       currCenter = currShape->get_center();
       currRadiusX = currShape->get_scaleX();
       currRadiusY = currShape->get_scaleY();
@@ -219,9 +232,9 @@ void draw() {
         renderer.rotate_shape_points(bezierPoints, currCenter, currAngle*0.05f);
       }
 
-      //debugf("bp %d\n", bezierPoints.size());
+      //debugf("Total bezierPoints %d\n", bezierPoints.size());
 
-      // Limit movement to inside screen with offset
+      // Limit movement to inside screen with offset here because shape.resolve(x,y) doesn't apply to curves
       float offset = 5.0f;
       float width = display_get_width();
       float height = display_get_height();
@@ -261,7 +274,7 @@ void draw() {
       renderer.draw_bezier_curve(
         resetA, resetB, resetC, resetD,
         currSegments,
-        currAngle,
+        0.0f,
         currThickness
       );
 
@@ -271,7 +284,7 @@ void draw() {
         renderer.draw_ellipse(bezierPoints[i].x, bezierPoints[i].y, 2.0f, 2.0f, currAngle, 0.01f);
       }
       renderer.set_fill_color(LIGHT_GREY);
-      renderer.draw_ellipse(bezierPoints[controlPoint].x, bezierPoints[controlPoint].y, 1.0f, 1.0f, currAngle, 0.01f);
+      renderer.draw_ellipse(bezierPoints[controlPoint].x, bezierPoints[controlPoint].y, 1.5f, 1.5f, currAngle, 0.01f);
 
       currShape->set_points(bezierPoints);
       currPoints.clear();
@@ -504,13 +517,16 @@ int main() {
 
     jpTime = get_ticks_ms() - secondTime; // set input time
 
-    if (keys.z) {
-      switch_example();
+    if (keys.z) { // CHANGE: L for console
+      switch_example(); 
     }
 
     if (keys.start) {
       reset_example();
     }
+
+
+//=========== ~ UPDATE ~ ==============//
 
     draw();
 
@@ -544,37 +560,10 @@ int main() {
     currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
     currPoints = currShape->get_points();
 
+//=========== ~ CONTROLS ~ ==============//
+
     // Add rotation
     float rotation = (float)(M_PI)/18.0f; // ~10 degrees
-
-    if(keysDown.a){
-      currAngle += rotation;
-    } else if (keysDown.b) {
-      currAngle -= rotation;
-    }
-
-    // Adjust single scale shape
-    if(keysDown.r){
-      increase_scale(currShape);
-    }
-    if(keysDown.l){ // CHANGE: Z for console?
-      decrease_scale(currShape);
-    }
-
-    // Fine tunes individual scales
-    if(keysDown.c_up){
-      increase_y_scale(currShape);
-    }
-    if(keysDown.c_down){
-      decrease_y_scale(currShape);
-    }
-    if(keysDown.c_right){
-      increase_x_scale(currShape);
-    }
-    if(keysDown.c_left){
-      decrease_x_scale(currShape);
-    }
-
     float rotationDegrees = currAngle * radiansToDegrees;
 
     if(fabsf(rotationDegrees) > 360.0f) {
@@ -582,35 +571,101 @@ int main() {
       rotationDegrees = 0;
     }
 
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, "X %.2f,Y %.2f", stickX, stickY);
+    if(keysDown.a){
+      currAngle += rotation;
+    } else if (keysDown.b) {
+      currAngle -= rotation;
+    }
 
-    // Adjusts LOD
+    if(currShape != curve) {
+      // Adjust single scale shape
+      if(keysDown.r){
+        increase_scale(currShape);
+      }
+      if(keysDown.l){ // CHANGE: Z for console
+        decrease_scale(currShape);
+      }
+    } else {
+      if(keysDown.r){
+        decrease_segments(currShape);
+      }
+      if(keysDown.l){ // CHANGE: Z for console
+        increase_segments(currShape);
+      }
+    }
+
     if(currShape == ellipse){
-      if(keys.d_up){
+      if(keysDown.c_left){
         increase_lod(currShape);
       }
-      if(keys.d_down){
+      if(keysDown.c_down){
         decrease_lod(currShape);
       }
-
-      // Every econd we profile the CPU time to draw 
-      if(frameCounter > 59){
-        drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
-        frameCounter = 0;
+    } else if(currShape != curve) {
+      // Fine tunes individual scales
+      if(keysDown.c_up){
+        increase_y_scale(currShape);
+      }
+      if(keysDown.c_down){
+        decrease_y_scale(currShape);
+      }
+      if(keysDown.c_right){
+        increase_x_scale(currShape);
+      }  
+      if(keysDown.c_left){
+        decrease_x_scale(currShape);
       }
 
-      //=========== ~ UI ~ =============//
+      // Specific to fan example
+      if(currShape == fan) {
+        if(keysDown.d_up){
+          increase_segments(currShape);
+        }
+        if(keysDown.d_down){
+          decrease_segments(currShape);
+        }
+        if(keysDown.d_right){
+          cycle_control_point();
+        }  
+        if(keysDown.d_left){
+          cycle_control_point();
+        }
+      }
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100, 
-        "Circle\n"
-        "\n"
+    } else {
+      if(keys.c_down){
+        cycle_control_point();
+      }
+      if(keys.c_left){
+        cycle_control_point();
+      }
+    }
+
+
+//=========== ~ UI ~ =============//
+
+    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, "X %.2f,Y %.2f", stickX, stickY);
+
+    // Every second we profile the RSP time to draw 
+    if(frameCounter > 59){
+      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // CPU time after draw and transform
+#if defined(RSPQ_PROFILE) && RSPQ_PROFILE
+      debug_print_profile_data(); // prints all profiler data to console, use sparingly
+#endif
+      frameCounter = 0;
+    }
+
+    if(currShape == ellipse){
+
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 60, 
+        "Circle\n\n"
         "Diameter: %.0f px\n"
         "Rotation: %.0f\n"
         "Verts: %u\n"
         "LOD: %.2f\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "Draw Time: %lldms\n",
+        "CPU Time: %lldms\n",
         /*"RAM %dKB/%dKB",*/
         currRadiusX*2, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
         rotationDegrees,
@@ -623,18 +678,15 @@ int main() {
       );
     } else if (currShape == quad) {
 
-      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
-
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
-        "Quad\n"
-        "\n"
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 60,
+        "Quad\n\n"
         "Width: %.0fpx\n"
         "Height: %.0fpx\n"
         "Rotation: %.0f\n"
         "Verts: %u\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "Draw Time: %lldms\n",
+        "CPU Time: %lldms\n",
         /*"RAM %dKB/%dKB",*/
         currRadiusX*2,
         currRadiusY*2,
@@ -646,25 +698,10 @@ int main() {
         (ramUsed / 1024), (get_memory_size() / 1024)*/
       );
     } else if (currShape == curve) {
-      if(keysDown.d_up){
-        increase_segments(currShape);
-      }
-      if(keysDown.d_down){
-        decrease_segments(currShape);
-      }
-      if(keysDown.d_right){
-        increase_thickness(currShape);
-      }
-      if(keys.d_left){
-        cycle_control_point();
-      }
 
-      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
-
-
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
-        "Bezier Polygon\n"
-        "\n"
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 60,
+        "Bezier Curves\n"
+        "with Fill\n\n"
         "Control: %d/%d\n"
         "Rotation: %.0f\n"
         "Thickness %.2f\n"
@@ -673,7 +710,7 @@ int main() {
         "Fill Tris: %u\n"
         "Curves Tris: %u\n"
         "FPS: %.2f\n"
-        "Draw Time: %lldms\n",
+        "CPU Time: %lldms\n",
         /*"RAM %dKB/%dKB",*/
         controlPoint+1, // Point being transformed, where the last of the current Points is the center of the fan
         5,
@@ -688,22 +725,9 @@ int main() {
         (ramUsed / 1024), (get_memory_size() / 1024)*/
       );
     } else {
-      if(keysDown.d_up){
-        increase_segments(currShape);
-      }
-      if(keysDown.d_down){
-        increase_segments(currShape);
-      }
-      if(keys.d_right){
-        cycle_control_point();
-      }
 
-      drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // time after draw and transform
-
-
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
-        "Fan (Transform)\n"
-        "\n"
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 60,
+        "Fan\n\n"
         "Width: %.0fpx\n"
         "Height: %.0fpx\n"
         "Rotation: %.0f\n"
@@ -711,7 +735,7 @@ int main() {
         "Verts: %d/%d\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "Draw Time: %lldms\n",
+        "CPU Time: %lldms\n",
         /*"RAM %dKB/%dKB",*/
         currRadiusX*2,
         currRadiusY*2,
@@ -726,6 +750,7 @@ int main() {
       );
     }
 
+    // Reset acummulators
     triCount = 0;
     vertCount = 0;
     currTris = 0;
@@ -738,9 +763,10 @@ int main() {
     resetCurve = 0;
 
     frameCounter++;
-
     rdpq_detach_show();
   }
+
+  //=========== ~ CLEAN UP ~ =============//
 
   return 0;
 }
