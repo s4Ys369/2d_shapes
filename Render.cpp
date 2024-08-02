@@ -398,8 +398,9 @@ void Render::fill_between_beziers(const std::vector<Point>& curve1, const std::v
       // Draw two triangles to fill the quad
       rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
       rdpq_triangle(&TRIFMT_FILL, v2, v3, v4);
-      triCount += 2;
-      vertCount += 4; // Increment vertex count
+      fillTris += 2;
+      currVerts += 4; // Increment vertex count
+      debugf("After quad %d: Triangle count: %u, Vertex count: %u\n", i + 1, fillTris, currVerts);
   }
 }
 
@@ -409,6 +410,10 @@ void Render::draw_filled_beziers(const Point& p0, const Point& p1, const Point& 
                                int segments) {
     std::vector<Point> upper_curve;
     std::vector<Point> lower_curve;
+
+    currVerts = 0;
+    fillTris = 0;
+    debugf("After reset: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
 
     // Generate points for the upper Bézier curve
     for (int i = 0; i <= segments; ++i) {
@@ -440,6 +445,7 @@ void Render::draw_filled_beziers(const Point& p0, const Point& p1, const Point& 
 
     // Fill the area between the two curves
     fill_between_beziers(lower_curve, upper_curve);
+    debugf("After fill_between_beziers: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
     lower_curve.clear();
     upper_curve.clear();
 }

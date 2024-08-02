@@ -6,7 +6,7 @@
 
 // Global variables
 surface_t disp;
-int example, triCount, vertCount, currVerts, currTris;
+int example, triCount, vertCount, currVerts, currTris, fillTris;
 float stickX, stickY;
 uint64_t bootTime, firstTime, secondTime, dispTime, jpTime, drawTime;
 uint32_t screenWidth, screenHeight, frameCounter;
@@ -18,6 +18,7 @@ Shape* quad;
 
 Shape* fan;
 Shape* curve;
+Shape* curve2;
 Point pointA;
 Point pointB;
 Point pointC;
@@ -29,6 +30,7 @@ Point resetD;
 int resetCurve = 0;
 std::size_t controlPoint = 0;
 std::vector<Point> bezierPoints;
+std::vector<Point> basePoints;
 
 
 // Local variables
@@ -80,6 +82,7 @@ void setup() {
   triCount = 0;
   vertCount = 0;
   currTris = 0;
+  fillTris = 0;
   currVerts = 0;
   stickX = 0.0f;
   stickY = 0.0f;
@@ -87,7 +90,8 @@ void setup() {
   ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 0.05f, RED);
   quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
   fan = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 5, BLUE);
-  curve = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, ORANGE);
+  curve = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, RED);
+  curve2 = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, GREEN);
 
   // Texture test
   test_sprite = sprite_load("rom:/n64brew.sprite");
@@ -105,6 +109,8 @@ void setup() {
 
   bezierPoints.reserve(5);
   bezierPoints = {pointA, pointB, pointC, pointD, Point(screenWidth/2,screenHeight/2)};
+  basePoints.reserve(5);
+  basePoints = {resetA, resetB, resetC, resetD, Point(screenWidth/2,screenHeight/2)};
 
   
 
@@ -219,7 +225,6 @@ void draw() {
       float offset = 5.0f;
       float width = display_get_width();
       float height = display_get_height();
-      Point screenCenter = {width / 2.0f, height / 2.0f};
 
       for( size_t i = 0; i < bezierPoints.size() - 1; ++i) {
         if (bezierPoints[controlPoint].x < offset) {
@@ -240,10 +245,26 @@ void draw() {
       renderer.set_fill_color(currShapeColor);
       renderer.draw_bezier_curve(
         pointA, pointB, pointC, pointD,
-        currSegments, // 3 segments
+        currSegments,
         currAngle,
         currThickness
       );
+
+      renderer.set_fill_color(BLUE);
+      renderer.draw_filled_beziers(
+        bezierPoints[0], bezierPoints[1], bezierPoints[2], bezierPoints[3],
+        basePoints[0], basePoints[1], basePoints[2], basePoints[3],
+        currSegments
+      );
+
+      renderer.set_fill_color(curve2->get_shape_fill_color());
+      renderer.draw_bezier_curve(
+        resetA, resetB, resetC, resetD,
+        currSegments,
+        currAngle,
+        currThickness
+      );
+
 
       renderer.set_fill_color(BLACK);
       for( size_t i = 0; i < bezierPoints.size(); ++i){
@@ -642,14 +663,15 @@ int main() {
 
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
-        "Bezier Curve\n"
+        "Bezier Polygon\n"
         "\n"
         "Control: %d/%d\n"
         "Rotation: %.0f\n"
         "Thickness %.2f\n"
         "Segments: %u\n"
         "Verts: %u\n"
-        "Tris: %u\n"
+        "Fill Tris: %u\n"
+        "Curves Tris: %u\n"
         "FPS: %.2f\n"
         "Draw Time: %lldms\n",
         /*"RAM %dKB/%dKB",*/
@@ -658,8 +680,9 @@ int main() {
         rotationDegrees,
         currLOD,
         currSegments,
-        currVerts,
-        currTris,
+        2 * (currSegments + 1),
+        fillTris,
+        currTris*2,
         display_get_fps(),
         drawTime/*,
         (ramUsed / 1024), (get_memory_size() / 1024)*/
@@ -706,6 +729,7 @@ int main() {
     triCount = 0;
     vertCount = 0;
     currTris = 0;
+    fillTris = 0;
     currVerts = 0;
     firstTime = 0;
     secondTime = 0;

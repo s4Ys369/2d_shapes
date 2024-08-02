@@ -13,6 +13,7 @@ const float DEADZONE = 20.0f; // Define the deadzone threshold
 extern int triCount;
 extern int vertCount;
 extern int currTris;
+extern int fillTris;
 extern int currVerts;
 
 // Colors
