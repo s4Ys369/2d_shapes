@@ -200,10 +200,10 @@ void draw() {
       if ( controlPoint < currPoints.size()){
         renderer.set_fill_color(BLACK);
         renderer.draw_ellipse(currPoints[controlPoint].x, currPoints[controlPoint].y, 3.0f, 3.0f, 0.0f, 0.05f);
-        renderer.set_fill_color(LIGHT_GREY);
+        renderer.set_fill_color(YELLOW);
         renderer.draw_ellipse(currPoints[controlPoint].x, currPoints[controlPoint].y, 2.0f, 2.0f, 0.0f, 0.05f);
       } else {
-        renderer.set_fill_color(BLACK);
+        renderer.set_fill_color(YELLOW);
         renderer.draw_ellipse(currCenter.x, currCenter.y, 3.0f, 3.0f, 0.0f, 0.05f);
         renderer.set_fill_color(LIGHT_GREY);
         renderer.draw_ellipse(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
@@ -287,7 +287,7 @@ void draw() {
       for( size_t i = 0; i < bezierPoints.size(); ++i){
         renderer.draw_ellipse(bezierPoints[i].x, bezierPoints[i].y, 2.0f, 2.0f, currAngle, 0.01f);
       }
-      renderer.set_fill_color(LIGHT_GREY);
+      renderer.set_fill_color(YELLOW);
       renderer.draw_ellipse(bezierPoints[controlPoint].x, bezierPoints[controlPoint].y, 1.5f, 1.5f, currAngle, 0.01f);
 
       currShape->set_points(bezierPoints);
@@ -521,7 +521,7 @@ int main() {
 
     jpTime = get_ticks_ms() - secondTime; // set input time
 
-    if (keys.z) { // CHANGE: L for console
+    if (keys.l) { // CHANGE: L for console
       switch_example(); 
     }
 
@@ -586,14 +586,14 @@ int main() {
       if(keysDown.r){
         increase_scale(currShape);
       }
-      if(keysDown.l){ // CHANGE: Z for console
+      if(keysDown.z){ // CHANGE: Z for console
         decrease_scale(currShape);
       }
     } else {
-      if(keysDown.r){
+      if(keys.r){
         decrease_segments(currShape);
       }
-      if(keysDown.l){ // CHANGE: Z for console
+      if(keys.z){ // CHANGE: Z for console
         increase_segments(currShape);
       }
     }
@@ -622,16 +622,16 @@ int main() {
 
       // Specific to fan example
       if(currShape == fan) {
-        if(keysDown.d_up){
+        if(keys.d_up){
           increase_segments(currShape);
         }
-        if(keysDown.d_down){
+        if(keys.d_down){
           decrease_segments(currShape);
         }
-        if(keysDown.d_right){
+        if(keys.d_right){
           cycle_control_point();
         }  
-        if(keysDown.d_left){
+        if(keys.d_left){
           cycle_control_point();
         }
       }
@@ -653,19 +653,25 @@ int main() {
       frameCounter = 0;
     }
 
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, "X %.2f,Y %.2f", stickX, stickY);
+
 
     if(currShape == ellipse){
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 60, 
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, 
         "Circle\n\n"
-        "Diameter: %.0f px\n"
+        "Diameter: %.0fpx\n"
         "Rotation: %.0f\n"
         "Verts: %u\n"
         "LOD: %.2f\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "CPU Time: %lldms\n",
+        "CPU Time: %lldms\n\n"
+        "Stick to Move\n"
+        "R/Z: Scale\n"
+        "CL/CD: LOD\n"
+        "A/B: Rotate\n"
+        "Start: Reset Example\n"
+        "L: Switch Example\n",
         /*"RAM %dKB/%dKB",*/
         currRadiusX*2, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
         rotationDegrees,
@@ -678,7 +684,7 @@ int main() {
       );
     } else if (currShape == quad) {
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 60,
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
         "Quad\n\n"
         "Width: %.0fpx\n"
         "Height: %.0fpx\n"
@@ -686,7 +692,14 @@ int main() {
         "Verts: %u\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "CPU Time: %lldms\n",
+        "CPU Time: %lldms\n\n"
+        "Stick to Move\n"
+        "R/Z: Scale\n"
+        "CL/CR: X Scale\n"
+        "CU/CD: Y Scale\n"
+        "A/B: Rotate\n"
+        "Start: Reset Example\n"
+        "L: Switch Example\n",
         /*"RAM %dKB/%dKB",*/
         currRadiusX*2,
         currRadiusY*2,
@@ -699,43 +712,54 @@ int main() {
       );
     } else if (currShape == curve) {
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 60,
-        "Bezier Curves\n"
-        "with Fill\n\n"
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
+        "Bezier Curves with Fill\n\n"
         "Control: %d/%d\n"
         "Rotation: %.0f\n"
-        "Thickness %.2f\n"
         "Segments: %u\n"
-        "Verts: %u\n"
         "Fill Tris: %u\n"
-        "Curves Tris: %u\n"
+        "Curve Tris: %u\n"
         "FPS: %.2f\n"
-        "CPU Time: %lldms\n",
+        "CPU Time: %lldms\n\n"
+        "Stick to Move\n"
+        "Z/R: Cycle Segments\n"
+        "CL/CD: Cycle Control\n"
+        "A/B: Rotate\n"
+        "Start: Reset Example\n"
+        "L: Switch Example\n",
         /*"RAM %dKB/%dKB",*/
         controlPoint+1, // Point being transformed, where the last of the current Points is the center of the fan
         5,
         rotationDegrees,
-        currLOD,
+        //currLOD,
         currSegments,
-        2 * (currSegments + 1),
+        //2 * (currSegments + 1),
         fillTris,
-        currTris*2,
+        currTris,
         display_get_fps(),
         drawTime/*,
         (ramUsed / 1024), (get_memory_size() / 1024)*/
       );
     } else {
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 60,
-        "Fan\n\n"
-        "Width: %.0fpx\n"
-        "Height: %.0fpx\n"
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
+        "Triangle Fan\n"
+        "Scale: (%.0fpx,%.0fpx)\n"
         "Rotation: %.0f\n"
         "Segments: %u\n"
         "Verts: %d/%d\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "CPU Time: %lldms\n",
+        "CPU Time: %lldms\n"
+        "Stick to Move\n"
+        "R/Z: Scale\n"
+        "CL/CR: X Scale\n"
+        "CU/CD: Y Scale\n"
+        "DU/DD: Scale Segments\n"
+        "DL/DR: Cycle Verts\n"
+        "A/B: Rotate\n"
+        "Start: Reset Example\n"
+        "L: Switch Example\n",
         /*"RAM %dKB/%dKB",*/
         currRadiusX*2,
         currRadiusY*2,

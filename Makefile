@@ -52,7 +52,6 @@ $(BUILD_DIR)/%.o: %.cpp
 	$(CXX) $(N64_CXXFLAGS) -c $< -o $@
 
 $(PROJECT_NAME).z64: N64_ROM_TITLE="2D Shapes"
-$(PROJECT_NAME).z64: $(BUILD_DIR)/$(PROJECT_NAME).elf
 $(PROJECT_NAME).z64: $(BUILD_DIR)/$(PROJECT_NAME).dfs
 
 clean:
