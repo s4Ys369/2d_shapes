@@ -91,32 +91,18 @@ void debug_print_profile_data() {
         }
     }
 
-    // Calculate global times
-    uint64_t dispatchTicks = profile_data.total_ticks > totalTicks ? profile_data.total_ticks - totalTicks : 0;
-    uint64_t dispatchTime = RCP_TICKS_TO_USECS(dispatchTicks / profile_data.frame_count);
+    qsort(slots, RSPQ_PROFILE_SLOT_COUNT, sizeof(ProfileSlot), debug_profile_slot_compare);
 
-    // Add dispatch time into the slots
-    slots[SLOT_COUNT - 1] = (ProfileSlot){
-        .calls = 0,
-        .timeUs = (int32_t)dispatchTime,
-        .index = SLOT_COUNT - 1,
-        .name = "Cmd process"
-    };
-    timeTotalBusy += dispatchTime;
-
-    // Sort for output
-    qsort(slots, SLOT_COUNT, sizeof(ProfileSlot), debug_profile_slot_compare);
-
-    // Print table
-    printf("Tasks      Calls     Time\n");
-    for (size_t i = 0; i < SLOT_COUNT; i++) {
+    debugf("\nRSP Queue profiling (averages per frame over %llu frames):\n", profile_data.frame_count);
+    debugf("  %-20s %5s %7s\n", "Type", "Calls", "Time (us)");
+    for (size_t i = 0; i < RSPQ_PROFILE_SLOT_COUNT; i++) {
         ProfileSlot *slot = &slots[i];
-        if (slot->isIdle || slot->name == NULL) continue;
-        printf("%-10.10s %5lu %7lu\n", slot->name, slot->calls, slot->timeUs);
+        if (slot->name == NULL) continue;
+        debugf("  %-20s %5lu %7ld\n", slot->name, slot->calls, slot->timeUs);
     }
-
-    printf("Total (busy)     %7lu\n", timeTotalBusy);
-    printf("Total (waiting)  %7lu\n", timeTotalWait);
+    debugf("  %-20s %5s %7ld\n", "Total Wait", "", timeTotalWait);
+    debugf("  %-20s %5s %7ld\n", "Total Busy", "", timeTotalBusy);
+    debugf("  %-20s %5s %7llu\n", "Total Time", "", totalTicks / profile_data.frame_count);
 }
 
 #endif // PROFILE_PRINT_H

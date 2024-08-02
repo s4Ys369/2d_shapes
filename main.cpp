@@ -60,9 +60,6 @@ int ramUsed = 0;
 // Initialize libdragon
 void setup() {
 
-#if defined(RSPQ_PROFILE) && RSPQ_PROFILE
-  profile_data.frame_count = 0;
-#endif
   debug_init_isviewer();
   debug_init_usblog();
     
@@ -75,6 +72,10 @@ void setup() {
 
   rdpq_init();
   //rdpq_debug_start();
+#if defined(RSPQ_PROFILE) && RSPQ_PROFILE
+  profile_data.frame_count = 0;
+  rspq_profile_start();
+#endif
 
   joypad_init();
 
@@ -644,16 +645,12 @@ int main() {
 
 //=========== ~ UI ~ =============//
 
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, "X %.2f,Y %.2f", stickX, stickY);
-
-    // Every second we profile the RSP time to draw 
     if(frameCounter > 59){
       drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // CPU time after draw and transform
-#if defined(RSPQ_PROFILE) && RSPQ_PROFILE
-      debug_print_profile_data(); // prints all profiler data to console, use sparingly
-#endif
       frameCounter = 0;
     }
+
+    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, "X %.2f,Y %.2f", stickX, stickY);
 
     if(currShape == ellipse){
 
@@ -763,7 +760,25 @@ int main() {
     resetCurve = 0;
 
     frameCounter++;
+    
     rdpq_detach_show();
+
+#if defined(RSPQ_PROFILE) && RSPQ_PROFILE
+    rspq_profile_next_frame();
+
+  // Every second we profile the RSPQ
+    if(frameCounter > 59){
+      for (size_t i = 0; i < RSPQ_PROFILE_SLOT_COUNT; i++) {
+        profile_data.slots[i].sample_count = 1000 + i * 100;
+        profile_data.slots[i].total_ticks = 2000000 + i * 200000;
+      }
+      debug_print_profile_data();// prints all profiler data to console, use sparingly
+      rspq_profile_reset();    
+    }
+
+    rspq_profile_get_data(&profile_data);
+#endif
+
   }
 
   //=========== ~ CLEAN UP ~ =============//
