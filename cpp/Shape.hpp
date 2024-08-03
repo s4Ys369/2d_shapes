@@ -1,5 +1,5 @@
-#ifndef SHAPE_H
-#define SHAPE_H
+#ifndef SHAPE_HPP
+#define SHAPE_HPP
 
 #include <libdragon.h>
 #include "Point.h"
@@ -52,4 +52,4 @@ private:
     color_t shapeColor;
 };
 
-#endif // SHAPE_H
+#endif // SHAPE_HPP
