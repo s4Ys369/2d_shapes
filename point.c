@@ -1,6 +1,6 @@
 #include <libdragon.h>
 #include "point.h"
-#include "Utils.h"
+#include "utils.h"
 
 // Constructors
 Point point_new(float x, float y) {

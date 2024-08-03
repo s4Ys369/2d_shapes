@@ -9,6 +9,11 @@ typedef struct {
     float x, y;
 } Point;
 
+typedef struct {
+    Point* points;
+    size_t count;
+} PointArray;
+
 // Constructors
 Point point_new(float x, float y);
 Point point_default();
