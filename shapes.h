@@ -50,8 +50,8 @@ typedef struct {
 typedef struct {
     void* shape;
     void (*init)(void*);
-    void (*set_points)(void*, Point*, size_t);
-    Point* (*get_points)(void*);
+    void (*set_points)(void*, PointArray*);
+    PointArray* (*get_points)(void*);
     void (*set_thickness)(void*, float);
     float (*get_thickness)(const void*);
     void (*set_scaleX)(void*, float);
@@ -79,7 +79,7 @@ void strip_init(Strip* strip, Point origin, float scaleX, float scaleY, float th
 
 // Common functions for the Shape interface
 void set_points(void* shape, PointArray* points);
-Point* get_points(void* shape);
+PointArray* get_points(void* shape);
 void set_thickness(void* shape, float thickness);
 float get_thickness(const void* shape);
 void set_scaleX(void* shape, float scaleX);

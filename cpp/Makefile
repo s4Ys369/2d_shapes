@@ -2,17 +2,17 @@ BUILD_DIR = build
 
 include $(N64_INST)/include/n64.mk
 
-PROJECT_NAME = 2d_shapes_c
+PROJECT_NAME = 2d_shapes_cpp
 
 DEBUG = 0
 
 ifeq ($(DEBUG),0)
-  N64_CFLAGS += -O2
+  N64_CXXFLAGS += -O2
 else
-  N64_CFLAGS += -g -ggdb
+  N64_CXXFLAGS += -g -ggdb
 endif
 
-N64_CFLAGS += -mno-check-zero-division \
+N64_CXXFLAGS += -mno-check-zero-division \
 	-funsafe-math-optimizations \
 	-fsingle-precision-constant \
 	-fno-unroll-loops \
@@ -23,13 +23,13 @@ N64_CFLAGS += -mno-check-zero-division \
 	-ffast-math \
     -mips3 \
 
-SRC = main.c \
-      point.c \
-	  render.c \
-      shapes.c \
-      utils.c
+SRC = main.cpp \
+      Point.cpp \
+	  Render.cpp \
+      Shape.cpp \
+      Utils.cpp
 
-OBJ = $(SRC:%.c=$(BUILD_DIR)/%.o)
+OBJ = $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 
 assets_png = $(wildcard assets/*.png)
 
@@ -44,14 +44,14 @@ filesystem/%.sprite: assets/%.png
 filesystem/n64brew.sprite: MKSPRITE_FLAGS=--format RGBA16
 
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(assets_conv)
-$(BUILD_DIR)/$(PROJECT_NAME).elf: $(SRC:%.c=$(BUILD_DIR)/%.o)
+$(BUILD_DIR)/$(PROJECT_NAME).elf: $(SRC:%.cpp=$(BUILD_DIR)/%.o)
 
-$(BUILD_DIR)/%.o: %.c
+$(BUILD_DIR)/%.o: %.cpp
 	@mkdir -p $(BUILD_DIR)
-	@echo "    [CC] $@"
-	$(CC) $(N64_CFLAGS) -c $< -o $@
+	@echo "    [CXX] $@"
+	$(CXX) $(N64_CXXFLAGS) -c $< -o $@
 
-$(PROJECT_NAME).z64: N64_ROM_TITLE="2D Shapes C"
+$(PROJECT_NAME).z64: N64_ROM_TITLE="2D Shapes C++"
 $(PROJECT_NAME).z64: $(BUILD_DIR)/$(PROJECT_NAME).dfs
 
 clean:

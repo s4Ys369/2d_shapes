@@ -13,7 +13,6 @@ void shape_init(Shape* shape) {
     shape->segments = 1;
     shape->lod = 1.0f;
     shape->fillColor = BLACK;
-    shape->currPoints = (Point*)malloc(sizeof(Point));
     if (shape->currPoints != NULL) {
         shape->currPoints = (PointArray*)malloc(sizeof(PointArray));
         add_existing_point(shape->currPoints, shape->center);
@@ -59,24 +58,37 @@ void strip_init(Strip* strip, Point origin, float scaleX, float scaleY, float th
 
 
 // Common functions for the Shape interface
-void set_points(void* shape, const PointArray* points) {
+void set_points(void* shape, PointArray* points) {
     Shape* s = (Shape*)shape;
-    
-    // Allocate new memory for points
-    PointArray* newPoints = (PointArray*)realloc(s->currPoints, sizeof(Point) * points->count);
-    if (newPoints != NULL) {
-        s->currPoints = newPoints;
-        
-        // Copy the new points
-        memcpy(s->currPoints->points, points->points, sizeof(Point) * points->count);
-        s->currPoints->count = points->count;
-    } else {
-        // Handle reallocation failure
-        debugf("Point reallocation failure\n");
+
+    // Free old points if they exist
+    if (s->currPoints != NULL) {
+        free(s->currPoints->points);
+        free(s->currPoints);
     }
+
+    // Allocate new PointArray
+    s->currPoints = (PointArray*)malloc(sizeof(PointArray));
+    if (s->currPoints == NULL) {
+        debugf("PointArray allocation failed\n");
+        return;
+    }
+
+    // Allocate memory for points in the new PointArray
+    s->currPoints->points = (Point*)malloc(sizeof(Point) * points->count);
+    if (s->currPoints->points == NULL) {
+        debugf("Point allocation failed\n");
+        free(s->currPoints); // Clean up if allocation fails
+        s->currPoints = NULL;
+        return;
+    }
+
+    // Copy new points
+    memcpy(s->currPoints->points, points->points, sizeof(Point) * points->count);
+    s->currPoints->count = points->count;
 }
 
-Point* get_points(void* shape) {
+PointArray* get_points(void* shape) {
     return ((Shape*)shape)->currPoints;
 }
 
@@ -194,7 +206,7 @@ void destroy(void* shape) {
 // Shape-specific function table initialization
 void init_shape_interface(ShapeInterface* interface, void* shape) {
     interface->shape = shape;
-    interface->init = shape_init;
+    interface->init = (void*)shape_init;
     interface->set_points = set_points;
     interface->get_points = get_points;
     interface->set_thickness = set_thickness;

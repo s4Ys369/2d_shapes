@@ -47,6 +47,7 @@ void rotate_line_point(Point* p, const Point* center, float cos_angle, float sin
 
 // PointArray functions
 void init_point_array(PointArray* array);
+void init_point_array_from_points(PointArray* array, Point* points, size_t count);
 void add_point(PointArray* array, float x, float y);
 void add_existing_point(PointArray* array, Point p);
 void calculate_array_center(const PointArray* points, Point* center);

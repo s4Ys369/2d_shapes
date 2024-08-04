@@ -28,7 +28,7 @@ bool is_ear(const PointArray* polygon, int u, int v, int w, const int* V);
 void triangulate_polygon(const PointArray* polygon, PointArray* triangles);
 void draw_filled_bezier_shape(const Point* p0, const Point* p1, const Point* p2, const Point* p3, int segments);
 void draw_fan_transform(const PointArray* fan, float angle, int segments, float rx, float ry);
-void fill_edge_ellipse_to_line(const PointArray* currentPoints, int segments, float scale);
+void fill_edge_ellipse_to_line(PointArray* currentPoints, int segments, float scale);
 
 
 

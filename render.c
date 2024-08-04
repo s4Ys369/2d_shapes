@@ -235,7 +235,7 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
 
   // Create indices for a triangle fan
   int* indices = NULL;
-  int *index_count = segments * 3; // Each triangle uses 3 indices
+  int index_count = segments * 3; // Each triangle uses 3 indices
   indices = create_triangle_fan_indices(segments, &index_count);
 
   // Draw the indexed vertices
@@ -333,8 +333,8 @@ void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const 
     add_point(&curvePoints, x, y);
   }
 
-  // Center of the curve for rotation
-  Point center = point_new((p0->x + p3->x) / 2.0f, (p0->y + p3->y) / 2.0f);
+  // Center of the curve for rotation ??? FIXME
+  //Point center = point_new((p0->x + p3->x) / 2.0f, (p0->y + p3->y) / 2.0f);
 
   float cos_angle = fm_cosf(angle);
   float sin_angle = fm_sinf(angle);
@@ -378,7 +378,7 @@ void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const 
   }
 
   // Draw the triangles using the indexed triangle function
-  draw_indexed_triangles(&vertices, vertexCount / 2, &indices, indexCount);
+  draw_indexed_triangles(vertices, vertexCount / 2, indices, indexCount);
 
   currTris = indexCount / 3;
   currVerts = vertexCount / 2;
@@ -458,8 +458,8 @@ void draw_filled_beziers(const Point* p0, const Point* p1, const Point* p2, cons
     // Fill the area between the two curves
     fill_between_beziers(&topCurvePoints, &bottomCurvePoints);
     //debugf("After fill_between_beziers: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
-    free(&topCurvePoints);
-    free(&bottomCurvePoints);
+    free_point_array(&topCurvePoints);
+    free_point_array(&bottomCurvePoints);
 }
 
 // Function to check ear clipping, An "ear" is a triangle formed by three consecutive vertices in a polygon that does not contain any other vertices of the polygon inside it.
@@ -619,7 +619,7 @@ void draw_fan_transform(const PointArray* fan, float angle, int segments, float 
 }
 
 // Function to draw a quad/rectangle from the edge of an ellipse/fan to the edge of a "line" (ie another quad/rectangle)
-void fill_edge_ellipse_to_line(const PointArray* currentPoints, int segments, float scale) {
+void fill_edge_ellipse_to_line(PointArray* currentPoints, int segments, float scale) {
   static PointArray* previousPoints;  // Static to persist between function calls
   init_point_array(previousPoints);
   Point prevCenter = point_default();
