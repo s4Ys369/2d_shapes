@@ -671,16 +671,16 @@ int main() {
         "CL/CD: LOD\n"
         "A/B: Rotate\n"
         "Start: Reset Example\n"
-        "L: Switch Example\n",
-        /*"RAM %dKB/%dKB",*/
+        "L: Switch Example\n"
+        "RAM %dKB/%dKB",
         currRadiusX*2, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
         rotationDegrees,
         vertCount+1, // All triangles in the fan use the center vertex and previous vertex, so only accumulate 1 per draw, then add center here
         currLOD,
         triCount,
         display_get_fps(),
-        drawTime /*,
-        (ramUsed / 1024), (get_memory_size() / 1024)*/
+        drawTime,
+        (ramUsed / 1024), (get_memory_size() / 1024)
       );
     } else if (currShape == quad) {
 
@@ -699,16 +699,16 @@ int main() {
         "CU/CD: Y Scale\n"
         "A/B: Rotate\n"
         "Start: Reset Example\n"
-        "L: Switch Example\n",
-        /*"RAM %dKB/%dKB",*/
+        "L: Switch Example\n"
+        "RAM %dKB/%dKB",
         currRadiusX*2,
         currRadiusY*2,
         rotationDegrees,
         vertCount, // Always 4 vertices per quad
         triCount, // Always 2 triangles per quad
         display_get_fps(),
-        drawTime/*,
-        (ramUsed / 1024), (get_memory_size() / 1024)*/
+        drawTime,
+        (ramUsed / 1024), (get_memory_size() / 1024)
       );
     } else if (currShape == curve) {
 
@@ -726,8 +726,8 @@ int main() {
         "CL/CD: Cycle Control\n"
         "A/B: Rotate\n"
         "Start: Reset Example\n"
-        "L: Switch Example\n",
-        /*"RAM %dKB/%dKB",*/
+        "L: Switch Example\n"
+        "RAM %dKB/%dKB",
         controlPoint+1, // Point being transformed, where the last of the current Points is the center of the fan
         5,
         rotationDegrees,
@@ -737,8 +737,8 @@ int main() {
         fillTris,
         currTris,
         display_get_fps(),
-        drawTime/*,
-        (ramUsed / 1024), (get_memory_size() / 1024)*/
+        drawTime,
+        (ramUsed / 1024), (get_memory_size() / 1024)
       );
     } else {
 
@@ -759,8 +759,8 @@ int main() {
         "DL/DR: Cycle Verts\n"
         "A/B: Rotate\n"
         "Start: Reset Example\n"
-        "L: Switch Example\n",
-        /*"RAM %dKB/%dKB",*/
+        "L: Switch Example\n"
+        "RAM %dKB/%dKB",
         currRadiusX*2,
         currRadiusY*2,
         rotationDegrees,
@@ -769,8 +769,8 @@ int main() {
         (currPoints.size()+1), // Always triangles + center
         currSegments, // Always verts - center
         display_get_fps(),
-        drawTime/*,
-        (ramUsed / 1024), (get_memory_size() / 1024)*/
+        drawTime,
+        (ramUsed / 1024), (get_memory_size() / 1024)
       );
     }
 
