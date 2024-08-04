@@ -6,18 +6,21 @@
 
 // Initialization functions
 void shape_init(Shape* shape) {
-    memset(shape, 0, sizeof(Shape));
-    shape->center = (Point){0, 0};
+    if (shape == NULL) {
+        return;
+    }
+
+    shape->center = point_default();
     shape->scaleX = 1.0f;
     shape->scaleY = 1.0f;
     shape->segments = 1;
     shape->lod = 1.0f;
     shape->fillColor = BLACK;
-    if (shape->currPoints != NULL) {
-        shape->currPoints = (PointArray*)malloc(sizeof(PointArray));
-        add_existing_point(shape->currPoints, shape->center);
-        shape->currPoints->count = 1;
-    }
+    shape->currPoints = (PointArray*)malloc(sizeof(PointArray));
+    shape->currPoints->points = NULL;
+    shape->currPoints->count = 0;
+    add_existing_point(shape->currPoints, shape->center);
+
 }
 
 void circle_init(Circle* circle, Point origin, float scale, float lod, color_t fillColor) {
@@ -150,7 +153,13 @@ color_t get_fill_color(const void* shape) {
 
 // Function to move shape around the screen using the Control Stick
 void resolve(void* shape, float stickX, float stickY) {
-    Point currPos = ((Shape*)shape)->center;
+    Shape* s = (Shape*)shape;
+    if (s == NULL || s->currPoints == NULL || s->currPoints->points == NULL) {
+        debugf("Invalid shape or points\n");
+        return;
+    }
+
+    Point currPos = get_center(s);
     Point targetPos = currPos;
 
     // Apply deadzone to the joystick inputs
@@ -186,10 +195,10 @@ void resolve(void* shape, float stickX, float stickY) {
 
     // Determine the target position based on the direction and a fixed magnitude
     float move_mag = 3.5f;
-    direction = point_set_mag(&direction,move_mag);
+    direction = point_set_mag(&direction, move_mag);
     targetPos = point_sub(&currPos, &direction);
 
-    set_center(((Shape*)shape), targetPos);
+    set_center(s, targetPos);
     // debugf("X %.1f\nY %.1f\n", targetPos.x, targetPos.y);
 }
 

@@ -1,6 +1,5 @@
 #include <libdragon.h>
 #include "point.h"
-#include "utils.h"
 
 // Constructors
 Point point_new(float x, float y) {
@@ -26,8 +25,11 @@ Point point_multiply(const Point* p, float scalar) {
 }
 
 Point point_normalized(const Point* p) {
-    float length = sqrt(p->x * p->x + p->y * p->y);
-    return point_new(p->x / length, p->y / length);
+    float magnitude = sqrtf(p->x * p->x + p->y * p->y);
+    if (magnitude == 0.0f) {
+        return (Point){0, 0}; // Return a zero vector if the magnitude is zero
+    }
+    return (Point){p->x / magnitude, p->y / magnitude};
 }
 
 // Member functions
@@ -45,7 +47,7 @@ Point point_sub(const Point* v1, const Point* v2) {
 }
 
 float point_heading(const Point* p) {
-    return atan2f(p->y, p->x);
+    return fm_atan2f(p->y, p->x);
 }
 
 Point point_from_angle(float angle) {

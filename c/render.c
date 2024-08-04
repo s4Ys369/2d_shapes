@@ -2,7 +2,6 @@
 #include "point.h"
 #include "shapes.h"
 #include "render.h"
-#include "utils.h"
 
 void set_render_color(color_t color){
   rdpq_set_prim_color(color);
@@ -35,26 +34,34 @@ void render_rotate_shape_points(PointArray* pa, Point center, float angle) {
 }
 
 // Function to get points around an ellipse
-PointArray render_get_ellipse_points(Point center, float rx, float ry, int segments) {
+PointArray* render_get_ellipse_points(Point center, float rx, float ry, int segments) {
 
   if(segments == 0){
     segments = 1;
   }
 
-  PointArray pa; init_point_array(&pa);
-  pa.points = (Point*)malloc(sizeof(Point) * segments);
-  pa.count = segments;
+ // Allocate PointArray on the heap
+  PointArray* pa = (PointArray*)malloc(sizeof(PointArray));
+  if (pa == NULL) {
+      debugf("Failed to allocate memory for PointArray\n");
+      return NULL;
+  }
+    
+  // Initialize the PointArray
+  init_point_array(pa);
 
-  float angleStep = 2 * M_PI / segments;
+  // Compute points for the ellipse
+  float angleStep = 2.0f * M_PI / (float)segments;
   for (int i = 0; i < segments; ++i) {
     float angle = i * angleStep;
-    float x = center.x + rx * fm_cosf(angle);
-    float y = center.y + ry * fm_sinf(angle);
-    pa.points[i] = (Point){x, y};
+    float x = center.x + rx * cosf(angle);
+    float y = center.y + ry * sinf(angle);
+    add_point(pa, x, y);
   }
 
   return pa;
 }
+
 
 // Texture test
 void draw_triangle(float* v1, float* v2, float* v3) {

@@ -4,7 +4,6 @@
 #include <libdragon.h>
 #include "point.h"
 #include "shapes.h"
-#include "utils.h"
 
 
 
@@ -13,7 +12,7 @@ void render_move_point(PointArray* points, size_t index, float dx, float dy);
 void render_move_shape_points(PointArray* points, float dx, float dy);
 void render_rotate_point(PointArray* points, size_t index, Point center, float angle);
 void render_rotate_shape_points(PointArray* points, Point center, float angle);
-PointArray render_get_ellipse_points(Point center, float rx, float ry, int segments);
+PointArray* render_get_ellipse_points(Point center, float rx, float ry, int segments);
 void draw_triangle(float* v1, float* v2, float* v3);
 void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
 void draw_fan(const PointArray* points);

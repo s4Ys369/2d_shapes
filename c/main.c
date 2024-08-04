@@ -2,7 +2,6 @@
 #include "point.h"
 #include "render.h"
 #include "shapes.h"
-#include "utils.h"
 
 #include "rspq_constants.h"
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
@@ -69,6 +68,7 @@ void setup() {
   display_init(RESOLUTION_320x240, DEPTH_16_BPP, 3, GAMMA_NONE, FILTERS_RESAMPLE_ANTIALIAS_DEDITHER);
   screenWidth = display_get_width();
   screenHeight = display_get_height();
+  screenCenter = point_new(screenWidth/2,screenHeight/2);
   disp = surface_alloc(FMT_RGBA16, screenWidth, screenHeight);
 
   rdpq_init();
@@ -103,15 +103,29 @@ void setup() {
   stickX = 0.0f;
   stickY = 0.0f;
 
-  // Initialize shapes
+  // Allocate the shape
+  currShape = (Shape*)malloc(sizeof(Shape));
+  // then initialize
   shape_init(currShape);
-  currShapeColor = BLACK;
-  currCenter = point_default();
-  screenCenter = point_new(screenWidth/2,screenHeight/2);
+  currShapeColor = get_fill_color(currShape);
+  currCenter = get_center(currShape);
+
+  // Circle
+  circle = (Circle*)malloc(sizeof(Circle));
   circle_init(circle, screenCenter, 20.0f, 0.05f, RED);
+
+  // Quad as a strip
+  quad = (Strip*)malloc(sizeof(Strip));
   strip_init(quad, screenCenter, 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
+
+  // Fan has only scale, whereas fan2 has both X and Y scales
+  fan = (Fan*)malloc(sizeof(Fan));
   fan2_init(fan, screenCenter, 20.0f, 20.0f, 5, BLUE);
+
+  // Curves are treat as strips
+  curve = (Strip*)malloc(sizeof(Strip));
   strip_init(curve, screenCenter, 20.0f, 20.0f, 2.0f, 10, RED);
+  curve2 = (Strip*)malloc(sizeof(Strip));
   strip_init(curve2, screenCenter, 20.0f, 20.0f, 2.0f, 10, GREEN);
 
   // Texture test
@@ -150,32 +164,37 @@ void draw() {
   switch (example) {
     case 0:
       currShape = (Shape*)circle;
-      resolve(circle, stickX, stickY);
-      currCenter = get_center(circle);
-      currRadiusX = get_scaleX(circle);
-      currRadiusY = get_scaleY(circle);
-      currSegments = get_segments(circle);
-      currLOD = get_lod(circle);
+      currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
+      set_points(currShape, currPoints);
+      resolve(currShape, stickX, stickY);
+      currCenter = get_center(currShape);
+      currRadiusX = get_scaleX(currShape);
+      currRadiusY = get_scaleY(currShape);
+      currSegments = get_segments(currShape);
+      currLOD = get_lod(currShape);
       if(currLOD < ((float)currSegments*0.01f)){
         currLOD = ((float)currSegments*0.01f);
       }
-      currShapeColor = get_fill_color(circle);
+      currShapeColor = get_fill_color(currShape);
       set_render_color(currShapeColor);
-      *currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-      set_points(circle, currPoints);
       draw_circle(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
-      currPoints = get_points(circle);
+      PointArray* currPointsUpdated = get_points(currShape);
+      if (currPoints != currPointsUpdated) {
+        free(currPoints->points);
+        free(currPoints);
+      }
+      currPoints = currPointsUpdated;
       break;
     case 1:
       currShape = (Shape*)quad;
-      resolve(quad, stickX, stickY);
-      currCenter = get_center(quad);
-      currRadiusX = get_scaleX(quad);
-      currRadiusY = get_scaleY(quad);
-      currThickness = get_thickness(quad);
-      currShapeColor = get_fill_color(quad);
-      set_segments(quad, 1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
-      currSegments = get_segments(quad);
+      resolve(currShape, stickX, stickY);
+      currCenter = get_center(currShape);
+      currRadiusX = get_scaleX(currShape);
+      currRadiusY = get_scaleY(currShape);
+      currThickness = get_thickness(currShape);
+      currShapeColor = get_fill_color(currShape);
+      set_segments(currShape, 1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
+      currSegments = get_segments(currShape);
       set_render_color(currShapeColor);
       draw_line(
         currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
@@ -186,15 +205,20 @@ void draw() {
       break;
     case 2:
       currShape = (Shape*)fan;
-      currCenter = get_center(fan);
-      currRadiusX = get_scaleX(fan);
-      currRadiusY = get_scaleY(fan);
-      currSegments = get_segments(fan);
-      currLOD = get_lod(fan);
+      currCenter = get_center(currShape);
+      currRadiusX = get_scaleX(currShape);
+      currRadiusY = get_scaleY(currShape);
+      currSegments = get_segments(currShape);
+      currLOD = get_lod(currShape);
 
-      *currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-      set_points(fan, currPoints);
-      currPoints = get_points(fan);
+      currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
+      set_points(currShape, currPoints);
+      currPointsUpdated = get_points(currShape);
+      if (currPoints != currPointsUpdated) {
+        free(currPoints->points);
+        free(currPoints);
+      }
+      currPoints = currPointsUpdated;
 
       render_move_point(currPoints, controlPoint, stickX, -stickY);
       render_rotate_point(currPoints, controlPoint, currCenter, currAngle);
@@ -217,17 +241,24 @@ void draw() {
         set_render_color(YELLOW);
         draw_circle(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
       }
+
+      currPointsUpdated = get_points(currShape);
+      if (currPoints != currPointsUpdated) {
+        free(currPoints->points);
+        free(currPoints);
+      }
+      currPoints = currPointsUpdated;
       break;
     case 3:
       currShape = (Shape*)curve;
-      currCenter = get_center(curve);
-      currRadiusX = get_scaleX(curve);
-      currRadiusY = get_scaleY(curve);
-      currSegments = get_segments(curve);
+      currCenter = get_center(currShape);
+      currRadiusX = get_scaleX(currShape);
+      currRadiusY = get_scaleY(currShape);
+      currSegments = get_segments(currShape);
       if(currSegments > 100){
         currSegments = 5;
       }
-      currThickness = get_thickness(curve);
+      currThickness = get_thickness(currShape);
       if(currThickness > 10.0f){
         currThickness = 1.0f;
       }
@@ -267,7 +298,7 @@ void draw() {
         }
       }
 
-      currShapeColor = get_fill_color(curve);
+      currShapeColor = get_fill_color(currShape);
       set_render_color(currShapeColor);
       draw_bezier_curve(
         &pointA, &pointB, &pointC, &pointD,
@@ -299,8 +330,8 @@ void draw() {
       set_render_color(YELLOW);
       draw_circle(bezierPoints->points[controlPoint].x, bezierPoints->points[controlPoint].y, 1.5f, 1.5f, currAngle, 0.01f);
 
-      set_points(curve, bezierPoints);
-      currPoints = get_points(curve);
+      set_points(currShape, bezierPoints);
+      currPoints = get_points(currShape);
 
       
       pointA = currPoints->points[0];
@@ -568,8 +599,13 @@ int main() {
     }
 
     currShapeColor = get_fill_color(currShape);
-    *currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-    currPoints = get_points(currShape);
+    currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
+    PointArray* currPointsUpdated = get_points(currShape);
+    if (currPoints != currPointsUpdated) {
+      free(currPoints->points);
+      free(currPoints);
+    }
+    currPoints = currPointsUpdated;
 
 //=========== ~ CONTROLS ~ ==============//
 
@@ -816,6 +852,12 @@ int main() {
   }
 
   //=========== ~ CLEAN UP ~ =============//
+  free(currShape);
+  free(circle);
+  free(quad);
+  free(fan);
+  free(curve);
+  free(curve2);
   free_point_array(bezierPoints);
   free_point_array(basePoints);
   free_point_array(currPoints);
