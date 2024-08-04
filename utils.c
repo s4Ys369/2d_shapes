@@ -60,11 +60,14 @@ float apply_deadzone(float value) {
   }
 }
 
+/* C++ replacements , possibly move to render? */
+
+// emplace_back for a float array
 void add_vertex(float** vertices, int* vertex_count, float x, float y) {
     // Increase the size of the vertices array
     *vertices = (float*)realloc(*vertices, sizeof(float) * (*vertex_count + 2));
     if (*vertices == NULL) {
-        debugf("Vertex allocation failed\n");
+        debugf("Vertex reallocation failed\n");
         return;
     }
 
@@ -74,11 +77,12 @@ void add_vertex(float** vertices, int* vertex_count, float x, float y) {
     *vertex_count += 2;
 }
 
+// emplace_back for a int array
 void add_index(int** indices, int* index_count, int index) {
     // Increase the size of the indices array
     *indices = (int*)realloc(*indices, sizeof(int) * (*index_count + 1));
     if (*indices == NULL) {
-        debugf("Index allocation failed\n");
+        debugf("Index reallocation failed\n");
         return;
     }
 
@@ -106,3 +110,20 @@ int* create_triangle_fan_indices(int segments, int* index_count) {
 
     return indices;
 }
+
+/* Bernstein polynominal for bezier curve
+void get_bezier_points(PointArray* curvePoints, int segments){
+    for (int i = 0; i <= segments; ++i) {
+    float t = i * step;
+    float u = 1 - t;
+    float tt = t * t;
+    float uu = u * u;
+    float uuu = uu * u;
+    float ttt = tt * t;
+
+    float x = uuu * p0->x + 3 * uu * t * p1->x + 3 * u * tt * p2->x + ttt * p3->x;
+    float y = uuu * p0->y + 3 * uu * t * p1->y + 3 * u * tt * p2->y + ttt * p3->y;
+
+    add_point(&curvePoints, x, y);
+  }
+}*/

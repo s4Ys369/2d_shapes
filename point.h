@@ -24,7 +24,7 @@ Point point_add(const Point* p1, const Point* p2);
 Point point_multiply(const Point* p, float scalar);
 Point point_normalized(const Point* p);
 
-// Member functions
+// Transform functions
 void point_add_in_place(Point* p, const Point* v);
 Point point_sum(const Point* v1, const Point* v2);
 Point point_sub(const Point* v1, const Point* v2);
@@ -41,7 +41,15 @@ Point point_transform(const Point* point, float angle, float width);
 float point_cross(const Point* p1, const Point* p2);
 float point_dot(const Point* p1, const Point* p2);
 float point_epsilon_test(const Point* A, const Point* B, const Point* C);
-bool point_point_in_triangle(const Point* P, const Point* A, const Point* B, const Point* C);
+bool point_in_triangle(const Point* P, const Point* A, const Point* B, const Point* C);
 void point_move(Point* p, float stickX, float stickY);
+void rotate_line_point(Point* p, const Point* center, float cos_angle, float sin_angle);
+
+// PointArray functions
+void init_point_array(PointArray* array);
+void add_point(PointArray* array, float x, float y);
+void add_existing_point(PointArray* array, Point p);
+void calculate_array_center(const PointArray* points, Point* center);
+void free_point_array(PointArray* array);
 
 #endif // POINT_H

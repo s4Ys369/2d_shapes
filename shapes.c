@@ -1,8 +1,8 @@
 #include <libdragon.h>
 #include "point.h"
-#include "Render.h"
-#include "shape.h"
-#include "Utils.h"
+#include "render.h"
+#include "shapes.h"
+#include "utils.h"
 
 // Initialization functions
 void shape_init(Shape* shape) {
@@ -15,8 +15,9 @@ void shape_init(Shape* shape) {
     shape->fillColor = BLACK;
     shape->currPoints = (Point*)malloc(sizeof(Point));
     if (shape->currPoints != NULL) {
-        shape->currPoints[0] = shape->center;
-        shape->currPointsCount = 1;
+        shape->currPoints = (PointArray*)malloc(sizeof(PointArray));
+        add_existing_point(shape->currPoints, shape->center);
+        shape->currPoints->count = 1;
     }
 }
 
@@ -51,22 +52,27 @@ void strip_init(Strip* strip, Point origin, float scaleX, float scaleY, float th
     strip->center = origin;
     strip->scaleX = scaleX;
     strip->scaleY = scaleY;
-    strip->lod = thickness;
+    strip->thickness = thickness;
     strip->segments = segments;
     strip->fillColor = fillColor;
 }
 
 
 // Common functions for the Shape interface
-void set_points(void* shape, Point* points, size_t count) {
+void set_points(void* shape, const PointArray* points) {
     Shape* s = (Shape*)shape;
-    Point* newPoints = (Point*)realloc(s->currPoints, sizeof(Point) * count);
+    
+    // Allocate new memory for points
+    PointArray* newPoints = (PointArray*)realloc(s->currPoints, sizeof(Point) * points->count);
     if (newPoints != NULL) {
         s->currPoints = newPoints;
-        memcpy(s->currPoints, points, sizeof(Point) * count);
-        s->currPointsCount = count;
+        
+        // Copy the new points
+        memcpy(s->currPoints->points, points->points, sizeof(Point) * points->count);
+        s->currPoints->count = points->count;
     } else {
-        debugf("Point reallocation faliure\n");
+        // Handle reallocation failure
+        debugf("Point reallocation failure\n");
     }
 }
 
@@ -140,8 +146,8 @@ void resolve(void* shape, float stickX, float stickY) {
     float adjustedY = apply_deadzone(stickY);
 
     // Normalize the joystick input to get the direction
-    Point direction(adjustedX, -adjustedY);
-    direction.normalize();// FIXME
+    Point direction = point_new(adjustedX, -adjustedY);
+    point_normalize(&direction);
 
     // Limit movement to inside screen with offset
     float offset = 32.0f;
@@ -168,7 +174,8 @@ void resolve(void* shape, float stickX, float stickY) {
 
     // Determine the target position based on the direction and a fixed magnitude
     float move_mag = 3.5f;
-    targetPos = Point::sub(currPos, direction.set_mag(move_mag));//FIXME
+    direction = point_set_mag(&direction,move_mag);
+    targetPos = point_sub(&currPos, &direction);
 
     set_center(((Shape*)shape), targetPos);
     // debugf("X %.1f\nY %.1f\n", targetPos.x, targetPos.y);

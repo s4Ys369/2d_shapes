@@ -3,14 +3,12 @@
 
 #include <libdragon.h>
 #include "point.h"
-#include "Render.h"
-#include "Utils.h"
+#include "render.h"
+#include "utils.h"
 
 typedef struct {
-    Point* currPoints;
-    size_t currPointsCount;
-    Point* previousPoints;
-    size_t previousPointsCount;
+    PointArray* currPoints;
+    PointArray* previousPoints;
     Point center;
     float scaleX;
     float scaleY;
@@ -20,10 +18,8 @@ typedef struct {
 } Shape;
 
 typedef struct {
-    Point* currPoints;
-    size_t currPointsCount;
-    Point* previousPoints;
-    size_t previousPointsCount;
+    PointArray* currPoints;
+    PointArray* previousPoints;
     Point center;
     float scaleX;
     float scaleY;
@@ -32,10 +28,8 @@ typedef struct {
 } Fan;
 
 typedef struct {
-    Point* currPoints;
-    size_t currPointsCount;
-    Point* previousPoints;
-    size_t previousPointsCount;
+    PointArray* currPoints;
+    PointArray* previousPoints;
     Point center;
     float scale;
     float lod;
@@ -43,10 +37,8 @@ typedef struct {
 } Circle;
 
 typedef struct {
-    Point* currPoints;
-    size_t currPointsCount;
-    Point* previousPoints;
-    size_t previousPointsCount;
+    PointArray* currPoints;
+    PointArray* previousPoints;
     Point center;
     float scaleX;
     float scaleY;
@@ -86,7 +78,7 @@ void circle_init(Circle* circle, Point origin, float scale, float lod, color_t f
 void strip_init(Strip* strip, Point origin, float scaleX, float scaleY, float thickness, int segments, color_t fillColor);
 
 // Common functions for the Shape interface
-void set_points(void* shape, Point* points, size_t count);
+void set_points(void* shape, PointArray* points);
 Point* get_points(void* shape);
 void set_thickness(void* shape, float thickness);
 float get_thickness(const void* shape);

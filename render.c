@@ -10,11 +10,13 @@ void set_render_color(color_t color){
 
 void render_move_point(PointArray* pa, size_t index, float dx, float dy) {
   if (index < pa->count) {
-    point_add_in_place(&pa->points[index], point_new(dx,dy));
+    Point p = point_new(dx,dy);
+    point_add_in_place(&pa->points[index], &p);
   }
 }
  
 void render_move_shape_points(PointArray* pa, float dx, float dy) {
+  Point direction = point_new(dx,dy);
   for (int i = 0; i < pa->count; ++i) {
     point_add_in_place(&pa->points[i], &direction);
   }
@@ -22,13 +24,13 @@ void render_move_shape_points(PointArray* pa, float dx, float dy) {
 
 void render_rotate_point(PointArray* pa, size_t index, Point center, float angle) {
   if (index < pa->count) {
-    point_rotate(&pa->points[index], center, angle)
+    point_rotate(&pa->points[index], &center, angle);
   }
 }
 
 void render_rotate_shape_points(PointArray* pa, Point center, float angle) {
   for (int i = 0; i < pa->count; ++i) {
-    point_add_in_place(&pa->points[i], &direction);
+    point_rotate(&pa->points[i], &center, angle);
   }
 }
 
@@ -39,7 +41,7 @@ PointArray render_get_ellipse_points(Point center, float rx, float ry, int segme
     segments = 1;
   }
 
-  PointArray pa;
+  PointArray pa; init_point_array(&pa);
   pa.points = (Point*)malloc(sizeof(Point) * segments);
   pa.count = segments;
 
@@ -51,7 +53,7 @@ PointArray render_get_ellipse_points(Point center, float rx, float ry, int segme
     pa.points[i] = (Point){x, y};
   }
 
-  return points;
+  return pa;
 }
 
 // Texture test
@@ -90,16 +92,16 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
 }
 
 // Function to draw a triangle fan from an array of points
-void draw_fan(const PointArray* points) {
-  if (points->count < 3){ debugf("Need at least 3 points to form a triangle"); return; }
+void draw_fan(const PointArray* pa) {
+  if (pa->count < 3){ debugf("Need at least 3 points to form a triangle"); return; }
 
   // First point is the center of the fan
-  Point center = points[0];
+  Point center = pa->points[0];
 
-  for (size_t i = 1; i < points->count - 1; ++i) {
+  for (size_t i = 1; i < pa->count - 1; ++i) {
     Point v1 = center;
-    Point v2 = points[i];
-    Point v3 = points[i + 1];
+    Point v2 = pa->points[i];
+    Point v3 = pa->points[i + 1];
 
     rdpq_triangle(&TRIFMT_FILL, &v1.x, &v2.x, &v3.x);
     triCount++;
@@ -196,7 +198,7 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   }
 
   // Calculate angles for position
-  float theta = 2.0f * M_PI / float(segments);
+  float theta = 2.0f * M_PI / (float)segments;
   float cos_theta = fm_cosf(theta);
   float sin_theta = fm_sinf(theta);
 
@@ -232,37 +234,45 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   }
 
   // Create indices for a triangle fan
-  int* indices = create_triangle_fan_indices(segments, &index_count);
+  int* indices = NULL;
+  int *index_count = segments * 3; // Each triangle uses 3 indices
+  indices = create_triangle_fan_indices(segments, &index_count);
 
   // Draw the indexed vertices
-  draw_indexed_triangles(&vertices[0], vertices.size(), &indices[0], index_count);
+  draw_indexed_triangles(&vertices[0], vertex_count, &indices[0], index_count);
 
 }
 
 // Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
-void Render::draw_line(float x1, float y1, float x2, float y2, float angle, float thickness) {
+void draw_line(float x1, float y1, float x2, float y2, float angle, float thickness) {
+
+  // Check for subpixel thickness
+  if(thickness <= 0.9f){
+    thickness = 1.0f;
+  }
+
   // Define points
-  Point start(x1, y1);
-  Point end(x2, y2);
+  Point start = point_new(x1, y1);
+  Point end = point_new(x2, y2);
 
   // Calculate the center of the line segment
-  Point center((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
+  Point center = point_new((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
 
   // Calculate direction vector
-  Point direction = Point::sub(end, start);
-  float length = direction.magnitude();
+  Point direction = point_sub(&end, &start);
+  float length =  point_magnitude(&direction);
 
   // Check for non-zero length and normalize
-  if (length > 0) {
-    direction.normalize(); // Normalize the direction vector
+  if (length != 0) {
+    point_normalize(&direction);
   } else {
-    debugf("Line length cannot be 0");
+    debugf("Line length cannot be 0");  
     return;
   }
 
   // Calculate the perpendicular vector for the thickness
-  Point perp(-direction.y, direction.x); // Perpendicular to direction
-  perp.set_mag(thickness / 2); // Set the magnitude to half of the thickness
+  Point perp = point_new(-direction.y, direction.x); // Perpendicular to direction
+  perp = point_set_mag(&perp, thickness / 2); // Set the magnitude to half of the thickness
 
   // Rotation matrix
   float cos_angle = fm_cosf(angle);
@@ -274,19 +284,11 @@ void Render::draw_line(float x1, float y1, float x2, float y2, float angle, floa
   Point p2_left = { start.x , end.y};
   Point p2_right = end;
 
-  // Rotate each vertex around the center of the line segment
-  auto rotate_line_point = [cos_angle, sin_angle](Point& p, const Point& center) {
-      float tx = p.x - center.x;
-      float ty = p.y - center.y;
-      p.x = center.x + (tx * cos_angle - ty * sin_angle);
-      p.y = center.y + (tx * sin_angle + ty * cos_angle);
-  };
-
   // Rotate the trapezoid vertices
-  rotate_line_point(p1_left, center);
-  rotate_line_point(p1_right, center);
-  rotate_line_point(p2_left, center);
-  rotate_line_point(p2_right, center);
+  rotate_line_point(&p1_left,  &center, cos_angle, sin_angle);
+  rotate_line_point(&p1_right, &center, cos_angle, sin_angle);
+  rotate_line_point(&p2_left,  &center, cos_angle, sin_angle);
+  rotate_line_point(&p2_right, &center, cos_angle, sin_angle);
 
   // Define vertices for two triangles to form the line with thickness
   float v1[] = { p1_left.x, p1_left.y };
@@ -303,17 +305,20 @@ void Render::draw_line(float x1, float y1, float x2, float y2, float angle, floa
 
 
 // Function to draw a Bézier curve as a triangle strip with a given thickness
-void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float angle, float thickness) {
-  std::vector<Point> curvePoints;
-  std::vector<float> vertices;
-  std::vector<int> indices;
+void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const Point* p3, int segments, float angle, float thickness) {
 
-  curvePoints.clear();
-  curvePoints.reserve(segments + 1);
+  // Initialize arrays
+  PointArray curvePoints; init_point_array(&curvePoints);
 
-  float step = 1.0f / float(segments);
+  float* vertices = NULL;
+  int vertexCount = 0;
 
-  // Compute Bézier curve points
+  int* indices = NULL;
+  int indexCount = 0;
+
+  float step = (segments != 0) ? 1.0f / (float)segments : 1.0f;
+
+  // Compute Bézier curve points FIXME: precompute?
   for (int i = 0; i <= segments; ++i) {
     float t = i * step;
     float u = 1 - t;
@@ -322,147 +327,156 @@ void Render::draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2
     float uuu = uu * u;
     float ttt = tt * t;
 
-    float x = uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x;
-    float y = uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y;
+    float x = uuu * p0->x + 3 * uu * t * p1->x + 3 * u * tt * p2->x + ttt * p3->x;
+    float y = uuu * p0->y + 3 * uu * t * p1->y + 3 * u * tt * p2->y + ttt * p3->y;
 
-    curvePoints.emplace_back(Point{x, y});
+    add_point(&curvePoints, x, y);
   }
 
   // Center of the curve for rotation
-  Point center = { (p0.x + p3.x) / 2.0f, (p0.y + p3.y) / 2.0f };
+  Point center = point_new((p0->x + p3->x) / 2.0f, (p0->y + p3->y) / 2.0f);
 
-  // Apply rotation to all curve points
-  for (auto& p : curvePoints) {
-    p.rotate(center,angle);
-  }
+  float cos_angle = fm_cosf(angle);
+  float sin_angle = fm_sinf(angle);
 
-  // Create left and right side points for the curve
-  for (size_t i = 0; i < curvePoints.size(); ++i) {
-    Point p = curvePoints[i];
-
-    // Calculate the direction vector
-    Point dir;
-    if (i < curvePoints.size() - 1) {
-      dir = (curvePoints[i + 1] - p).normalized();
-    } else {
-      dir = (p - curvePoints[i - 1]).normalized();
+  for (int i = 0; i < curvePoints.count; ++i) { // FIXME: Use point_normalized and rotate_line_points
+    Point p = curvePoints.points[i];
+        
+    // Compute the normal vector for the curve point
+    float nx = 0, ny = 0;
+    if (i < curvePoints.count - 1) {
+      float dx = curvePoints.points[i + 1].x - p.x;
+      float dy = curvePoints.points[i + 1].y - p.y;
+      float length = sqrtf(dx * dx + dy * dy);
+      if(length != 0){
+        nx = -dy / length * thickness / 2;
+        ny = dx / length * thickness / 2;
+      } else {
+        nx = -dy * thickness / 2;
+        ny = dx * thickness / 2;
+      }
     }
 
-    // Calculate the perpendicular vector for thickness
-    Point perp = {-dir.y, dir.x};
-    Point left = p + perp * (thickness / 2);
-    Point right = p - perp * (thickness / 2);
+    // Apply rotation
+    float offsetX = nx * cos_angle - ny * sin_angle;
+    float offsetY = nx * sin_angle + ny * cos_angle;
 
-    // Add vertices for the strip
-    vertices.emplace_back(left.x);
-    vertices.emplace_back(left.y);
-    vertices.emplace_back(right.x);
-    vertices.emplace_back(right.y);
+    // Add vertices for the top and bottom of the strip
+    add_vertex(&vertices, &vertexCount, p.x + offsetX, p.y + offsetY);
+    add_vertex(&vertices, &vertexCount, p.x - offsetX, p.y - offsetY);
 
-    // Add indices for the strip
-    if (i > 0) {
-      int prevIndex = (i - 1) * 2;
-      int currIndex = i * 2;
-
-      // Two triangles per segment
-      indices.emplace_back(prevIndex);    // Left side of previous segment
-      indices.emplace_back(currIndex);    // Left side of current segment
-      indices.emplace_back(prevIndex + 1); // Right side of previous segment
-
-      indices.emplace_back(prevIndex + 1); // Right side of previous segment
-      indices.emplace_back(currIndex);    // Left side of current segment
-      indices.emplace_back(currIndex + 1); // Right side of current segment
+    // Add indices
+    if (i < curvePoints.count - 1) {
+      int baseIndex = i * 2;
+      add_index(&indices, &indexCount, baseIndex);
+      add_index(&indices, &indexCount, baseIndex + 1);
+      add_index(&indices, &indexCount, baseIndex + 2);
+      add_index(&indices, &indexCount, baseIndex + 1);
+      add_index(&indices, &indexCount, baseIndex + 3);
+      add_index(&indices, &indexCount, baseIndex + 2);
     }
-
   }
 
   // Draw the triangles using the indexed triangle function
-  draw_indexed_triangles(vertices.data(), vertices.size() / 2, indices.data(), indices.size());
+  draw_indexed_triangles(&vertices, vertexCount / 2, &indices, indexCount);
 
-  currTris = indices.size() / 3;
-  currVerts = vertices.size() / 2;
+  currTris = indexCount / 3;
+  currVerts = vertexCount / 2;
+  free(curvePoints.points);
+  free(vertices);
+  free(indices);
 }
 
 
 // Function to fill area between 2 Bézier curves using quads/rectangles
-void Render::fill_between_beziers(const std::vector<Point>& curve1, const std::vector<Point>& curve2) {
-  size_t size = std::min(curve1.size(), curve2.size());
+void fill_between_beziers(const PointArray* curve1, const PointArray* curve2) {
+  size_t size = fminf(curve1->count, curve2->count);
   for (size_t i = 0; i < size - 1; ++i) {
-      float v1[] = { curve1[i].x, curve1[i].y };
-      float v2[] = { curve1[i + 1].x, curve1[i + 1].y };
-      float v3[] = { curve2[i].x, curve2[i].y };
-      float v4[] = { curve2[i + 1].x, curve2[i + 1].y };
+    float v1[] = { curve1->points[i].x, curve1->points[i].y };
+    float v2[] = { curve1->points[i + 1].x, curve1->points[i + 1].y };
+    float v3[] = { curve2->points[i].x, curve2->points[i].y };
+    float v4[] = { curve2->points[i + 1].x, curve2->points[i + 1].y };
 
-      // Draw two triangles to fill the quad
-      rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-      rdpq_triangle(&TRIFMT_FILL, v2, v3, v4);
-      fillTris += 2;
-      currVerts += 4; // Increment vertex count
-      //debugf("After quad %d: Triangle count: %u, Vertex count: %u\n", i + 1, fillTris, currVerts);
+    // Draw two triangles to fill the quad
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    rdpq_triangle(&TRIFMT_FILL, v2, v3, v4);
+    fillTris += 2;
+    currVerts += 4; // Increment vertex count
+    //debugf("After quad %d: Triangle count: %u, Vertex count: %u\n", i + 1, fillTris, currVerts);
   }
 }
 
 // Function to draw a filled shape between 2 Bézier curves
-void Render::draw_filled_beziers(const Point& p0, const Point& p1, const Point& p2, const Point& p3, 
-                               const Point& q0, const Point& q1, const Point& q2, const Point& q3, 
+void draw_filled_beziers(const Point* p0, const Point* p1, const Point* p2, const Point* p3, 
+                               const Point* q0, const Point* q1, const Point* q2, const Point* q3, 
                                int segments) {
-    std::vector<Point> upper_curve;
-    std::vector<Point> lower_curve;
 
-    currVerts = 0;
-    fillTris = 0;
-    //debugf("After reset: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
 
-    // Generate points for the upper Bézier curve
-    for (int i = 0; i <= segments; ++i) {
-        float t = float(i) / float(segments);
-        float u = 1 - t;
-        float tt = t * t;
-        float uu = u * u;
-        float uuu = uu * u;
-        float ttt = tt * t;
+  // Set up two arrays
+  PointArray topCurvePoints, bottomCurvePoints;
+  init_point_array(&topCurvePoints);
+  init_point_array(&bottomCurvePoints);
 
-        Point p = { uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
-                      uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y };
-        upper_curve.emplace_back(p);
-    }
+  // Reset accumulators
+  currVerts = 0;
+  fillTris = 0;
+  //debugf("After reset: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
 
-    // Generate points for the lower Bézier curve
-    for (int i = 0; i <= segments; ++i) {
-        float t = float(i) / float(segments);
-        float u = 1 - t;
-        float tt = t * t;
-        float uu = u * u;
-        float uuu = uu * u;
-        float ttt = tt * t;
+  // Compute Bézier curve points FIXME: precompute?
+  float step = (segments != 0) ? 1.0f / (float)segments : 1.0f;
 
-        Point q = { uuu * q0.x + 3 * uu * t * q1.x + 3 * u * tt * q2.x + ttt * q3.x,
-                      uuu * q0.y + 3 * uu * t * q1.y + 3 * u * tt * q2.y + ttt * q3.y };
-        lower_curve.emplace_back(q);
-    }
+  // Top curve
+  for (int i = 0; i <= segments; ++i) {
+    float t = i * step;
+    float u = 1 - t;
+    float tt = t * t;
+    float uu = u * u;
+    float uuu = uu * u;
+    float ttt = tt * t;
+
+    float x = uuu * p0->x + 3 * uu * t * p1->x + 3 * u * tt * p2->x + ttt * p3->x;
+    float y = uuu * p0->y + 3 * uu * t * p1->y + 3 * u * tt * p2->y + ttt * p3->y;
+
+    add_point(&topCurvePoints, x, y);
+  }
+
+  // Bottom curve
+  for (int i = 0; i <= segments; ++i) {
+    float t = i * step;
+    float u = 1 - t;
+    float tt = t * t;
+    float uu = u * u;
+    float uuu = uu * u;
+    float ttt = tt * t;
+
+    float x = uuu * q0->x + 3 * uu * t * q1->x + 3 * u * tt * q2->x + ttt * q3->x;
+    float y = uuu * q0->y + 3 * uu * t * q1->y + 3 * u * tt * q2->y + ttt * q3->y;
+
+    add_point(&bottomCurvePoints, x, y);
+  }
 
     // Fill the area between the two curves
-    fill_between_beziers(lower_curve, upper_curve);
+    fill_between_beziers(&topCurvePoints, &bottomCurvePoints);
     //debugf("After fill_between_beziers: Triangle count: %u, Vertex count: %u\n", fillTris, currVerts);
-    lower_curve.clear();
-    upper_curve.clear();
+    free(&topCurvePoints);
+    free(&bottomCurvePoints);
 }
 
 // Function to check ear clipping, An "ear" is a triangle formed by three consecutive vertices in a polygon that does not contain any other vertices of the polygon inside it.
-bool Render::is_ear(const std::vector<Point>& polygon, int u, int v, int w, const std::vector<int>& V) {
-  const Point& A = polygon[V[u]];
-  const Point& B = polygon[V[v]];
-  const Point& C = polygon[V[w]];
+bool is_ear(const PointArray* polygon, int u, int v, int w, const int* V) {
+  Point A = polygon->points[V[u]];
+  Point B = polygon->points[V[v]];
+  Point C = polygon->points[V[w]];
 
-  if (Point::epsilon_test(A, B, C) >= 0) {
+  if (point_epsilon_test(&A, &B, &C) >= 0) {
     return false;
   }
 
-  for (size_t p = 0; p < polygon.size(); ++p) {
-    if ((p == static_cast<size_t>(u)) || (p == static_cast<size_t>(v)) || (p == static_cast<size_t>(w))) {
+  for (size_t p = 0; p < polygon->count; ++p) {
+    if ((p == (size_t)u) || (p == (size_t)v) || (p == (size_t)w)) {
       continue;
     }
-    if (Point::point_in_triangle(polygon[p], A, B, C)) {
+    if (point_in_triangle(&polygon->points[p], &A, &B, &C)) {
       return false;
     }
   }
@@ -471,18 +485,24 @@ bool Render::is_ear(const std::vector<Point>& polygon, int u, int v, int w, cons
 }
 
 // A simple ear clipping algorithm for triangulation
-void Render::triangulate_polygon(const std::vector<Point>& polygon, std::vector<Point>& triangles) {
-  std::vector<int> V(polygon.size());
-  for (size_t i = 0; i < polygon.size(); ++i) {
+void triangulate_polygon(const PointArray* polygon, PointArray* triangles) {
+
+  int* V = (int*)malloc(polygon->count * sizeof(int));
+  if (V == NULL) {
+    debugf("Polygon point count cannot be 0\n");
+    return;
+  }
+  for (size_t i = 0; i < polygon->count; ++i) {
     V[i] = i;
   }
 
-  int n = polygon.size();
+  int n = polygon->count;
   int count = 2 * n;
 
   for (int v = n - 1; n > 2;) {
     if ((count--) <= 0) {
       debugf("No polygon detected\n");
+      free(V);
       return;
     }
 
@@ -500,9 +520,9 @@ void Render::triangulate_polygon(const std::vector<Point>& polygon, std::vector<
     }
 
     int a = V[u], b = V[v], c = V[w];
-    triangles.push_back(polygon[a]);
-    triangles.push_back(polygon[b]);
-    triangles.push_back(polygon[c]);
+    add_existing_point(triangles, polygon->points[a]);
+    add_existing_point(triangles, polygon->points[b]);
+    add_existing_point(triangles, polygon->points[c]);
 
     for (int s = v, t = v + 1; t < n; s++, t++) {
       V[s] = V[t];
@@ -511,126 +531,128 @@ void Render::triangulate_polygon(const std::vector<Point>& polygon, std::vector<
 
     count = 2 * n;
   }
+
+  free(V);
 }
 
 // Function to draw a Bézier curve using line segments, then fill shape with triangles. Note the base will always be a straight line.
-void Render::draw_filled_bezier_shape(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments) {
-  std::vector<Point> curvePoints;
+void draw_filled_bezier_shape(const Point* p0, const Point* p1, const Point* p2, const Point* p3, int segments) {
 
-  // Compute Bézier curve points
+  PointArray curvePoints; init_point_array(&curvePoints);
+
+  float step = (segments != 0) ? 1.0f / (float)segments : 1.0f;
+
+  // Compute Bézier curve points FIXME: precompute?
   for (int i = 0; i <= segments; ++i) {
-    float t = float(i) / float(segments);
+    float t = i * step;
     float u = 1 - t;
     float tt = t * t;
     float uu = u * u;
     float uuu = uu * u;
     float ttt = tt * t;
 
-    Point p = { uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x,
-                  uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y };
+    float x = uuu * p0->x + 3 * uu * t * p1->x + 3 * u * tt * p2->x + ttt * p3->x;
+    float y = uuu * p0->y + 3 * uu * t * p1->y + 3 * u * tt * p2->y + ttt * p3->y;
 
-    curvePoints.emplace_back(p);
+    add_point(&curvePoints, x, y);
   }
 
   // Close the polygon by connecting the last point back to the first
-  curvePoints.emplace_back(curvePoints[0]);
+  add_existing_point(&curvePoints, curvePoints.points[0]);
 
   // Triangulate the closed polygon (using a simple ear clipping method)
-  std::vector<Point> triangles;
-  triangulate_polygon(curvePoints, triangles);
+  PointArray triangles; init_point_array(&triangles);
+  triangulate_polygon(&curvePoints, &triangles);
 
   // Draw the triangles
-  for (size_t i = 0; i < triangles.size(); i += 3) {
-    float v1[] = { triangles[i].x, triangles[i].y };
-    float v2[] = { triangles[i + 1].x, triangles[i + 1].y };
-    float v3[] = { triangles[i + 2].x, triangles[i + 2].y };
+  for (size_t i = 0; i < triangles.count; i += 3) {
+    float v1[] = { triangles.points[i].x, triangles.points[i].y };
+    float v2[] = { triangles.points[i + 1].x, triangles.points[i + 1].y };
+    float v3[] = { triangles.points[i + 2].x, triangles.points[i + 2].y };
 
     rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
     triCount++;
-    vertCount += 2; // Increment vertex count
+    vertCount += 2;
   }
 
-  curvePoints.clear();
-  triangles.clear();
+  free(curvePoints.points);
+  free(triangles.points);
 }
 
-void Render::draw_fan_transform(const std::vector<Point>& points, float angle, int segments, float rx, float ry) {
+// Function to draw a fully transformable triangle fan
+void draw_fan_transform(const PointArray* fan, float angle, int segments, float rx, float ry) {
 
-  // Copy original points
-  std::vector<Point> transformedPoints = points;
+  // Create a transformed copy of the original points
+  PointArray transformedFan;
+  init_point_array(&transformedFan);
 
-  // Move only the outer points base on radii
-  for (size_t i = 0; i < transformedPoints.size(); ++i) {
-    transformedPoints[i].add(Point(rx, ry));
+  // Move only the outer points based on radii
+  for (size_t i = 0; i < fan->count; ++i) {
+    Point transformPoint = point_new(rx, ry);
+    Point newPoint = point_sum(&fan->points[i], &transformPoint);
+    add_point(&transformedFan, newPoint.x, newPoint.y);
   }
 
-  // Draw the ellipse using transformed points
   // Calculate the center and radii of the transformed points for drawing
   float cx = 0.0f, cy = 0.0f;
   float rx2 = 0.0f, ry2 = 0.0f;
 
-  for (const auto& point : transformedPoints) {
-    cx += point.x;
-    cy += point.y;
+  for (size_t i = 0; i < transformedFan.count; ++i) {
+    cx += transformedFan.points[i].x;
+    cy += transformedFan.points[i].y;
   }
 
-  cx /= transformedPoints.size();
-  cy /= transformedPoints.size();
+  cx /= (float)transformedFan.count;
+  cy /= (float)transformedFan.count;
 
-  for (const auto& point : transformedPoints) {
-    float dx = point.x - cx;
-    float dy = point.y - cy;
-    rx2 = fmaxf(rx, fabsf(dx));
-    ry2 = fmaxf(ry, fabsf(dy));
+  for (size_t i = 0; i < transformedFan.count; ++i) {
+    float dx = transformedFan.points[i].x - cx;
+    float dy = transformedFan.points[i].y - cy;
+    rx2 = fmaxf(rx2, fabsf(dx));
+    ry2 = fmaxf(ry2, fabsf(dy));
   }
 
   // Draw the ellipse with the calculated center and radii
-  draw_ellipse(cx, cy, rx2, ry2, angle, (float)segments*0.01f);
+  draw_circle(cx, cy, rx2, ry2, angle, (float)segments * 0.01f);
+
+  free(transformedFan.points);
 }
 
 // Function to draw a quad/rectangle from the edge of an ellipse/fan to the edge of a "line" (ie another quad/rectangle)
-void Render::fill_edge_ellipse_to_line(const std::vector<Point>& currentPoints, int segments, float scale) {
-    static std::vector<Point> previousPoints;  // Static to persist between function calls
+void fill_edge_ellipse_to_line(const PointArray* currentPoints, int segments, float scale) {
+  static PointArray* previousPoints;  // Static to persist between function calls
+  init_point_array(previousPoints);
+  Point prevCenter = point_default();
+  add_existing_point(previousPoints, prevCenter);
+  Point currCenter = point_default();
 
-    if (!previousPoints.empty()) {
+  if (previousPoints->count != 0) {
 
-        // Calculate centers for previous and current points
-        Point prevCenter = {0, 0};
-        Point currCenter = {0, 0};
-        for (const auto& p : previousPoints) {
-            prevCenter.x += p.x;
-            prevCenter.y += p.y; 
-        }
-        for (const auto& p : currentPoints) {
-            currCenter.x += p.x;
-            currCenter.y += p.y;
-        }
-        prevCenter.x /= previousPoints.size();
-        prevCenter.y /= previousPoints.size();
-        currCenter.x /= currentPoints.size();
-        currCenter.y /= currentPoints.size();
+    // Calculate centers for previous and current points
+    calculate_array_center(previousPoints, &prevCenter);
+    calculate_array_center(currentPoints, &currCenter);
 
-        // Scale points outward to fill in any gaps
-        for (int i = 0; i < segments; ++i) {
-            Point v1r = Point::scale(prevCenter, previousPoints[i], scale);
-            Point v2r = Point::scale(prevCenter, previousPoints[(i + 1) % segments], scale); // Use modulo to wrap around
-            Point v3r = Point::scale(currCenter, currentPoints[i], scale);
-            Point v4r = Point::scale(currCenter, currentPoints[(i + 1) % segments], scale); // Use modulo to wrap around
+    // Scale points outward to fill in any gaps
+    for (int i = 0; i < segments; ++i) {
+      Point v1r = point_scale(&prevCenter, &previousPoints->points[i], scale);
+      Point v2r = point_scale(&prevCenter, &previousPoints->points[(i + 1) % segments], scale); // Use modulo to wrap around
+      Point v3r = point_scale(&currCenter, &currentPoints->points[i], scale);
+      Point v4r = point_scale(&currCenter, &currentPoints->points[(i + 1) % segments], scale); // Use modulo to wrap around
 
-            // Create triangles between scaled points
-            float v1f[] = { v1r.x, v1r.y };
-            float v2f[] = { v2r.x, v2r.y };
-            float v3f[] = { v3r.x, v3r.y };
-            float v4f[] = { v4r.x, v4r.y };
+      // Create triangles between scaled points
+      float v1f[] = { v1r.x, v1r.y };
+      float v2f[] = { v2r.x, v2r.y };
+      float v3f[] = { v3r.x, v3r.y };
+      float v4f[] = { v4r.x, v4r.y };
 
-            // Draw two triangles to form a quad between the points
-            rdpq_triangle(&TRIFMT_FILL, v1f, v2f, v3f);
-            rdpq_triangle(&TRIFMT_FILL, v2f, v4f, v3f);
-            triCount++;
-            vertCount += 4; // Increment vertex count
-        }
+      // Draw two triangles to form a quad between the points
+      rdpq_triangle(&TRIFMT_FILL, v1f, v2f, v3f);
+      rdpq_triangle(&TRIFMT_FILL, v2f, v4f, v3f);
+      triCount++;
+      vertCount += 4;
     }
+  }
 
-    previousPoints = currentPoints; // Save current points for the next iteration
+  previousPoints = currentPoints; // Save current points for the next iteration
 }
 

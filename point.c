@@ -119,7 +119,7 @@ float point_epsilon_test(const Point* A, const Point* B, const Point* C) {
     return fabsf(cross) < epsilon;
 }
 
-bool point_point_in_triangle(const Point* P, const Point* A, const Point* B, const Point* C) {
+bool point_in_triangle(const Point* P, const Point* A, const Point* B, const Point* C) {
     Point v0 = point_subtract(C, A);
     Point v1 = point_subtract(B, A);
     Point v2 = point_subtract(P, A);
@@ -140,4 +140,61 @@ bool point_point_in_triangle(const Point* P, const Point* A, const Point* B, con
 void point_move(Point* p, float stickX, float stickY) {
     p->x += stickX;
     p->y += stickY;
+}
+
+void rotate_line_point(Point* p, const Point* center, float cos_angle, float sin_angle) {
+    float tx = p->x - center->x;
+    float ty = p->y - center->y;
+    p->x = center->x + (tx * cos_angle - ty * sin_angle);
+    p->y = center->y + (tx * sin_angle + ty * cos_angle);
+}
+
+// Function to initialize a PointArray
+void init_point_array(PointArray* array) {
+    array->points = NULL;
+    array->count = 0;
+}
+
+// Function to add points to a PointArray
+void add_point(PointArray* array, float x, float y) {
+    array->points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
+    if (array->points == NULL) {
+        debugf("Point reallocation failed\n");
+        return;
+    }
+    array->points[array->count].x = x;
+    array->points[array->count].y = y;
+    array->count++;
+}
+
+// Function to add an existing point to the PointArray
+void add_existing_point(PointArray* array, Point p) {
+    array->points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
+    if (array->points == NULL) {
+        debugf("Point reallocation failed\n");
+        return;
+    }
+    array->points[array->count] = p;
+    array->count++;
+}
+
+void calculate_array_center(const PointArray* points, Point* center) {
+    center->x = 0.0f;
+    center->y = 0.0f;
+
+    for (size_t i = 0; i < points->count; ++i) {
+        center->x += points->points[i].x;
+        center->y += points->points[i].y;
+    }
+
+    center->x /= points->count;
+    center->y /= points->count;
+}
+
+
+// Function to free a PointArray
+void free_point_array(PointArray* array) {
+    free(array->points);
+    array->points = NULL;
+    array->count = 0;
 }

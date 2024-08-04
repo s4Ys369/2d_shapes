@@ -6,16 +6,18 @@
 #include <math.h>
 #include "point.h"
 
+
+// Define whether to use RDPQ Validate
 //#define DEBUG_RDPQ
 
-// Constants
+// Math constants
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 const float TWO_PI = 2 * M_PI;
 const float radiansToDegrees = 180.0f / M_PI;
-const float DEADZONE = 20.0f; // Define the deadzone threshold
 
+// Accumulators for UI
 extern int triCount;
 extern int vertCount;
 extern int currTris;
@@ -57,7 +59,12 @@ Point constrain_distance(Point pos, Point anchor, float constraint);
 float simplify_angle(float angle);
 float rel_angle_diff(float angle, float anchor);
 float constrain_angle(float angle, float anchor, float constraint);
+
+// Controller specific
+const float DEADZONE = 20.0f;
 float apply_deadzone(float value);
+
+// C++ auto constructor replacements
 void add_vertex(float** vertices, int* vertex_count, float x, float y);
 void add_index(int** indices, int* index_count, int index);
 int* create_triangle_fan_indices(int segments, int* index_count);

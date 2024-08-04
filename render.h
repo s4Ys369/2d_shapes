@@ -24,10 +24,10 @@ void fill_between_beziers(const PointArray* curve1, const PointArray* curve2);
 void draw_filled_beziers(const Point* p0, const Point* p1, const Point* p2, const Point* p3, 
                          const Point* q0, const Point* q1, const Point* q2, const Point* q3, 
                          int segments);
-bool is_ear(const PointArray* polygon, int u, int v, int w, const int* V, size_t V_count);
+bool is_ear(const PointArray* polygon, int u, int v, int w, const int* V);
 void triangulate_polygon(const PointArray* polygon, PointArray* triangles);
 void draw_filled_bezier_shape(const Point* p0, const Point* p1, const Point* p2, const Point* p3, int segments);
-void draw_fan_transform(const PointArray* points, float angle, int segments, float rx, float ry);
+void draw_fan_transform(const PointArray* fan, float angle, int segments, float rx, float ry);
 void fill_edge_ellipse_to_line(const PointArray* currentPoints, int segments, float scale);
 
 
