@@ -158,7 +158,7 @@ void init_point_array(PointArray* array) {
 }
 
 void init_point_array_from_points(PointArray* array, Point* points, size_t count) {
-    array->points = (Point*)malloc(sizeof(Point) * count);
+    array->points = (Point*)malloc_uncached(sizeof(Point) * count);
     if (array->points == NULL) {
         // Handle memory allocation failure
         debugf("Point allocation failed\n");
@@ -208,7 +208,7 @@ void calculate_array_center(const PointArray* points, Point* center) {
 
 // Function to free a PointArray
 void free_point_array(PointArray* array) {
-    free(array->points);
+    free_uncached(array->points);
     array->points = NULL;
     array->count = 0;
 }

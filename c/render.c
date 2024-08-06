@@ -41,7 +41,7 @@ PointArray* render_get_ellipse_points(Point center, float rx, float ry, int segm
   }
 
  // Allocate PointArray on the heap
-  PointArray* pa = (PointArray*)malloc(sizeof(PointArray));
+  PointArray* pa = (PointArray*)malloc_uncached(sizeof(PointArray));
   if (pa == NULL) {
       debugf("Failed to allocate memory for PointArray\n");
       return NULL;
@@ -60,6 +60,7 @@ PointArray* render_get_ellipse_points(Point center, float rx, float ry, int segm
   }
 
   return pa;
+  free_point_array(pa);
 }
 
 
@@ -96,6 +97,9 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
     triCount++;
     vertCount++;
   }
+
+  free(vertices);
+  free(indices);
 }
 
 // Function to draw a triangle fan from an array of points
@@ -246,7 +250,22 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   indices = create_triangle_fan_indices(segments, &index_count);
 
   // Draw the indexed vertices
-  draw_indexed_triangles(&vertices[0], vertex_count, &indices[0], index_count);
+  for (int i = 0; i < index_count; i += 3) {
+    int idx1 = indices[i];
+    int idx2 = indices[i + 1];
+    int idx3 = indices[i + 2];
+        
+    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
+    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
+    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
+        
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    triCount++;
+    vertCount++;
+  }
+
+  free(vertices);
+  free(indices);
 
 }
 
@@ -385,13 +404,26 @@ void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const 
   }
 
   // Draw the triangles using the indexed triangle function
-  draw_indexed_triangles(vertices, vertexCount / 2, indices, indexCount);
+  for (int i = 0; i < indexCount; i += 3) {
+    int idx1 = indices[i];
+    int idx2 = indices[i + 1];
+    int idx3 = indices[i + 2];
+        
+    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
+    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
+    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
+        
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    triCount++;
+    vertCount++;
+  }
+
+  free(vertices);
+  free(indices);
 
   currTris = indexCount / 3;
   currVerts = vertexCount / 2;
-  free(curvePoints.points);
-  free(vertices);
-  free(indices);
+  free_point_array(&curvePoints);
 }
 
 
@@ -494,7 +526,7 @@ bool is_ear(const PointArray* polygon, int u, int v, int w, const int* V) {
 // A simple ear clipping algorithm for triangulation
 void triangulate_polygon(const PointArray* polygon, PointArray* triangles) {
 
-  int* V = (int*)malloc(polygon->count * sizeof(int));
+  int* V = (int*)malloc_uncached(polygon->count * sizeof(int));
   if (V == NULL) {
     debugf("Polygon point count cannot be 0\n");
     return;
@@ -582,8 +614,8 @@ void draw_filled_bezier_shape(const Point* p0, const Point* p1, const Point* p2,
     vertCount += 2;
   }
 
-  free(curvePoints.points);
-  free(triangles.points);
+  free_point_array(&curvePoints);
+  free_point_array(&triangles);
 }
 
 // Function to draw a fully transformable triangle fan
@@ -622,7 +654,7 @@ void draw_fan_transform(const PointArray* fan, float angle, int segments, float 
   // Draw the ellipse with the calculated center and radii
   draw_circle(cx, cy, rx2, ry2, angle, (float)segments * 0.01f);
 
-  free(transformedFan.points);
+  free_point_array(&transformedFan);
 }
 
 // Function to draw a quad/rectangle from the edge of an ellipse/fan to the edge of a "line" (ie another quad/rectangle)

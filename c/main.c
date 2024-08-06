@@ -104,27 +104,27 @@ void setup() {
   stickY = 0.0f;
 
   // Allocate the shape
-  currShape = (Shape*)malloc(sizeof(Shape));
+  currShape = (Shape*)malloc_uncached(sizeof(Shape));
   shape_init(currShape);
   currShapeColor = get_fill_color(currShape);
   currCenter = get_center(currShape);
 
   // Circle
-  circle = (Shape*)malloc(sizeof(Shape));
+  circle = (Shape*)malloc_uncached(sizeof(Shape));
   circle_init(circle, screenCenter, 20.0f, 0.05f, RED);
 
   // Quad as a strip
-  quad = (Shape*)malloc(sizeof(Shape));
+  quad = (Shape*)malloc_uncached(sizeof(Shape));
   strip_init(quad, screenCenter, 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
 
   // Fan has only scale, whereas fan2 has both X and Y scales
-  fan = (Shape*)malloc(sizeof(Shape));
+  fan = (Shape*)malloc_uncached(sizeof(Shape));
   fan2_init(fan, screenCenter, 20.0f, 20.0f, 5, BLUE);
 
   // Curves are treat as strips
-  curve = (Shape*)malloc(sizeof(Shape));
+  curve = (Shape*)malloc_uncached(sizeof(Shape));
   strip_init(curve, screenCenter, 20.0f, 20.0f, 2.0f, 10, RED);
-  curve2 = (Shape*)malloc(sizeof(Shape));
+  curve2 = (Shape*)malloc_uncached(sizeof(Shape));
   strip_init(curve2, screenCenter, 20.0f, 20.0f, 2.0f, 10, GREEN);
 
   // Texture test
@@ -146,13 +146,13 @@ void setup() {
   Point points[] = {pointA, pointB, pointC, pointD, screenCenter};
   size_t numPoints = sizeof(points) / sizeof(points[0]);
 
-  bezierPoints = (PointArray*)malloc(sizeof(PointArray));
+  bezierPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array_from_points(bezierPoints, points, numPoints);
 
   Point resets[] = {resetA, resetB, resetC, resetD, screenCenter};
   size_t numResets = sizeof(points) / sizeof(points[0]);
 
-  basePoints = (PointArray*)malloc(sizeof(PointArray));
+  basePoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array_from_points(basePoints, resets, numResets);
 
 }
@@ -186,7 +186,7 @@ void draw() {
       break;
     case 1:
       currShape = quad;
-      resolve(currShape, stickX, stickY);
+      resolve(quad, stickX, stickY);
       currCenter = get_center(currShape);
       currRadiusX = get_scaleX(currShape);
       currRadiusY = get_scaleY(currShape);
@@ -215,7 +215,7 @@ void draw() {
       currPointsUpdated = get_points(currShape);
       if (currPoints != currPointsUpdated) {
         free(currPoints->points);
-        free(currPoints);
+        free_point_array(currPoints);
       }
       currPoints = currPointsUpdated;
 
@@ -602,7 +602,7 @@ int main() {
     PointArray* currPointsUpdated = get_points(currShape);
     if (currPoints != currPointsUpdated) {
       free(currPoints->points);
-      free(currPoints);
+      free_point_array(currPoints);
     }
     currPoints = currPointsUpdated;
 
