@@ -16,11 +16,9 @@ void shape_init(Shape* shape) {
     shape->segments = 1;
     shape->lod = 1.0f;
     shape->fillColor = BLACK;
-    shape->previousPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
-    shape->previousPoints->points = NULL;
+    shape->previousPoints = (PointArray*)malloc(sizeof(PointArray));
     shape->previousPoints->count = 0;
-    shape->currPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
-    shape->currPoints->points = NULL;
+    shape->currPoints = (PointArray*)malloc(sizeof(PointArray));
     shape->currPoints->count = 0;
     add_existing_point(shape->currPoints, shape->center);
 
@@ -68,23 +66,7 @@ void set_points(Shape* shape, PointArray* points) {
 
     // Free old points if they exist
     if (shape->currPoints != NULL) {
-        free_point_array(shape->currPoints);
-    }
-
-    // Allocate new PointArray
-    shape->currPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
-    if (shape->currPoints == NULL) {
-        debugf("PointArray allocation failed\n");
-        return;
-    }
-
-    // Allocate memory for points in the new PointArray
-    shape->currPoints->points = (Point*)malloc_uncached(sizeof(Point) * points->count);
-    if (shape->currPoints->points == NULL) {
-        debugf("Point allocation failed\n");
-        free(shape->currPoints); // Clean up if allocation fails
-        shape->currPoints = NULL;
-        return;
+        free(shape->currPoints->points);
     }
 
     // Copy new points
@@ -204,10 +186,10 @@ void resolve(Shape* shape, float stickX, float stickY) {
 
 void destroy(Shape* shape) {
     if (shape->currPoints != NULL) {
-        free_uncached(shape->currPoints);
+        free(shape->currPoints);
     }
     if (shape->previousPoints != NULL) {
-        free_uncached(shape->previousPoints);
+        free(shape->previousPoints);
     }
 }
 

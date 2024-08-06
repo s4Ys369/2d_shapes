@@ -47,6 +47,7 @@ float currThickness = 0;
 int currSegments = 0;
 float currLOD = 0.0f;
 float currAngle = 0.0f;
+PointArray* previousPoints;
 PointArray* currPoints; 
 
 color_t currShapeColor;
@@ -94,7 +95,7 @@ void setup() {
   dispTime = 0;
   drawTime = 0;
   frameCounter = 0;
-  example = 1;
+  example = 0;
   triCount = 0;
   vertCount = 0;
   currTris = 0;
@@ -103,28 +104,32 @@ void setup() {
   stickX = 0.0f;
   stickY = 0.0f;
 
-  // Allocate the shape
-  currShape = (Shape*)malloc_uncached(sizeof(Shape));
+  // Allocate a dummy/control shape
+  currShape = (Shape*)malloc(sizeof(Shape));
   shape_init(currShape);
+  init_point_array(currShape->previousPoints);
+  init_point_array(currShape->currPoints);
+  previousPoints = currShape->previousPoints;
+  currPoints = currShape->currPoints;
   currShapeColor = get_fill_color(currShape);
   currCenter = get_center(currShape);
 
   // Circle
-  circle = (Shape*)malloc_uncached(sizeof(Shape));
+  circle = (Shape*)malloc(sizeof(Shape));
   circle_init(circle, screenCenter, 20.0f, 0.05f, RED);
 
   // Quad as a strip
-  quad = (Shape*)malloc_uncached(sizeof(Shape));
+  quad = (Shape*)malloc(sizeof(Shape));
   strip_init(quad, screenCenter, 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
 
   // Fan has only scale, whereas fan2 has both X and Y scales
-  fan = (Shape*)malloc_uncached(sizeof(Shape));
+  fan = (Shape*)malloc(sizeof(Shape));
   fan2_init(fan, screenCenter, 20.0f, 20.0f, 5, BLUE);
 
   // Curves are treat as strips
-  curve = (Shape*)malloc_uncached(sizeof(Shape));
+  curve = (Shape*)malloc(sizeof(Shape));
   strip_init(curve, screenCenter, 20.0f, 20.0f, 2.0f, 10, RED);
-  curve2 = (Shape*)malloc_uncached(sizeof(Shape));
+  curve2 = (Shape*)malloc(sizeof(Shape));
   strip_init(curve2, screenCenter, 20.0f, 20.0f, 2.0f, 10, GREEN);
 
   // Texture test
@@ -146,13 +151,13 @@ void setup() {
   Point points[] = {pointA, pointB, pointC, pointD, screenCenter};
   size_t numPoints = sizeof(points) / sizeof(points[0]);
 
-  bezierPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  bezierPoints = (PointArray*)malloc(sizeof(PointArray));
   init_point_array_from_points(bezierPoints, points, numPoints);
 
   Point resets[] = {resetA, resetB, resetC, resetD, screenCenter};
   size_t numResets = sizeof(points) / sizeof(points[0]);
 
-  basePoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  basePoints = (PointArray*)malloc(sizeof(PointArray));
   init_point_array_from_points(basePoints, resets, numResets);
 
 }
@@ -163,8 +168,8 @@ void draw() {
   switch (example) {
     case 0:
       currShape = circle;
-      currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-      set_points(currShape,currPoints);
+      render_get_ellipse_points(previousPoints, currCenter, currRadiusX, currRadiusY, currSegments);
+      set_points(currShape,previousPoints);
       resolve(currShape, stickX, stickY);
       currCenter = get_center(currShape);
       currRadiusX = get_scaleX(currShape);
@@ -177,12 +182,12 @@ void draw() {
       currShapeColor = get_fill_color(currShape);
       set_render_color(currShapeColor);
       draw_circle(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
-      PointArray* currPointsUpdated = get_points(currShape);
-      if (currPoints != currPointsUpdated) {
-        free(currPoints->points);
-        free(currPoints);
+      currPoints = get_points(currShape);
+      if (previousPoints != currPoints) {
+        free_point_array(previousPoints);
       }
-      currPoints = currPointsUpdated;
+      previousPoints = currPoints;
+      free_point_array(currPoints);
       break;
     case 1:
       currShape = quad;
@@ -210,14 +215,8 @@ void draw() {
       currSegments = get_segments(currShape);
       currLOD = get_lod(currShape);
 
-      currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
+      render_get_ellipse_points(previousPoints, currCenter, currRadiusX, currRadiusY, currSegments);
       set_points(currShape, currPoints);
-      currPointsUpdated = get_points(currShape);
-      if (currPoints != currPointsUpdated) {
-        free(currPoints->points);
-        free_point_array(currPoints);
-      }
-      currPoints = currPointsUpdated;
 
       render_move_point(currPoints, controlPoint, stickX, -stickY);
       render_rotate_point(currPoints, controlPoint, currCenter, currAngle);
@@ -240,13 +239,6 @@ void draw() {
         set_render_color(YELLOW);
         draw_circle(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
       }
-
-      currPointsUpdated = get_points(currShape);
-      if (currPoints != currPointsUpdated) {
-        free(currPoints->points);
-        free(currPoints);
-      }
-      currPoints = currPointsUpdated;
       break;
     case 3:
       currShape = curve;
@@ -375,7 +367,7 @@ void reset_example() {
     set_thickness(currShape, 2.0f);
     set_segments(currShape, 10);
     controlPoint = 0;
-    free(currPoints);
+    free_point_array(currPoints);
     resetCurve = 1;
     pointA = resetA;
     pointB = resetB;
@@ -598,13 +590,13 @@ int main() {
     }
 
     currShapeColor = get_fill_color(currShape);
-    currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-    PointArray* currPointsUpdated = get_points(currShape);
-    if (currPoints != currPointsUpdated) {
-      free(currPoints->points);
-      free_point_array(currPoints);
+    //previousPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
+    currPoints = get_points(currShape);
+    if (previousPoints != currPoints) {
+      free_point_array(previousPoints);
     }
-    currPoints = currPointsUpdated;
+    previousPoints = currPoints;
+    //free_point_array(currPoints);
 
 //=========== ~ CONTROLS ~ ==============//
 

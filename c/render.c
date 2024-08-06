@@ -34,21 +34,11 @@ void render_rotate_shape_points(PointArray* pa, Point center, float angle) {
 }
 
 // Function to get points around an ellipse
-PointArray* render_get_ellipse_points(Point center, float rx, float ry, int segments) {
-
-  if(segments == 0){
+void render_get_ellipse_points(PointArray* previousPoints, Point center, float rx, float ry, int segments) {
+  if (segments == 0) {
     segments = 1;
   }
 
- // Allocate PointArray on the heap
-  PointArray* pa = (PointArray*)malloc_uncached(sizeof(PointArray));
-  if (pa == NULL) {
-      debugf("Failed to allocate memory for PointArray\n");
-      return NULL;
-  }
-    
-  // Initialize the PointArray
-  init_point_array(pa);
 
   // Compute points for the ellipse
   float angleStep = 2.0f * M_PI / (float)segments;
@@ -56,11 +46,15 @@ PointArray* render_get_ellipse_points(Point center, float rx, float ry, int segm
     float angle = i * angleStep;
     float x = center.x + rx * cosf(angle);
     float y = center.y + ry * sinf(angle);
-    add_point(pa, x, y);
+    add_point(previousPoints, x, y);
+
+    // Check if point addition failed
+    if (previousPoints->points == NULL) {
+      free(previousPoints);
+      debugf("Failed to add point to PointArray\n");
+    }
   }
 
-  return pa;
-  free_point_array(pa);
 }
 
 
@@ -526,7 +520,7 @@ bool is_ear(const PointArray* polygon, int u, int v, int w, const int* V) {
 // A simple ear clipping algorithm for triangulation
 void triangulate_polygon(const PointArray* polygon, PointArray* triangles) {
 
-  int* V = (int*)malloc_uncached(polygon->count * sizeof(int));
+  int* V = (int*)malloc(polygon->count * sizeof(int));
   if (V == NULL) {
     debugf("Polygon point count cannot be 0\n");
     return;

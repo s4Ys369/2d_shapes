@@ -98,9 +98,9 @@ float apply_deadzone(float value) {
 // emplace_back for a float array
 void add_vertex(float** vertices, int* vertex_count, float x, float y) {
     // Increase the size of the vertices array
-    *vertices = (float*)realloc(*vertices, sizeof(float) * (*vertex_count + 2));
+    *vertices = (float*)malloc(sizeof(float) * (*vertex_count + 2));
     if (*vertices == NULL) {
-        debugf("Vertex reallocation failed\n");
+        debugf("Vertex allocation failed\n");
         return;
     }
 
@@ -113,9 +113,9 @@ void add_vertex(float** vertices, int* vertex_count, float x, float y) {
 // emplace_back for a int array
 void add_index(int** indices, int* index_count, int index) {
     // Increase the size of the indices array
-    *indices = (int*)realloc(*indices, sizeof(int) * (*index_count + 1));
+    *indices = (int*)malloc(sizeof(int) * (*index_count + 1));
     if (*indices == NULL) {
-        debugf("Index reallocation failed\n");
+        debugf("Index allocation failed\n");
         return;
     }
 

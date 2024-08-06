@@ -158,7 +158,7 @@ void init_point_array(PointArray* array) {
 }
 
 void init_point_array_from_points(PointArray* array, Point* points, size_t count) {
-    array->points = (Point*)malloc_uncached(sizeof(Point) * count);
+    array->points = (Point*)malloc(sizeof(Point) * count);
     if (array->points == NULL) {
         // Handle memory allocation failure
         debugf("Point allocation failed\n");
@@ -171,11 +171,12 @@ void init_point_array_from_points(PointArray* array, Point* points, size_t count
 
 // Function to add points to a PointArray
 void add_point(PointArray* array, float x, float y) {
-    array->points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
-    if (array->points == NULL) {
-        debugf("Point reallocation failed\n");
+    Point* new_points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
+    if (new_points == NULL) {
+        debugf("Point allocation failed\n");
         return;
     }
+    array->points = new_points;
     array->points[array->count].x = x;
     array->points[array->count].y = y;
     array->count++;
@@ -183,9 +184,9 @@ void add_point(PointArray* array, float x, float y) {
 
 // Function to add an existing point to the PointArray
 void add_existing_point(PointArray* array, Point p) {
-    array->points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
+    array->points = (Point*)malloc(sizeof(Point) * (array->count + 1));
     if (array->points == NULL) {
-        debugf("Point reallocation failed\n");
+        debugf("Point allocation failed\n");
         return;
     }
     array->points[array->count] = p;
@@ -208,7 +209,5 @@ void calculate_array_center(const PointArray* points, Point* center) {
 
 // Function to free a PointArray
 void free_point_array(PointArray* array) {
-    free_uncached(array->points);
-    array->points = NULL;
-    array->count = 0;
+    free(array);
 }
