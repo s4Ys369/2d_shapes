@@ -17,22 +17,20 @@ void shape_init(Shape* shape) {
     shape->lod = 1.0f;
     shape->fillColor = BLACK;
     shape->currPoints = (PointArray*)malloc(sizeof(PointArray));
-    shape->currPoints->points = NULL;
-    shape->currPoints->count = 0;
-    add_existing_point(shape->currPoints, shape->center);
+    init_point_array(shape->currPoints);
 
 }
 
-void circle_init(Circle* circle, Point origin, float scale, float lod, color_t fillColor) {
-    shape_init((Shape*)circle);
+void circle_init(Shape* circle, Point origin, float scale, float lod, color_t fillColor) {
+    shape_init(circle);
     circle->center = origin;
-    circle->scale = scale;
+    circle->scaleX = scale;
     circle->lod = lod;
     circle->fillColor = fillColor;
 }
 
-void fan_init(Fan* fan, Point origin, float scale, int segments, color_t fillColor) {
-    shape_init((Shape*)fan);
+void fan_init(Shape* fan, Point origin, float scale, int segments, color_t fillColor) {
+    shape_init(fan);
     fan->center = origin;
     fan->scaleX = scale;
     fan->scaleY = scale;
@@ -40,8 +38,8 @@ void fan_init(Fan* fan, Point origin, float scale, int segments, color_t fillCol
     fan->fillColor = fillColor;
 }
 
-void fan2_init(Fan* fan, Point origin, float scaleX, float scaleY, int segments, color_t fillColor) {
-    shape_init((Shape*)fan);
+void fan2_init(Shape* fan, Point origin, float scaleX, float scaleY, int segments, color_t fillColor) {
+    shape_init(fan);
     fan->center = origin;
     fan->scaleX = scaleX;
     fan->scaleY = scaleY;
@@ -49,117 +47,99 @@ void fan2_init(Fan* fan, Point origin, float scaleX, float scaleY, int segments,
     fan->fillColor = fillColor;
 }
 
-void strip_init(Strip* strip, Point origin, float scaleX, float scaleY, float thickness, int segments, color_t fillColor) {
-    shape_init((Shape*)strip);
+void strip_init(Shape* strip, Point origin, float scaleX, float scaleY, float thickness, int segments, color_t fillColor) {
+    shape_init(strip);
     strip->center = origin;
     strip->scaleX = scaleX;
     strip->scaleY = scaleY;
-    strip->thickness = thickness;
+    strip->lod = thickness;
     strip->segments = segments;
     strip->fillColor = fillColor;
 }
 
 
-// Common functions for the Shape interface
-void set_points(void* shape, PointArray* points) {
-    Shape* s = (Shape*)shape;
+// Common functions for shapes
+void set_points(Shape* shape, PointArray* points) {
 
     // Free old points if they exist
-    if (s->currPoints != NULL) {
-        free(s->currPoints->points);
-        free(s->currPoints);
-    }
-
-    // Allocate new PointArray
-    s->currPoints = (PointArray*)malloc(sizeof(PointArray));
-    if (s->currPoints == NULL) {
-        debugf("PointArray allocation failed\n");
-        return;
-    }
-
-    // Allocate memory for points in the new PointArray
-    s->currPoints->points = (Point*)malloc(sizeof(Point) * points->count);
-    if (s->currPoints->points == NULL) {
-        debugf("Point allocation failed\n");
-        free(s->currPoints); // Clean up if allocation fails
-        s->currPoints = NULL;
-        return;
+    if (shape->currPoints != NULL) {
+        free(shape->currPoints->points);
+        shape->currPoints->count = 0;
     }
 
     // Copy new points
-    memcpy(s->currPoints->points, points->points, sizeof(Point) * points->count);
-    s->currPoints->count = points->count;
+    memcpy(shape->currPoints->points, points->points, sizeof(Point) * points->count);
+    shape->currPoints->count = points->count;
 }
 
-PointArray* get_points(void* shape) {
-    return ((Shape*)shape)->currPoints;
+PointArray* get_points(Shape* shape) {
+    return shape->currPoints;
 }
 
-void set_thickness(void* shape, float thickness) {
-    ((Shape*)shape)->scaleX = thickness;
+void set_thickness(Shape* shape, float thickness) {
+    shape->lod = thickness;
 }
 
-float get_thickness(const void* shape) {
-    return ((Shape*)shape)->lod;
+float get_thickness(const Shape* shape) {
+    return shape->lod;
 }
 
-void set_scaleX(void* shape, float scaleX) {
-    ((Shape*)shape)->scaleX = scaleX;
+void set_scaleX(Shape* shape, float scaleX) {
+    shape->scaleX = scaleX;
 }
 
-float get_scaleX(const void* shape) {
-    return ((Shape*)shape)->scaleX;
+float get_scaleX(const Shape* shape) {
+    return shape->scaleX;
 }
 
-void set_scaleY(void* shape, float scaleY) {
-    ((Shape*)shape)->scaleY = scaleY;
+void set_scaleY(Shape* shape, float scaleY) {
+    shape->scaleY = scaleY;
 }
 
-float get_scaleY(const void* shape) {
-    return ((Shape*)shape)->scaleY;
+float get_scaleY(const Shape* shape) {
+    return shape->scaleY;
 }
 
-void set_center(void* shape, Point center) {
-    ((Shape*)shape)->center = center;
+void set_center(Shape* shape, Point center) {
+    shape->center = center;
 }
 
-Point get_center(const void* shape) {
-    return ((Shape*)shape)->center;
+Point get_center(const Shape* shape) {
+    return shape->center;
 }
 
-void set_segments(void* shape, int segments) {
-    ((Shape*)shape)->segments = segments;
+void set_segments(Shape* shape, int segments) {
+    shape->segments = segments;
 }
 
-int get_segments(const void* shape) {
-    return ((Shape*)shape)->segments;
+int get_segments(const Shape* shape) {
+    return shape->segments;
 }
 
-void set_lod(void* shape, float lod) {
-    ((Shape*)shape)->lod = lod;
+void set_lod(Shape* shape, float lod) {
+    shape->lod = lod;
 }
 
-float get_lod(const void* shape) {
-    return ((Shape*)shape)->lod;
+float get_lod(const Shape* shape) {
+    return shape->lod;
 }
 
-void set_fill_color(void* shape, color_t fillColor) {
-    ((Shape*)shape)->fillColor = fillColor;
+void set_fill_color(Shape* shape, color_t fillColor) {
+    shape->fillColor = fillColor;
 }
 
-color_t get_fill_color(const void* shape) {
-    return ((Shape*)shape)->fillColor;
+color_t get_fill_color(const Shape* shape) {
+    return shape->fillColor;
 }
 
 // Function to move shape around the screen using the Control Stick
-void resolve(void* shape, float stickX, float stickY) {
-    Shape* s = (Shape*)shape;
-    if (s == NULL || s->currPoints == NULL || s->currPoints->points == NULL) {
+void resolve(Shape* shape, float stickX, float stickY) {
+    if (shape == NULL || shape->currPoints == NULL || shape->currPoints->points == NULL) {
         debugf("Invalid shape or points\n");
         return;
     }
 
-    Point currPos = get_center(s);
+    Point currPos = get_center(shape);
     Point targetPos = currPos;
 
     // Apply deadzone to the joystick inputs
@@ -198,41 +178,14 @@ void resolve(void* shape, float stickX, float stickY) {
     direction = point_set_mag(&direction, move_mag);
     targetPos = point_sub(&currPos, &direction);
 
-    set_center(s, targetPos);
+    set_center(shape, targetPos);
     // debugf("X %.1f\nY %.1f\n", targetPos.x, targetPos.y);
 }
 
-void destroy(void* shape) {
-    Shape* s = (Shape*)shape;
-    if (s->currPoints != NULL) {
-        free(s->currPoints);
-    }
-    if (s->previousPoints != NULL) {
-        free(s->previousPoints);
+void destroy(Shape* shape) {
+    if (shape->currPoints != NULL) {
+        free(shape->currPoints);
     }
 }
 
-// Shape-specific function table initialization
-void init_shape_interface(ShapeInterface* interface, void* shape) {
-    interface->shape = shape;
-    interface->init = (void*)shape_init;
-    interface->set_points = set_points;
-    interface->get_points = get_points;
-    interface->set_thickness = set_thickness;
-    interface->get_thickness = get_thickness;
-    interface->set_scaleX = set_scaleX;
-    interface->get_scaleX = get_scaleX;
-    interface->set_scaleY = set_scaleY;
-    interface->get_scaleY = get_scaleY;
-    interface->set_center = set_center;
-    interface->get_center = get_center;
-    interface->set_segments = set_segments;
-    interface->get_segments = get_segments;
-    interface->set_lod = set_lod;
-    interface->get_lod = get_lod;
-    interface->set_fill_color = set_fill_color;
-    interface->get_fill_color = get_fill_color;
-    interface->resolve = resolve;
-    interface->destroy = destroy;
-}
 

@@ -95,53 +95,50 @@ float apply_deadzone(float value) {
 
 /* C++ replacements , possibly move to render? */
 
-// emplace_back for a float array
+// Function to add a vertex to a vertex array
 void add_vertex(float** vertices, int* vertex_count, float x, float y) {
-    // Increase the size of the vertices array
-    *vertices = (float*)realloc(*vertices, sizeof(float) * (*vertex_count + 2));
-    if (*vertices == NULL) {
+    float* new_vertices = (float*)realloc(*vertices, sizeof(float) * (*vertex_count + 2));
+    if (new_vertices == NULL) {
         debugf("Vertex reallocation failed\n");
         return;
     }
-
-    // Add the new vertex
+    *vertices = new_vertices;
     (*vertices)[*vertex_count] = x;
     (*vertices)[*vertex_count + 1] = y;
     *vertex_count += 2;
 }
 
-// emplace_back for a int array
+// Function to add an index to the index array
 void add_index(int** indices, int* index_count, int index) {
-    // Increase the size of the indices array
-    *indices = (int*)realloc(*indices, sizeof(int) * (*index_count + 1));
-    if (*indices == NULL) {
+    int new_size = *index_count + 1;
+    int* new_indices = (int*)realloc(*indices, sizeof(int) * new_size);
+    if (new_indices == NULL) {
         debugf("Index reallocation failed\n");
         return;
     }
+    *indices = new_indices;
 
-    // Add the new index
     (*indices)[*index_count] = index;
-    *index_count += 1;
+    *index_count = new_size;
 }
 
-// Function to create indices for a triangle fan
-int* create_triangle_fan_indices(int segments, int* index_count) {
-    if (segments < 1) {
-        segments = 1;
-    }
+// Function to create triangle fan indices
+int* create_triangle_fan_indices(int* indices, int segments, int* index_count) {
+  *index_count = (segments + 1) * 3 - 3; // Number of indices needed
+  indices = (int*)malloc(*index_count * sizeof(int));
 
-    // Initialize index array
-    int* indices = NULL;
-    *index_count = segments * 3; // Each triangle uses 3 indices
+  int center_idx = 0;
+  for (int i = 1; i < segments; ++i) {
+    indices[(i - 1) * 3] = center_idx;
+    indices[(i - 1) * 3 + 1] = i;
+    indices[(i - 1) * 3 + 2] = i + 1;
+  }
+  // Last triangle to close the fan
+  indices[(segments - 1) * 3] = center_idx;
+  indices[(segments - 1) * 3 + 1] = segments;
+  indices[(segments - 1) * 3 + 2] = 1;
 
-    // Add indices for the triangle fan
-    for (int i = 1; i <= segments; ++i) {
-        add_index(&indices, index_count, 0); // Center vertex
-        add_index(&indices, index_count, i); // Current perimeter vertex
-        add_index(&indices, index_count, (i % segments) + 1); // Next perimeter vertex
-    }
-
-    return indices;
+  return indices;
 }
 
 /* Bernstein polynominal for bezier curve

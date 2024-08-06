@@ -153,29 +153,36 @@ void rotate_line_point(Point* p, const Point* center, float cos_angle, float sin
 
 // Function to initialize a PointArray
 void init_point_array(PointArray* array) {
-    array->points = NULL;
-    array->count = 0;
+    if (array) {
+        array->points = (Point*)malloc(sizeof(Point));
+        if (array->points) {
+            array->count = 0;
+        } else {
+            array->count = 0;
+        }
+    }
 }
 
+// Function to initialize a PointArray from existing points
 void init_point_array_from_points(PointArray* array, Point* points, size_t count) {
     array->points = (Point*)malloc(sizeof(Point) * count);
     if (array->points == NULL) {
         // Handle memory allocation failure
         debugf("Point allocation failed\n");
-        array->count = 0;
         return;
     }
     memcpy(array->points, points, sizeof(Point) * count);
     array->count = count;
 }
 
-// Function to add points to a PointArray
+// Function to add a point to a PointArray
 void add_point(PointArray* array, float x, float y) {
-    array->points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
-    if (array->points == NULL) {
+    Point* new_points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
+    if (new_points == NULL) {
         debugf("Point reallocation failed\n");
         return;
     }
+    array->points = new_points;
     array->points[array->count].x = x;
     array->points[array->count].y = y;
     array->count++;
@@ -183,11 +190,12 @@ void add_point(PointArray* array, float x, float y) {
 
 // Function to add an existing point to the PointArray
 void add_existing_point(PointArray* array, Point p) {
-    array->points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
-    if (array->points == NULL) {
+    Point* new_points = (Point*)realloc(array->points, sizeof(Point) * (array->count + 1));
+    if (new_points == NULL) {
         debugf("Point reallocation failed\n");
         return;
     }
+    array->points = new_points;
     array->points[array->count] = p;
     array->count++;
 }
@@ -208,7 +216,5 @@ void calculate_array_center(const PointArray* points, Point* center) {
 
 // Function to free a PointArray
 void free_point_array(PointArray* array) {
-    free(array->points);
-    array->points = NULL;
-    array->count = 0;
+    free_uncached(array);
 }

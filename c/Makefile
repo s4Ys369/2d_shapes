@@ -58,6 +58,6 @@ clean:
 	rm -rf $(BUILD_DIR) *.z64
 	rm -rf filesystem
 
--include $(wildcard $(BUILD_DIR)/*.d)
+-include $(wildcard $(BUILD_DIR)/*.d) $(wildcard $(BUILD_DIR)/examples/*.d)
 
 .PHONY: all clean
