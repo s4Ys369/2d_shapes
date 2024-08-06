@@ -210,5 +210,5 @@ void calculate_array_center(const PointArray* points, Point* center) {
 
 // Function to free a PointArray
 void free_point_array(PointArray* array) {
-    free(array);
+    free_uncached(array);
 }

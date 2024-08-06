@@ -52,7 +52,6 @@ void render_get_ellipse_points(PointArray* previousPoints, Point center, float r
 
   // Clear any existing points in previousPoints
   if (previousPoints->points != NULL) {
-    free(previousPoints->points);
     previousPoints->points = NULL;
   }
   previousPoints->count = 0;
@@ -276,8 +275,8 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   // Draw the indexed vertices
   draw_indexed_triangles(vertices, vertex_count, indices, index_count);
 
-  free(vertices);
-  free(indices);
+  free_uncached(vertices);
+  free_uncached(indices);
 
 }
 
