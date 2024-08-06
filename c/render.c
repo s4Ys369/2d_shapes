@@ -94,43 +94,32 @@ void draw_triangle(float* v1, float* v2, float* v3) {
 
 // Function to draw RDPQ triangles using vertex arrays
 void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count) {
-    // Debug: Print the entire vertices array
-    debugf("Vertices array:\n");
-    for (int i = 0; i < vertex_count; i += 2) {
-        debugf("  Vertex %d: (%.6f, %.6f)\n", i / 2, vertices[i], vertices[i + 1]);
+
+  for (int i = 0; i < index_count; i += 3) {
+    if (i + 2 >= index_count) {
+      debugf("Index array out of bounds\n");
+      break;
+    }
+    int idx1 = indices[i];
+    int idx2 = indices[i + 1];
+    int idx3 = indices[i + 2];
+        
+    // Check if indices are within valid range
+    if (idx1 < 0 || idx2 < 0 || idx3 < 0 || idx1 * 2 + 1 >= vertex_count || idx2 * 2 + 1 >= vertex_count || idx3 * 2 + 1 >= vertex_count) {
+      debugf("Vertex index out of bounds: idx1=%d, idx2=%d, idx3=%d\n", idx1, idx2, idx3);
+      continue;
     }
 
-    for (int i = 0; i < index_count; i += 3) {
-        if (i + 2 >= index_count) {
-            debugf("Index array out of bounds\n");
-            break;
-        }
-        int idx1 = indices[i];
-        int idx2 = indices[i + 1];
-        int idx3 = indices[i + 2];
-        
-        // Check if indices are within valid range
-        if (idx1 < 0 || idx2 < 0 || idx3 < 0 || idx1 * 2 + 1 >= vertex_count || idx2 * 2 + 1 >= vertex_count || idx3 * 2 + 1 >= vertex_count) {
-            debugf("Vertex index out of bounds: idx1=%d, idx2=%d, idx3=%d\n", idx1, idx2, idx3);
-            continue;
-        }
+    // Retrieve vertex coordinates
+    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
+    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
+    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
 
-        // Retrieve vertex coordinates
-        float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
-        float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
-        float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
-        
-        // Print vertex coordinates for debugging
-        debugf("Drawing triangle with vertices:\n");
-        debugf("  v1: (%.6f, %.6f)\n", v1[0], v1[1]);
-        debugf("  v2: (%.6f, %.6f)\n", v2[0], v2[1]);
-        debugf("  v3: (%.6f, %.6f)\n", v3[0], v3[1]);
-
-        // Draw the triangle
-        rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-        triCount++;
-        vertCount++;
-    }
+    // Draw the triangle
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    triCount++;
+    vertCount++;
+  }
 }
 
 // Function to draw a triangle fan from an array of points
@@ -275,14 +264,14 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   
   }
 
-  debugf("Total vertices: %d\n", vertex_count);
+  //debugf("Total vertices: %d\n", vertex_count);
 
   // Create indices for a triangle fan
   int* indices = NULL;
   int index_count = 0;
   indices = create_triangle_fan_indices(indices, segments, &index_count);
 
-  debugf("Total indices: %d\n", index_count);
+  //debugf("Total indices: %d\n", index_count);
 
   // Draw the indexed vertices
   draw_indexed_triangles(vertices, vertex_count, indices, index_count);

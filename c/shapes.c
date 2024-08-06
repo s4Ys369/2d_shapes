@@ -63,7 +63,8 @@ void set_points(Shape* shape, PointArray* points) {
 
     // Free old points if they exist
     if (shape->currPoints != NULL) {
-        free_point_array(shape->currPoints);
+        free(shape->currPoints->points);
+        shape->currPoints->count = 0;
     }
 
     // Copy new points

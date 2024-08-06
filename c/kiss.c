@@ -83,7 +83,7 @@ void setup() {
   stickY = 0.0f;
 
   // Allocate a dummy/control shape
-  currShape = (Shape*)malloc(sizeof(Shape));
+  currShape = (Shape*)malloc_uncached(sizeof(Shape));
   if (!currShape) {
     debugf("Failed to allocate currShape\n");
     return;
@@ -96,7 +96,7 @@ void setup() {
     return;
   }
 
-  currPoints = (PointArray*)malloc(sizeof(PointArray));
+  currPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   if (!currPoints) {
     debugf("Failed to allocate currPoints\n");
     return;
@@ -106,7 +106,7 @@ void setup() {
   currShapeColor = get_fill_color(currShape);
   currCenter = get_center(currShape);
 
-  previousPoints = (PointArray*)malloc(sizeof(PointArray));
+  previousPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   if (!previousPoints) {
     debugf("Failed to allocate previousPoints\n");
     return;
@@ -114,7 +114,7 @@ void setup() {
   init_point_array(previousPoints);
 
   // Circle
-  circle = (Shape*)malloc(sizeof(Shape));
+  circle = (Shape*)malloc_uncached(sizeof(Shape));
   if (!circle) {
     debugf("Failed to allocate circle\n");
     return;
@@ -126,39 +126,34 @@ void setup() {
 // Main rendering function
 void draw() {
   currShape = circle;
-  
+
   // Get ellipse points and store them in currPoints
   render_get_ellipse_points(currShape->currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
-  
+
   // Resolve the shape based on joystick inputs
   resolve(currShape, stickX, stickY);
-  
+
   // Update current shape properties
   currCenter = get_center(currShape);
   currRadiusX = get_scaleX(currShape);
   currRadiusY = get_scaleY(currShape);
   currSegments = get_segments(currShape);
   currLOD = get_lod(currShape);
-  
+
   // Adjust LOD if necessary
   if (currLOD < ((float)currSegments * 0.01f)) {
     currLOD = ((float)currSegments * 0.01f);
   }
-  
+
   // Set render color and draw the circle
   currShapeColor = get_fill_color(currShape);
   set_render_color(currShapeColor);
   draw_circle(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
-  
+
   // Get the current points from the shape
-  PointArray* newPoints = get_points(currShape);
-  
-  // Free the previous points array
-  free_point_array(currShape->currPoints);
-  
-  // Assign new points to currPoints
-  set_points(currShape, newPoints);
-  free_point_array(newPoints);
+  currPoints = get_points(currShape);
+  set_points(currShape, currPoints);
+
 }
 
 void reset_example() {
@@ -337,18 +332,6 @@ int main() {
 //=========== ~ UPDATE ~ ==============//
 
     draw();
-
-     // Update current shape properties
-    currCenter = get_center(currShape);
-    currRadiusX = get_scaleX(currShape);
-    currRadiusY = get_scaleY(currShape);
-    currSegments = get_segments(currShape);
-    currLOD = get_lod(currShape);
-  
-    // Adjust LOD if necessary
-    if (currLOD < ((float)currSegments * 0.01f)) {
-      currLOD = ((float)currSegments * 0.01f);
-    }
 
 //=========== ~ CONTROLS ~ ==============//
 
