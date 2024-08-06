@@ -20,22 +20,12 @@ Shape* currShape;
 Shape* circle;
 Shape* quad;
 Shape* fan;
-
+size_t controlPoint = 0;
 Shape* curve;
 Shape* curve2;
-Point pointA;
-Point pointB;
-Point pointC;
-Point pointD;
-Point resetA;
-Point resetB;
-Point resetC;
-Point resetD;
 int resetCurve = 0;
-size_t controlPoint = 0;
 PointArray* bezierPoints;
 PointArray* basePoints;
-int bezierMode = 0;
 
 
 // Local variables
@@ -141,28 +131,39 @@ void setup() {
 
 
   // Set up control points for Bezier examples
-  pointA = point_new( ((float)(screenWidth/2) - 40.0f), ((float)(screenHeight/2) + 20.0f) );
-  pointB = point_new( ((float)(screenWidth/2) - 20.0f), ((float)(screenHeight/2) - 40.0f) );
-  pointC = point_new( ((float)(screenWidth/2) + 20.0f), ((float)(screenHeight/2) - 40.0f) );
-  pointD = point_new( ((float)(screenWidth/2) + 40.0f), ((float)(screenHeight/2) + 20.0f) );
-
-  resetA = pointA;
-  resetB = pointB;
-  resetC = pointC;
-  resetD = pointD;
-
-  Point points[] = {pointA, pointB, pointC, pointD, screenCenter};
+  Point points[] = {
+    point_new(((float)(screenWidth/2) - 40.0f), ((float)(screenHeight/2) + 20.0f)),
+    point_new(((float)(screenWidth/2) - 20.0f), ((float)(screenHeight/2) - 40.0f)),
+    point_new(((float)(screenWidth/2) + 20.0f), ((float)(screenHeight/2) - 40.0f)),
+    point_new(((float)(screenWidth/2) + 40.0f), ((float)(screenHeight/2) + 20.0f)),
+    screenCenter
+  };
   size_t numPoints = sizeof(points) / sizeof(points[0]);
 
   bezierPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  if (!bezierPoints) {
+    debugf("Failed to allocate bezierPoints\n");
+    return;
+  }
   init_point_array_from_points(bezierPoints, points, numPoints);
 
-  Point resets[] = {resetA, resetB, resetC, resetD, screenCenter};
-  size_t numResets = sizeof(points) / sizeof(points[0]);
+  Point resets[] = {
+    points[0], // Reset points should be identical to initial points
+    points[1],
+    points[2],
+    points[3],
+    screenCenter
+  };
+  size_t numResets = sizeof(resets) / sizeof(resets[0]);
 
   basePoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  if (!basePoints) {
+    debugf("Failed to allocate basePoints\n");
+    free(bezierPoints->points); // Clean up previously allocated memory
+    free(bezierPoints);
+    return;
+  }
   init_point_array_from_points(basePoints, resets, numResets);
-
 }
 
 void circle_draw(){
@@ -250,6 +251,99 @@ void fan_draw(){
 
   free(currPoints->points);
 }
+
+void bezier_draw(){
+  currShape = curve;
+  currCenter = get_center(currShape);
+  currRadiusX = get_scaleX(currShape);
+  currRadiusY = get_scaleY(currShape);
+  currSegments = get_segments(currShape);
+  if(currSegments > 100){
+    currSegments = 5;
+  }
+  currThickness = get_thickness(currShape);
+  if(currThickness > 10.0f){
+    currThickness = 1.0f;
+  }
+
+  if(resetCurve == 0){
+    render_move_point(bezierPoints, controlPoint, stickX*0.05f, -stickY*0.05f);
+    render_rotate_point(bezierPoints, controlPoint, currCenter, currAngle*0.05f);
+  } else {
+    free(bezierPoints->points);
+    free_uncached(bezierPoints);
+    bezierPoints = basePoints;
+  }
+
+  if(controlPoint == bezierPoints->count - 1){
+    resolve(curve, stickX,stickY);
+    render_move_shape_points(bezierPoints, stickX*0.05f, -stickY*0.05f);
+    render_rotate_shape_points(bezierPoints, currCenter, currAngle*0.05f);
+  }
+
+  //debugf("Total bezierPoints %d\n", bezierPoints.size());
+
+  // Limit movement to inside screen with offset here because shape.resolve(x,y) doesn't apply to curves
+  float offset = 5.0f;
+
+  for( size_t i = 0; i < bezierPoints->count - 1; ++i) {
+    if (bezierPoints->points[controlPoint].x < offset) {
+      bezierPoints->points[controlPoint].x = offset;
+    }
+    if (bezierPoints->points[controlPoint].x > screenWidth - offset) {
+      bezierPoints->points[controlPoint].x = screenWidth - offset;
+    }
+    if (bezierPoints->points[controlPoint].y < offset) {
+      bezierPoints->points[controlPoint].y = offset;
+    }
+    if (bezierPoints->points[controlPoint].y > screenHeight - offset) {
+      bezierPoints->points[controlPoint].y = screenHeight - offset;
+    }
+  }
+
+  currShapeColor = get_fill_color(currShape);
+  set_render_color(currShapeColor);
+  draw_bezier_curve(
+    &bezierPoints->points[0], &bezierPoints->points[1], &bezierPoints->points[2], &bezierPoints->points[3],
+    currSegments,
+    currAngle,
+    currThickness
+  );
+
+  set_render_color(BLUE);
+  draw_filled_beziers(
+    &bezierPoints->points[0], &bezierPoints->points[1], &bezierPoints->points[2], &bezierPoints->points[3],
+    &basePoints->points[0], &basePoints->points[1], &basePoints->points[2], &basePoints->points[3],
+    currSegments
+  );
+
+  set_render_color(get_fill_color(curve2));
+  draw_bezier_curve(
+    &basePoints->points[0], &basePoints->points[1], &basePoints->points[2], &basePoints->points[3],
+    currSegments,
+    0.0f,
+    currThickness
+  );
+
+
+  set_render_color(BLACK);
+  for( size_t i = 0; i < bezierPoints->count; ++i){
+    draw_circle(bezierPoints->points[i].x, bezierPoints->points[i].y, 2.0f, 2.0f, currAngle, 0.01f);
+  }
+  set_render_color(YELLOW);
+  draw_circle(bezierPoints->points[controlPoint].x, bezierPoints->points[controlPoint].y, 1.5f, 1.5f, currAngle, 0.01f);
+
+  //debugf(
+  //  "A (%.2f,%.2f)\n"
+  //  "B (%.2f,%.2f)\n"
+  //  "C (%.2f,%.2f)\n"
+  //  "D (%.2f,%.2f)\n", 
+  //  pointA.x, pointA.y,
+  //  pointB.x, pointB.y,
+  //  pointC.x, pointC.y,
+  //  pointD.x, pointD.y
+  //);
+}
 // Main rendering function
 void draw() {
   
@@ -264,107 +358,7 @@ void draw() {
       fan_draw();
       break;
     case 3:
-      currShape = curve;
-      currCenter = get_center(currShape);
-      currRadiusX = get_scaleX(currShape);
-      currRadiusY = get_scaleY(currShape);
-      currSegments = get_segments(currShape);
-      if(currSegments > 100){
-        currSegments = 5;
-      }
-      currThickness = get_thickness(currShape);
-      if(currThickness > 10.0f){
-        currThickness = 1.0f;
-      }
-
-      if(resetCurve == 0){
-        render_move_point(bezierPoints, controlPoint, stickX*0.05f, -stickY*0.05f);
-        render_rotate_point(bezierPoints, controlPoint, currCenter, currAngle*0.05f);
-      } else {
-        bezierPoints = basePoints;
-      }
-
-      if(controlPoint == bezierPoints->count - 1){
-        resolve(curve, stickX,stickY);
-        render_move_shape_points(bezierPoints, stickX*0.05f, -stickY*0.05f);
-        render_rotate_shape_points(bezierPoints, currCenter, currAngle*0.05f);
-      }
-
-      //debugf("Total bezierPoints %d\n", bezierPoints.size());
-
-      // Limit movement to inside screen with offset here because shape.resolve(x,y) doesn't apply to curves
-      float offset = 5.0f;
-      float width = display_get_width();
-      float height = display_get_height();
-
-      for( size_t i = 0; i < bezierPoints->count - 1; ++i) {
-        if (bezierPoints->points[controlPoint].x < offset) {
-          bezierPoints->points[controlPoint].x = offset;
-        }
-        if (bezierPoints->points[controlPoint].x > width - offset) {
-          bezierPoints->points[controlPoint].x = width - offset;
-        }
-        if (bezierPoints->points[controlPoint].y < offset) {
-          bezierPoints->points[controlPoint].y = offset;
-        }
-        if (bezierPoints->points[controlPoint].y > height - offset) {
-          bezierPoints->points[controlPoint].y = height - offset;
-        }
-      }
-
-      currShapeColor = get_fill_color(currShape);
-      set_render_color(currShapeColor);
-      draw_bezier_curve(
-        &pointA, &pointB, &pointC, &pointD,
-        currSegments,
-        currAngle,
-        currThickness
-      );
-
-      set_render_color(BLUE);
-      draw_filled_beziers(
-        &bezierPoints->points[0], &bezierPoints->points[1], &bezierPoints->points[2], &bezierPoints->points[3],
-        &basePoints->points[0], &basePoints->points[1], &basePoints->points[2], &basePoints->points[3],
-        currSegments
-      );
-
-      set_render_color(get_fill_color(curve2));
-      draw_bezier_curve(
-        &resetA, &resetB, &resetC, &resetD,
-        currSegments,
-        0.0f,
-        currThickness
-      );
-
-
-      set_render_color(BLACK);
-      for( size_t i = 0; i < bezierPoints->count; ++i){
-        draw_circle(bezierPoints->points[i].x, bezierPoints->points[i].y, 2.0f, 2.0f, currAngle, 0.01f);
-      }
-      set_render_color(YELLOW);
-      draw_circle(bezierPoints->points[controlPoint].x, bezierPoints->points[controlPoint].y, 1.5f, 1.5f, currAngle, 0.01f);
-
-      set_points(currShape, bezierPoints);
-      currPoints = get_points(currShape);
-
-      
-      pointA = currPoints->points[0];
-      pointB = currPoints->points[1];
-      pointC = currPoints->points[2];
-      pointD = currPoints->points[3];
-      
-
-      //debugf(
-      //  "A (%.2f,%.2f)\n"
-      //  "B (%.2f,%.2f)\n"
-      //  "C (%.2f,%.2f)\n"
-      //  "D (%.2f,%.2f)\n", 
-      //  pointA.x, pointA.y,
-      //  pointB.x, pointB.y,
-      //  pointC.x, pointC.y,
-      //  pointD.x, pointD.y
-      //);
-      
+      bezier_draw();
       break;
   }
 
@@ -390,12 +384,7 @@ void reset_example() {
     set_thickness(currShape, 2.0f);
     set_segments(currShape, 10);
     controlPoint = 0;
-    free_point_array(currPoints);
     resetCurve = 1;
-    pointA = resetA;
-    pointB = resetB;
-    pointC = resetC;
-    pointD = resetD;
   } else { // Quad
     set_center(currShape, screenCenter);
     set_scaleX(currShape, 20.0f);
@@ -406,7 +395,7 @@ void reset_example() {
 
 void switch_example() {
   reset_example();
-  if (++example > 2) {
+  if (++example > 3) {
     example = 0;
   }
 }
@@ -704,14 +693,14 @@ int main() {
     } else if (currShape == quad) {
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
-        "Quad\n\n"
+        "Quad\n"
         "Width: %.0fpx\n"
         "Height: %.0fpx\n"
         "Rotation: %.0f\n"
         "Verts: %u\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "CPU Time: %lldms\n\n"
+        "CPU Time: %lldms\n"
         "Stick to Move\n"
         "R/Z: Scale\n"
         "CL/CR: X Scale\n"
@@ -828,14 +817,14 @@ int main() {
   }
 
   //=========== ~ CLEAN UP ~ =============//
-  destroy(currShape);
-  destroy(circle);
-  destroy(quad);
-  destroy(fan);
-  destroy(curve);
-  destroy(curve2);
-  free_point_array(bezierPoints);
-  free_point_array(basePoints);
-  free_point_array(currPoints);
+  free_uncached(currShape);
+  free_uncached(circle);
+  free_uncached(quad);
+  free_uncached(fan);
+  free_uncached(curve);
+  free_uncached(curve2);
+  free_uncached(bezierPoints);
+  free_uncached(basePoints);
+  free_uncached(currPoints);
   return 0;
 }
