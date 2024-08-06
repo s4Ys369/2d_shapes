@@ -12,9 +12,8 @@ float currRadiusX;
 float currRadiusY;
 float currThickness;
 int currSegments;
-float currLOD ;
-float currAngle ;
-PointArray* previousPoints;
+float currLOD;
+float currAngle;
 PointArray* currPoints; 
 color_t currShapeColor;
 
@@ -28,8 +27,6 @@ void shape_control_init() {
   currPoints = currShape->currPoints;
   currShapeColor = get_fill_color(currShape);
   currCenter = get_center(currShape);
-  previousPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
-  init_point_array(previousPoints);
 }
 
 void increase_scale(Shape *currShape) {
