@@ -196,6 +196,60 @@ void circle_draw(){
   set_points(currShape, currPoints);
 }
 
+void quad_draw(){
+  currShape = quad;
+  resolve(quad, stickX, stickY);
+  currCenter = get_center(currShape);
+  currRadiusX = get_scaleX(currShape);
+  currRadiusY = get_scaleY(currShape);
+  currThickness = get_thickness(currShape);
+  currShapeColor = get_fill_color(currShape);
+  set_segments(currShape, 1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
+  currSegments = get_segments(currShape);
+  set_render_color(currShapeColor);
+  draw_line(
+    currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
+    currCenter.x+currRadiusX, currCenter.y+currRadiusY, 
+    currAngle,
+    currThickness
+  );
+}
+
+void fan_draw(){
+  currShape = fan;
+
+  render_get_ellipse_points(currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
+  currCenter = get_center(currShape);
+  currRadiusX = get_scaleX(currShape);
+  currRadiusY = get_scaleY(currShape);
+  currSegments = get_segments(currShape);
+  currLOD = get_lod(currShape);
+  currShapeColor = get_fill_color(currShape);
+
+  render_move_point(currPoints, controlPoint, stickX, -stickY);
+  render_rotate_point(currPoints, controlPoint, currCenter, currAngle);
+  if(controlPoint == currPoints->count){
+    render_move_shape_points(currPoints, stickX, -stickY);
+    render_rotate_shape_points(currPoints, currCenter, currAngle);
+  }
+      
+  set_render_color(currShapeColor);
+  draw_fan(currPoints);
+
+  if ( controlPoint < currPoints->count){
+    set_render_color(BLACK);
+    draw_circle(currPoints->points[controlPoint].x, currPoints->points[controlPoint].y, 3.0f, 3.0f, 0.0f, 0.05f);
+    set_render_color(YELLOW);
+    draw_circle(currPoints->points[controlPoint].x, currPoints->points[controlPoint].y, 2.0f, 2.0f, 0.0f, 0.05f);
+  } else {
+    set_render_color(BLACK);
+    draw_circle(currCenter.x, currCenter.y, 3.0f, 3.0f, 0.0f, 0.05f);
+    set_render_color(YELLOW);
+    draw_circle(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
+  }
+
+  free(currPoints->points);
+}
 // Main rendering function
 void draw() {
   
@@ -204,55 +258,10 @@ void draw() {
       circle_draw();
       break;
     case 1:
-      currShape = quad;
-      resolve(quad, stickX, stickY);
-      currCenter = get_center(currShape);
-      currRadiusX = get_scaleX(currShape);
-      currRadiusY = get_scaleY(currShape);
-      currThickness = get_thickness(currShape);
-      currShapeColor = get_fill_color(currShape);
-      set_segments(currShape, 1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
-      currSegments = get_segments(currShape);
-      set_render_color(currShapeColor);
-      draw_line(
-        currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
-        currCenter.x+currRadiusX, currCenter.y+currRadiusY, 
-        currAngle,
-        currThickness
-      );
+      quad_draw();
       break;
     case 2:
-      currShape = fan;
-      currCenter = get_center(currShape);
-      currRadiusX = get_scaleX(currShape);
-      currRadiusY = get_scaleY(currShape);
-      currSegments = get_segments(currShape);
-      currLOD = get_lod(currShape);
-
-      render_get_ellipse_points(previousPoints, currCenter, currRadiusX, currRadiusY, currSegments);
-      set_points(currShape, currPoints);
-
-      render_move_point(currPoints, controlPoint, stickX, -stickY);
-      render_rotate_point(currPoints, controlPoint, currCenter, currAngle);
-      if(controlPoint == currPoints->count){
-        render_move_shape_points(currPoints, stickX, -stickY);
-        render_rotate_shape_points(currPoints, currCenter, currAngle);
-      }
-      
-      set_render_color(currShapeColor);
-      draw_fan(currPoints);
-
-      if ( controlPoint < currPoints->count){
-        set_render_color(BLACK);
-        draw_circle(currPoints->points[controlPoint].x, currPoints->points[controlPoint].y, 3.0f, 3.0f, 0.0f, 0.05f);
-        set_render_color(YELLOW);
-        draw_circle(currPoints->points[controlPoint].x, currPoints->points[controlPoint].y, 2.0f, 2.0f, 0.0f, 0.05f);
-      } else {
-        set_render_color(BLACK);
-        draw_circle(currCenter.x, currCenter.y, 3.0f, 3.0f, 0.0f, 0.05f);
-        set_render_color(YELLOW);
-        draw_circle(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
-      }
+      fan_draw();
       break;
     case 3:
       currShape = curve;
@@ -396,9 +405,9 @@ void reset_example() {
 }
 
 void switch_example() {
-  if (++example > 1) {
+  reset_example();
+  if (++example > 2) {
     example = 0;
-    reset_example();
   }
 }
 
@@ -573,35 +582,6 @@ int main() {
 //=========== ~ UPDATE ~ ==============//
 
     draw();
-
-    // Shape update
-    currCenter = get_center(currShape);
-    currRadiusX = get_scaleX(currShape);
-    currSegments = get_segments(currShape);
-    currLOD = get_lod(currShape);
-
-    if(currShape == circle){
-      set_segments(currShape, triCount); // For the ellipse (ie fan) segments and triangles are essentially the same
-      if(currLOD < ((float)currSegments*0.01f)){
-        currLOD = ((float)currSegments*0.01f);
-      }
-    } else if(currShape == quad){
-      set_segments(currShape, triCount/2); // 1 segment per 2 triangles for the quad
-      currRadiusY = get_scaleY(currShape);
-      currThickness = get_thickness(currShape);
-    } else if(currShape == curve){
-      if(currSegments > 30){
-        currSegments = 5;
-      }
-    } else {
-      if(currLOD < ((float)currSegments*0.01f)){
-        currLOD = ((float)currSegments*0.01f);
-      }
-    }
-
-    currShapeColor = get_fill_color(currShape);
-    render_get_ellipse_points(currShape->currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
-    set_points(currShape, previousPoints);
 
 //=========== ~ CONTROLS ~ ==============//
 
