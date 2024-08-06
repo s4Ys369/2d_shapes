@@ -28,7 +28,7 @@ fi
 
 if [ "$1" = "cpp" ] ; then
   echo "Building C++..."
-  make -C c -j4
+  make -C cpp -j4
   exit 0
 fi
 

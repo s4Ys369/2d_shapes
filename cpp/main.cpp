@@ -15,6 +15,7 @@ int example, triCount, vertCount, currVerts, currTris, fillTris;
 float stickX, stickY;
 uint64_t bootTime, firstTime, secondTime, dispTime, jpTime, drawTime;
 uint32_t screenWidth, screenHeight, frameCounter;
+Render renderer;
 
 // Shape pointers
 Shape* currShape;
@@ -57,6 +58,47 @@ static sprite_t *test_sprite;
 
 int ramUsed = 0;
 
+void accums_init(){
+  bootTime= 0;
+  firstTime = 0;
+  secondTime = 0;
+  jpTime = 0;
+  dispTime = 0;
+  drawTime = 0;
+  frameCounter = 0;
+  example = 0;
+  triCount = 0;
+  vertCount = 0;
+  currTris = 0;
+  fillTris = 0;
+  currVerts = 0;
+  stickX = 0.0f;
+  stickY = 0.0f;
+}
+
+void bezier_init(){
+
+  curve = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, RED);
+  curve2 = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, GREEN);
+
+  // Set up control points for Bezier example
+  pointA = Point( ((float)(screenWidth/2) - 40.0f), ((float)(screenHeight/2) + 20.0f) );
+  pointB = Point( ((float)(screenWidth/2) - 20.0f), ((float)(screenHeight/2) - 40.0f) );
+  pointC = Point( ((float)(screenWidth/2) + 20.0f), ((float)(screenHeight/2) - 40.0f) );
+  pointD = Point( ((float)(screenWidth/2) + 40.0f), ((float)(screenHeight/2) + 20.0f) );
+
+  resetA = pointA;
+  resetB = pointB;
+  resetC = pointC;
+  resetD = pointD;
+
+  bezierPoints.reserve(5);
+  bezierPoints = {pointA, pointB, pointC, pointD, Point(screenWidth/2,screenHeight/2)};
+  basePoints.reserve(5);
+  basePoints = {resetA, resetB, resetC, resetD, Point(screenWidth/2,screenHeight/2)};
+
+}
+
 // Initialize libdragon
 void setup() {
 
@@ -86,232 +128,216 @@ void setup() {
 
 
   // Initialize acummulators
-  bootTime= 0;
-  firstTime = 0;
-  secondTime = 0;
-  jpTime = 0;
-  dispTime = 0;
-  drawTime = 0;
-  frameCounter = 0;
-  example = 0;
-  triCount = 0;
-  vertCount = 0;
-  currTris = 0;
-  fillTris = 0;
-  currVerts = 0;
-  stickX = 0.0f;
-  stickY = 0.0f;
+  accums_init();
 
   // Initialize shapes
   ellipse = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 0.05f, RED);
   quad = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
   fan = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 5, BLUE);
-  curve = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, RED);
-  curve2 = new Shape(Point(screenWidth/2,screenHeight/2), 20.0f, 20.0f, 2.0f, 10, GREEN);
+  bezier_init();
 
   // Texture test
   test_sprite = sprite_load("rom:/n64brew.sprite");
   rdpq_sprite_upload(TILE0, test_sprite, NULL);
 
-
-  // Set up control points for Bezier examples
-  pointA = Point( ((float)(screenWidth/2) - 40.0f), ((float)(screenHeight/2) + 20.0f) );
-  pointB = Point( ((float)(screenWidth/2) - 20.0f), ((float)(screenHeight/2) - 40.0f) );
-  pointC = Point( ((float)(screenWidth/2) + 20.0f), ((float)(screenHeight/2) - 40.0f) );
-  pointD = Point( ((float)(screenWidth/2) + 40.0f), ((float)(screenHeight/2) + 20.0f) );
-
-  resetA = pointA;
-  resetB = pointB;
-  resetC = pointC;
-  resetD = pointD;
-
-  bezierPoints.reserve(5);
-  bezierPoints = {pointA, pointB, pointC, pointD, Point(screenWidth/2,screenHeight/2)};
-  basePoints.reserve(5);
-  basePoints = {resetA, resetB, resetC, resetD, Point(screenWidth/2,screenHeight/2)};
-
   
 
 }
 
+// Shape update and draw functions
+void circle_update(){
+  currShape = ellipse;
+  ellipse->resolve(stickX, stickY);
+  currCenter = currShape->get_center();
+  currRadiusX = currShape->get_scaleX();
+  currRadiusY = currShape->get_scaleY();
+  currSegments = currShape->get_segments();
+  currLOD = currShape->get_lod();
+  if(currLOD < ((float)currSegments*0.01f)){
+    currLOD = ((float)currSegments*0.01f);
+  }
+  currShapeColor = currShape->get_shape_fill_color();
+  renderer.set_fill_color(currShapeColor);
+  currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
+  renderer.draw_ellipse(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
+  currPoints.clear();
+  currPoints = currShape->get_points();
+}
+
+void quad_update(){
+  currShape = quad;
+  quad->resolve(stickX, stickY);
+  currCenter = currShape->get_center();
+  currRadiusX = currShape->get_scaleX();
+  currRadiusY = currShape->get_scaleY();
+  currThickness = currShape->get_lod();
+  currShapeColor = currShape->get_shape_fill_color();
+  currShape->set_segments(1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
+  renderer.set_fill_color(currShapeColor);
+  renderer.draw_line(
+    currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
+    currCenter.x+currRadiusX, currCenter.y+currRadiusY, 
+    currAngle,
+    currThickness
+  );
+}
+
+void fan_update(){
+  currShape = fan;
+
+  currCenter = currShape->get_center();
+  currRadiusX = currShape->get_scaleX();
+  currRadiusY = currShape->get_scaleY();
+  currSegments = currShape->get_segments();
+  currLOD = currShape->get_lod();
+
+  currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
+  currPoints.clear();
+  currPoints = currShape->get_points();
+
+  renderer.move_point(currPoints, controlPoint, stickX, -stickY);
+  renderer.rotate_point(currPoints, controlPoint, currCenter, currAngle);
+  if(controlPoint == currPoints.size()){
+    renderer.move_shape_points(currPoints, stickX, -stickY);
+    renderer.rotate_shape_points(currPoints, currCenter, currAngle);
+  }
+      
+  renderer.set_fill_color(currShapeColor);
+  renderer.draw_fan(currPoints);
+
+  if ( controlPoint < currPoints.size()){
+    renderer.set_fill_color(BLACK);
+    renderer.draw_ellipse(currPoints[controlPoint].x, currPoints[controlPoint].y, 3.0f, 3.0f, 0.0f, 0.05f);
+    renderer.set_fill_color(YELLOW);
+    renderer.draw_ellipse(currPoints[controlPoint].x, currPoints[controlPoint].y, 2.0f, 2.0f, 0.0f, 0.05f);
+  } else {
+    renderer.set_fill_color(YELLOW);
+    renderer.draw_ellipse(currCenter.x, currCenter.y, 3.0f, 3.0f, 0.0f, 0.05f);
+    renderer.set_fill_color(LIGHT_GREY);
+    renderer.draw_ellipse(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
+  }
+}
+
+void bezier_update(){
+  currShape = curve;
+  currCenter = currShape->get_center();
+  currRadiusX = currShape->get_scaleX();
+  currRadiusY = currShape->get_scaleY();
+  currSegments = currShape->get_segments();
+  if(currSegments > 100){
+    currSegments = 5;
+  }
+  currThickness = currShape->get_thickness();
+  if(currThickness > 10.0f){
+    currThickness = 1.0f;
+  }
+
+  if(resetCurve == 0){
+    renderer.move_point(bezierPoints, controlPoint, stickX*0.05f, -stickY*0.05f);
+    renderer.rotate_point(bezierPoints, controlPoint, currCenter, currAngle*0.05f);
+  } else {
+    bezierPoints = {resetA, resetB, resetC, resetD, Point(screenWidth/2,screenHeight/2)};
+  }
+
+  if(controlPoint == bezierPoints.size() - 1){
+    currShape->resolve(stickX,stickY);
+    renderer.move_shape_points(bezierPoints, stickX*0.05f, -stickY*0.05f);
+    renderer.rotate_shape_points(bezierPoints, currCenter, currAngle*0.05f);
+  }
+
+  //debugf("Total bezierPoints %d\n", bezierPoints.size());
+
+  // Limit movement to inside screen with offset here because shape.resolve(x,y) doesn't apply to curves
+  float offset = 5.0f;
+  float width = display_get_width();
+  float height = display_get_height();
+
+  for( size_t i = 0; i < bezierPoints.size() - 1; ++i) {
+    if (bezierPoints[controlPoint].x < offset) {
+      bezierPoints[controlPoint].x = offset;
+    }
+    if (bezierPoints[controlPoint].x > width - offset) {
+      bezierPoints[controlPoint].x = width - offset;
+    }
+    if (bezierPoints[controlPoint].y < offset) {
+      bezierPoints[controlPoint].y = offset;
+    }
+    if (bezierPoints[controlPoint].y > height - offset) {
+      bezierPoints[controlPoint].y = height - offset;
+    }
+  }
+
+  currShapeColor = currShape->get_shape_fill_color();
+  renderer.set_fill_color(currShapeColor);
+  renderer.draw_bezier_curve(
+    pointA, pointB, pointC, pointD,
+    currSegments,
+    currAngle,
+    currThickness
+  );
+
+  renderer.set_fill_color(BLUE);
+  renderer.draw_filled_beziers(
+    bezierPoints[0], bezierPoints[1], bezierPoints[2], bezierPoints[3],
+    basePoints[0], basePoints[1], basePoints[2], basePoints[3],
+    currSegments
+  );
+
+  renderer.set_fill_color(curve2->get_shape_fill_color());
+  renderer.draw_bezier_curve(
+    resetA, resetB, resetC, resetD,
+    currSegments,
+    0.0f,
+    currThickness
+  );
+
+
+  renderer.set_fill_color(BLACK);
+  for( size_t i = 0; i < bezierPoints.size(); ++i){
+    renderer.draw_ellipse(bezierPoints[i].x, bezierPoints[i].y, 2.0f, 2.0f, currAngle, 0.01f);
+  }
+  renderer.set_fill_color(YELLOW);
+  renderer.draw_ellipse(bezierPoints[controlPoint].x, bezierPoints[controlPoint].y, 1.5f, 1.5f, currAngle, 0.01f);
+
+  currShape->set_points(bezierPoints);
+  currPoints.clear();
+  currPoints = currShape->get_points();
+
+      
+  pointA = currPoints[0];
+  pointB = currPoints[1];
+  pointC = currPoints[2];
+  pointD = currPoints[3];
+      
+
+  //debugf(
+  //  "A (%.2f,%.2f)\n"
+  //  "B (%.2f,%.2f)\n"
+  //  "C (%.2f,%.2f)\n"
+  //  "D (%.2f,%.2f)\n", 
+  //  pointA.x, pointA.y,
+  //  pointB.x, pointB.y,
+  //  pointC.x, pointC.y,
+  //  pointD.x, pointD.y
+  //);
+}
+
+
 // Main rendering function
-Render renderer;
 void draw() {
   
   switch (example) {
     case 0:
-      currShape = ellipse;
-      ellipse->resolve(stickX, stickY);
-      currCenter = currShape->get_center();
-      currRadiusX = currShape->get_scaleX();
-      currRadiusY = currShape->get_scaleY();
-      currSegments = currShape->get_segments();
-      currLOD = currShape->get_lod();
-      if(currLOD < ((float)currSegments*0.01f)){
-        currLOD = ((float)currSegments*0.01f);
-      }
-      currShapeColor = currShape->get_shape_fill_color();
-      renderer.set_fill_color(currShapeColor);
-      currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
-      renderer.draw_ellipse(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
-      currPoints.clear();
-      currPoints = currShape->get_points();
+      circle_update();
       break;
     case 1:
-      currShape = quad;
-      quad->resolve(stickX, stickY);
-      currCenter = currShape->get_center();
-      currRadiusX = currShape->get_scaleX();
-      currRadiusY = currShape->get_scaleY();
-      currThickness = currShape->get_lod();
-      currShapeColor = currShape->get_shape_fill_color();
-      currShape->set_segments(1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
-      renderer.set_fill_color(currShapeColor);
-      renderer.draw_line(
-        currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
-        currCenter.x+currRadiusX, currCenter.y+currRadiusY, 
-        currAngle,
-        currThickness
-      );
+      quad_update();
       break;
     case 2:
-      currShape = fan;
-
-      currCenter = currShape->get_center();
-      currRadiusX = currShape->get_scaleX();
-      currRadiusY = currShape->get_scaleY();
-      currSegments = currShape->get_segments();
-      currLOD = currShape->get_lod();
-
-      currShape->set_points(renderer.get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments));
-      currPoints.clear();
-      currPoints = currShape->get_points();
-
-      renderer.move_point(currPoints, controlPoint, stickX, -stickY);
-      renderer.rotate_point(currPoints, controlPoint, currCenter, currAngle);
-      if(controlPoint == currPoints.size()){
-        renderer.move_shape_points(currPoints, stickX, -stickY);
-        renderer.rotate_shape_points(currPoints, currCenter, currAngle);
-      }
-      
-      renderer.set_fill_color(currShapeColor);
-      renderer.draw_fan(currPoints);
-
-      if ( controlPoint < currPoints.size()){
-        renderer.set_fill_color(BLACK);
-        renderer.draw_ellipse(currPoints[controlPoint].x, currPoints[controlPoint].y, 3.0f, 3.0f, 0.0f, 0.05f);
-        renderer.set_fill_color(YELLOW);
-        renderer.draw_ellipse(currPoints[controlPoint].x, currPoints[controlPoint].y, 2.0f, 2.0f, 0.0f, 0.05f);
-      } else {
-        renderer.set_fill_color(YELLOW);
-        renderer.draw_ellipse(currCenter.x, currCenter.y, 3.0f, 3.0f, 0.0f, 0.05f);
-        renderer.set_fill_color(LIGHT_GREY);
-        renderer.draw_ellipse(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
-      }
+      fan_update();
       break;
     case 3:
-      currShape = curve;
-      currCenter = currShape->get_center();
-      currRadiusX = currShape->get_scaleX();
-      currRadiusY = currShape->get_scaleY();
-      currSegments = currShape->get_segments();
-      if(currSegments > 100){
-        currSegments = 5;
-      }
-      currThickness = currShape->get_thickness();
-      if(currThickness > 10.0f){
-        currThickness = 1.0f;
-      }
-
-      if(resetCurve == 0){
-        renderer.move_point(bezierPoints, controlPoint, stickX*0.05f, -stickY*0.05f);
-        renderer.rotate_point(bezierPoints, controlPoint, currCenter, currAngle*0.05f);
-      } else {
-        bezierPoints = {resetA, resetB, resetC, resetD, Point(screenWidth/2,screenHeight/2)};
-      }
-
-      if(controlPoint == bezierPoints.size() - 1){
-        currShape->resolve(stickX,stickY);
-        renderer.move_shape_points(bezierPoints, stickX*0.05f, -stickY*0.05f);
-        renderer.rotate_shape_points(bezierPoints, currCenter, currAngle*0.05f);
-      }
-
-      //debugf("Total bezierPoints %d\n", bezierPoints.size());
-
-      // Limit movement to inside screen with offset here because shape.resolve(x,y) doesn't apply to curves
-      float offset = 5.0f;
-      float width = display_get_width();
-      float height = display_get_height();
-
-      for( size_t i = 0; i < bezierPoints.size() - 1; ++i) {
-        if (bezierPoints[controlPoint].x < offset) {
-          bezierPoints[controlPoint].x = offset;
-        }
-        if (bezierPoints[controlPoint].x > width - offset) {
-          bezierPoints[controlPoint].x = width - offset;
-        }
-        if (bezierPoints[controlPoint].y < offset) {
-          bezierPoints[controlPoint].y = offset;
-        }
-        if (bezierPoints[controlPoint].y > height - offset) {
-          bezierPoints[controlPoint].y = height - offset;
-        }
-      }
-
-      currShapeColor = currShape->get_shape_fill_color();
-      renderer.set_fill_color(currShapeColor);
-      renderer.draw_bezier_curve(
-        pointA, pointB, pointC, pointD,
-        currSegments,
-        currAngle,
-        currThickness
-      );
-
-      renderer.set_fill_color(BLUE);
-      renderer.draw_filled_beziers(
-        bezierPoints[0], bezierPoints[1], bezierPoints[2], bezierPoints[3],
-        basePoints[0], basePoints[1], basePoints[2], basePoints[3],
-        currSegments
-      );
-
-      renderer.set_fill_color(curve2->get_shape_fill_color());
-      renderer.draw_bezier_curve(
-        resetA, resetB, resetC, resetD,
-        currSegments,
-        0.0f,
-        currThickness
-      );
-
-
-      renderer.set_fill_color(BLACK);
-      for( size_t i = 0; i < bezierPoints.size(); ++i){
-        renderer.draw_ellipse(bezierPoints[i].x, bezierPoints[i].y, 2.0f, 2.0f, currAngle, 0.01f);
-      }
-      renderer.set_fill_color(YELLOW);
-      renderer.draw_ellipse(bezierPoints[controlPoint].x, bezierPoints[controlPoint].y, 1.5f, 1.5f, currAngle, 0.01f);
-
-      currShape->set_points(bezierPoints);
-      currPoints.clear();
-      currPoints = currShape->get_points();
-
-      
-      pointA = currPoints[0];
-      pointB = currPoints[1];
-      pointC = currPoints[2];
-      pointD = currPoints[3];
-      
-
-      //debugf(
-      //  "A (%.2f,%.2f)\n"
-      //  "B (%.2f,%.2f)\n"
-      //  "C (%.2f,%.2f)\n"
-      //  "D (%.2f,%.2f)\n", 
-      //  pointA.x, pointA.y,
-      //  pointB.x, pointB.y,
-      //  pointC.x, pointC.y,
-      //  pointD.x, pointD.y
-      //);
-      
+      bezier_update();
       break;
   }
 
