@@ -652,11 +652,8 @@ void draw_fan_transform(const PointArray* fan, float angle, int segments, float 
 }
 
 // Function to draw a quad/rectangle from the edge of an ellipse/fan to the edge of a "line" (ie another quad/rectangle)
-void fill_edge_ellipse_to_line(PointArray* currentPoints, int segments, float scale) {
-  static PointArray* previousPoints;  // Static to persist between function calls
-  init_point_array(previousPoints);
+void fill_edge_ellipse_to_line(PointArray* previousPoints, PointArray* currentPoints, int segments, float scale) {
   Point prevCenter = point_default();
-  add_existing_point(previousPoints, prevCenter);
   Point currCenter = point_default();
 
   if (previousPoints->count != 0) {

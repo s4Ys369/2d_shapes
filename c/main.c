@@ -95,7 +95,7 @@ void setup() {
   dispTime = 0;
   drawTime = 0;
   frameCounter = 0;
-  example = 0;
+  example = 1;
   triCount = 0;
   vertCount = 0;
   currTris = 0;
@@ -107,12 +107,13 @@ void setup() {
   // Allocate a dummy/control shape
   currShape = (Shape*)malloc(sizeof(Shape));
   shape_init(currShape);
-  init_point_array(currShape->previousPoints);
   init_point_array(currShape->currPoints);
-  previousPoints = currShape->previousPoints;
   currPoints = currShape->currPoints;
   currShapeColor = get_fill_color(currShape);
   currCenter = get_center(currShape);
+
+  previousPoints = (PointArray*)malloc(sizeof(PointArray));
+  init_point_array(previousPoints);
 
   // Circle
   circle = (Shape*)malloc(sizeof(Shape));
@@ -168,8 +169,14 @@ void draw() {
   switch (example) {
     case 0:
       currShape = circle;
-      render_get_ellipse_points(previousPoints, currCenter, currRadiusX, currRadiusY, currSegments);
-      set_points(currShape,previousPoints);
+      if(currShape->currPoints != NULL){
+        free_point_array(currShape->currPoints);
+      }
+      if(previousPoints != NULL){
+        free_point_array(previousPoints);
+      }
+      render_get_ellipse_points(currShape->currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
+      init_point_array_from_points(previousPoints, currPoints->points, currPoints->count);
       resolve(currShape, stickX, stickY);
       currCenter = get_center(currShape);
       currRadiusX = get_scaleX(currShape);
@@ -182,6 +189,7 @@ void draw() {
       currShapeColor = get_fill_color(currShape);
       set_render_color(currShapeColor);
       draw_circle(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
+      
       currPoints = get_points(currShape);
       if (previousPoints != currPoints) {
         free_point_array(previousPoints);
@@ -382,7 +390,7 @@ void reset_example() {
 }
 
 void switch_example() {
-  if (++example > 3) {
+  if (++example > 1) {
     example = 0;
     reset_example();
   }
@@ -590,13 +598,8 @@ int main() {
     }
 
     currShapeColor = get_fill_color(currShape);
-    //previousPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-    currPoints = get_points(currShape);
-    if (previousPoints != currPoints) {
-      free_point_array(previousPoints);
-    }
-    previousPoints = currPoints;
-    //free_point_array(currPoints);
+    render_get_ellipse_points(currShape->currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
+    set_points(currShape, previousPoints);
 
 //=========== ~ CONTROLS ~ ==============//
 

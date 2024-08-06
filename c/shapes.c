@@ -16,8 +16,6 @@ void shape_init(Shape* shape) {
     shape->segments = 1;
     shape->lod = 1.0f;
     shape->fillColor = BLACK;
-    shape->previousPoints = (PointArray*)malloc(sizeof(PointArray));
-    shape->previousPoints->count = 0;
     shape->currPoints = (PointArray*)malloc(sizeof(PointArray));
     shape->currPoints->count = 0;
     add_existing_point(shape->currPoints, shape->center);
@@ -187,9 +185,6 @@ void resolve(Shape* shape, float stickX, float stickY) {
 void destroy(Shape* shape) {
     if (shape->currPoints != NULL) {
         free(shape->currPoints);
-    }
-    if (shape->previousPoints != NULL) {
-        free(shape->previousPoints);
     }
 }
 

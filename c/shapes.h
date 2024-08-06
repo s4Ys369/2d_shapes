@@ -8,7 +8,6 @@
 
 typedef struct {
     PointArray* currPoints;
-    PointArray* previousPoints;
     Point center;
     float scaleX;
     float scaleY;
