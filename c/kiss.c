@@ -18,6 +18,8 @@ uint32_t screenWidth, screenHeight, frameCounter;
 // Shape pointers
 Shape* currShape;
 Shape* circle;
+Shape* fan;
+size_t controlPoint = 0;
 
 
 // Local variables
@@ -114,45 +116,50 @@ void setup() {
   init_point_array(previousPoints);
 
   // Circle
-  circle = (Shape*)malloc_uncached(sizeof(Shape));
-  if (!circle) {
+  fan = (Shape*)malloc_uncached(sizeof(Shape));
+  if (!fan) {
     debugf("Failed to allocate circle\n");
     return;
   }
-  circle_init(circle, screenCenter, 20.0f, 0.05f, RED);
+  fan2_init(fan, screenCenter, 20.0f, 20.0f, 5, BLUE);
 
 }
 
 // Main rendering function
 void draw() {
-  currShape = circle;
+  currShape = fan;
 
-  // Get ellipse points and store them in currPoints
-  render_get_ellipse_points(currShape->currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
-
-  // Resolve the shape based on joystick inputs
-  resolve(currShape, stickX, stickY);
-
-  // Update current shape properties
+  render_get_ellipse_points(currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
   currCenter = get_center(currShape);
   currRadiusX = get_scaleX(currShape);
   currRadiusY = get_scaleY(currShape);
   currSegments = get_segments(currShape);
   currLOD = get_lod(currShape);
+  currShapeColor = get_fill_color(currShape);
 
-  // Adjust LOD if necessary
-  if (currLOD < ((float)currSegments * 0.01f)) {
-    currLOD = ((float)currSegments * 0.01f);
+  render_move_point(currPoints, controlPoint, stickX, -stickY);
+  render_rotate_point(currPoints, controlPoint, currCenter, currAngle);
+  if(controlPoint == currPoints->count){
+    render_move_shape_points(currPoints, stickX, -stickY);
+    render_rotate_shape_points(currPoints, currCenter, currAngle);
+  }
+      
+  set_render_color(currShapeColor);
+  draw_fan(currPoints);
+
+  if ( controlPoint < currPoints->count){
+    set_render_color(BLACK);
+    draw_circle(currPoints->points[controlPoint].x, currPoints->points[controlPoint].y, 3.0f, 3.0f, 0.0f, 0.05f);
+    set_render_color(YELLOW);
+    draw_circle(currPoints->points[controlPoint].x, currPoints->points[controlPoint].y, 2.0f, 2.0f, 0.0f, 0.05f);
+  } else {
+    set_render_color(BLACK);
+    draw_circle(currCenter.x, currCenter.y, 3.0f, 3.0f, 0.0f, 0.05f);
+    set_render_color(YELLOW);
+    draw_circle(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
   }
 
-  // Set render color and draw the circle
-  currShapeColor = get_fill_color(currShape);
-  set_render_color(currShapeColor);
-  draw_circle(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
-
-  // Get the current points from the shape
-  currPoints = get_points(currShape);
-  set_points(currShape, currPoints);
+  free(currPoints->points);
 
 }
 
@@ -160,7 +167,10 @@ void reset_example() {
   currAngle = 0;
   set_center(currShape, screenCenter);
   set_scaleX(currShape, 20.0f);
+  set_scaleY(currShape, 20.0f);
   set_lod(currShape, 0.05f);
+  set_segments(currShape, 5);
+  controlPoint = 0;
 }
 
 void switch_example() {
@@ -282,6 +292,22 @@ void decrease_segments(Shape *currShape) {
   }
 }
 
+void cycle_control_point() {
+  //if(currShape != (Shape*)curve){
+    if(controlPoint < currPoints->count){
+      controlPoint++;
+    } else {
+      controlPoint = 0;
+    }
+  //} else {
+  //  if(controlPoint < bezierPoints->count - 1){
+  //    controlPoint++;
+  //  } else {
+  //    controlPoint = 0;
+  //  }
+  //}
+}
+
 // Main function with rendering loop
 int main() {
   setup();
@@ -359,11 +385,30 @@ int main() {
     }
 
 
-    if(keysDown.c_left){
-      increase_lod(currShape);
+    if(keysDown.c_up){
+      increase_y_scale(currShape);
     }
     if(keysDown.c_down){
-      decrease_lod(currShape);
+      decrease_y_scale(currShape);
+    }
+    if(keysDown.c_right){
+      increase_x_scale(currShape);
+    }  
+    if(keysDown.c_left){
+      decrease_x_scale(currShape);
+    }
+
+    if(keys.d_up){
+      increase_segments(currShape);
+    }
+    if(keys.d_down){
+      decrease_segments(currShape);
+    }
+    if(keys.d_right){
+      cycle_control_point();
+    }  
+    if(keys.d_left){
+      cycle_control_point();
     }
 
 
@@ -375,28 +420,34 @@ int main() {
     }
 
 
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, 
-      "Circle\n\n"
-      "Diameter: %.0fpx\n"
+    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
+      "Triangle Fan\n"
+      "Scale: (%.0fpx,%.0fpx)\n"
       "Rotation: %.0f\n"
-      "Verts: %u\n"
-      "LOD: %.2f\n"
+      "Segments: %u\n"
+      "Verts: %d/%d\n"
       "Tris: %u\n"
       "FPS: %.2f\n"
-      "CPU Time: %lldms\n\n"
+      "CPU Time: %lldms\n"
       "Stick to Move\n"
       "R/Z: Scale\n"
-      "CL/CD: LOD\n"
+      "CL/CR: X Scale\n"
+      "CU/CD: Y Scale\n"
+      "DU/DD: Scale Segments\n"
+      "DL/DR: Cycle Verts\n"
       "A/B: Rotate\n"
       "Start: Reset Example\n"
+      "L: Switch Example\n"
       "RAM %dKB/%dKB",
-      currRadiusX*2, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
+      currRadiusX*2,
+      currRadiusY*2,
       rotationDegrees,
-      vertCount+1, // All triangles in the fan use the center vertex and previous vertex, so only accumulate 1 per draw, then add center here
-      currLOD,
-      triCount,
+      currSegments,
+      controlPoint+1, // Point being transformed, where the last of the current Points is the center of the fan
+      (currPoints->count+1), // Always triangles + center
+      currSegments, // Always verts - center
       display_get_fps(),
-      drawTime ,
+      drawTime,
       (ramUsed / 1024), (get_memory_size() / 1024)
     );
     
