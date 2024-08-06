@@ -270,9 +270,10 @@ void bezier_draw(){
     render_move_point(bezierPoints, controlPoint, stickX*0.05f, -stickY*0.05f);
     render_rotate_point(bezierPoints, controlPoint, currCenter, currAngle*0.05f);
   } else {
-    free(bezierPoints->points);
-    free_uncached(bezierPoints);
-    bezierPoints = basePoints;
+    for (size_t i = 0; i < basePoints->count; ++i) {
+      bezierPoints->points[i] = basePoints->points[i];
+    }
+    resetCurve = 0;
   }
 
   if(controlPoint == bezierPoints->count - 1){
