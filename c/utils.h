@@ -66,7 +66,7 @@ float apply_deadzone(float value);
 
 // C++ auto constructor replacements
 void add_vertex(float** vertices, int* vertex_count, float x, float y);
-void add_index(int** indices, int* index_count, int* capacity, int index);
+void add_index(int** indices, int* index_count, int index);
 int* create_triangle_fan_indices(int* indices, int segments, int* index_count);
 
 #endif // UTILS_H

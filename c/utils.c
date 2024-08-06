@@ -109,19 +109,17 @@ void add_vertex(float** vertices, int* vertex_count, float x, float y) {
 }
 
 // Function to add an index to the index array
-void add_index(int** indices, int* index_count, int* capacity, int index) {
-    if (*index_count >= *capacity) {
-        *capacity = (*capacity == 0) ? 1 : (*capacity * 2);
-        int* new_indices = (int*)realloc(*indices, sizeof(int) * (*capacity));
-        if (new_indices == NULL) {
-            debugf("Index reallocation failed\n");
-            return;
-        }
-        *indices = new_indices;
-        debugf("Index array reallocated. New capacity: %d\n", *capacity);
+void add_index(int** indices, int* index_count, int index) {
+    int new_size = *index_count + 1;
+    int* new_indices = (int*)realloc(*indices, sizeof(int) * new_size);
+    if (new_indices == NULL) {
+        debugf("Index reallocation failed\n");
+        return;
     }
+    *indices = new_indices;
+
     (*indices)[*index_count] = index;
-    *index_count += 1;
+    *index_count = new_size;
 }
 
 // Function to create triangle fan indices

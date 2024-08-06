@@ -153,8 +153,14 @@ void rotate_line_point(Point* p, const Point* center, float cos_angle, float sin
 
 // Function to initialize a PointArray
 void init_point_array(PointArray* array) {
-    array->points = NULL;
-    array->count = 0;
+    if (array) {
+        array->points = (Point*)malloc(sizeof(Point));
+        if (array->points) {
+            array->count = 0;
+        } else {
+            array->count = 0;
+        }
+    }
 }
 
 // Function to initialize a PointArray from existing points
