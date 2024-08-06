@@ -17,8 +17,7 @@ void shape_init(Shape* shape) {
     shape->lod = 1.0f;
     shape->fillColor = BLACK;
     shape->currPoints = (PointArray*)malloc(sizeof(PointArray));
-    shape->currPoints->count = 0;
-    add_existing_point(shape->currPoints, shape->center);
+    init_point_array(shape->currPoints);
 
 }
 
@@ -64,7 +63,7 @@ void set_points(Shape* shape, PointArray* points) {
 
     // Free old points if they exist
     if (shape->currPoints != NULL) {
-        free(shape->currPoints->points);
+        free_point_array(shape->currPoints);
     }
 
     // Copy new points

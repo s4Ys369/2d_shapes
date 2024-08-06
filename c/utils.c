@@ -95,50 +95,65 @@ float apply_deadzone(float value) {
 
 /* C++ replacements , possibly move to render? */
 
-// emplace_back for a float array
+// Function to add a vertex to a vertex array
 void add_vertex(float** vertices, int* vertex_count, float x, float y) {
-    // Increase the size of the vertices array
-    *vertices = (float*)malloc(sizeof(float) * (*vertex_count + 2));
-    if (*vertices == NULL) {
-        debugf("Vertex allocation failed\n");
+    debugf("Adding vertex: (%f, %f) at position %d\n", x, y, *vertex_count);
+    float* new_vertices = (float*)realloc(*vertices, sizeof(float) * (*vertex_count + 2));
+    if (new_vertices == NULL) {
+        debugf("Vertex reallocation failed\n");
         return;
     }
-
-    // Add the new vertex
+    *vertices = new_vertices;
     (*vertices)[*vertex_count] = x;
     (*vertices)[*vertex_count + 1] = y;
     *vertex_count += 2;
+    debugf("Vertex added. New vertex count: %d\n", *vertex_count);
 }
 
-// emplace_back for a int array
-void add_index(int** indices, int* index_count, int index) {
-    // Increase the size of the indices array
-    *indices = (int*)malloc(sizeof(int) * (*index_count + 1));
-    if (*indices == NULL) {
-        debugf("Index allocation failed\n");
-        return;
+// Function to add an index to the index array
+void add_index(int** indices, int* index_count, int* capacity, int index) {
+    debugf("Adding index: %d at position %d\n", index, *index_count);
+    if (*index_count >= *capacity) {
+        *capacity = (*capacity == 0) ? 1 : (*capacity * 2);
+        int* new_indices = (int*)realloc(*indices, sizeof(int) * (*capacity));
+        if (new_indices == NULL) {
+            debugf("Index reallocation failed\n");
+            return;
+        }
+        *indices = new_indices;
+        debugf("Index array reallocated. New capacity: %d\n", *capacity);
     }
-
-    // Add the new index
     (*indices)[*index_count] = index;
     *index_count += 1;
+    debugf("Index added. New index count: %d\n", *index_count);
 }
 
-// Function to create indices for a triangle fan
-int* create_triangle_fan_indices(int segments, int* index_count) {
-    if (segments < 1) {
-        segments = 1;
+int* create_triangle_fan_indices(int* indices, int segments, int* index_count) {
+    if (segments < 3) {
+        *index_count = 0;
+        return NULL;
     }
 
-    // Initialize index array
-    int* indices = NULL;
-    *index_count = segments * 3; // Each triangle uses 3 indices
+    *index_count = segments * 3;
+    indices = (int*)malloc(sizeof(int) * (*index_count));
+    if (indices == NULL) {
+        debugf("Index allocation failed\n");
+        return NULL;
+    }
 
-    // Add indices for the triangle fan
-    for (int i = 1; i <= segments; ++i) {
-        add_index(&indices, index_count, 0); // Center vertex
-        add_index(&indices, index_count, i); // Current perimeter vertex
-        add_index(&indices, index_count, (i % segments) + 1); // Next perimeter vertex
+    // Ensure you are only using valid indices
+    for (int i = 0; i < segments; ++i) {
+        indices[i * 3] = 0; // Center vertex
+        indices[i * 3 + 1] = i + 1;
+        indices[i * 3 + 2] = (i + 2) % segments + 1;
+
+        // Debug print to check indices
+        if (indices[i * 3 + 1] >= (segments + 1) || indices[i * 3 + 2] >= (segments + 1)) {
+            debugf("Index out of bounds: %d, %d, %d\n", indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]);
+            free(indices);
+            return NULL;
+        }
+        debugf("Triangle %d: %d, %d, %d\n", i, indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]);
     }
 
     return indices;

@@ -35,26 +35,42 @@ void render_rotate_shape_points(PointArray* pa, Point center, float angle) {
 
 // Function to get points around an ellipse
 void render_get_ellipse_points(PointArray* previousPoints, Point center, float rx, float ry, int segments) {
+  // Ensure previousPoints is properly initialized
+  if (previousPoints == NULL) {
+    debugf("previousPoints is NULL\n");
+    return;
+  }
+
+  // Initialize the PointArray if not already done
+  if (previousPoints->points == NULL) {
+    init_point_array(previousPoints);
+  }
+
   if (segments == 0) {
     segments = 1;
   }
 
+  // Clear any existing points in previousPoints
+  if (previousPoints->points != NULL) {
+    free(previousPoints->points);
+    previousPoints->points = NULL;
+  }
+  previousPoints->count = 0;
 
   // Compute points for the ellipse
   float angleStep = 2.0f * M_PI / (float)segments;
   for (int i = 0; i < segments; ++i) {
     float angle = i * angleStep;
-    float x = center.x + rx * cosf(angle);
-    float y = center.y + ry * sinf(angle);
+    float x = center.x + rx * fm_cosf(angle);
+    float y = center.y + ry * fm_sinf(angle);
     add_point(previousPoints, x, y);
 
     // Check if point addition failed
     if (previousPoints->points == NULL) {
-      free(previousPoints);
       debugf("Failed to add point to PointArray\n");
+      return;
     }
   }
-
 }
 
 
@@ -78,22 +94,43 @@ void draw_triangle(float* v1, float* v2, float* v3) {
 
 // Function to draw RDPQ triangles using vertex arrays
 void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count) {
-  for (int i = 0; i < index_count; i += 3) {
-    int idx1 = indices[i];
-    int idx2 = indices[i + 1];
-    int idx3 = indices[i + 2];
-        
-    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
-    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
-    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
-        
-    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-    triCount++;
-    vertCount++;
-  }
+    // Debug: Print the entire vertices array
+    debugf("Vertices array:\n");
+    for (int i = 0; i < vertex_count; i += 2) {
+        debugf("  Vertex %d: (%.6f, %.6f)\n", i / 2, vertices[i], vertices[i + 1]);
+    }
 
-  free(vertices);
-  free(indices);
+    for (int i = 0; i < index_count; i += 3) {
+        if (i + 2 >= index_count) {
+            debugf("Index array out of bounds\n");
+            break;
+        }
+        int idx1 = indices[i];
+        int idx2 = indices[i + 1];
+        int idx3 = indices[i + 2];
+        
+        // Check if indices are within valid range
+        if (idx1 < 0 || idx2 < 0 || idx3 < 0 || idx1 * 2 + 1 >= vertex_count || idx2 * 2 + 1 >= vertex_count || idx3 * 2 + 1 >= vertex_count) {
+            debugf("Vertex index out of bounds: idx1=%d, idx2=%d, idx3=%d\n", idx1, idx2, idx3);
+            continue;
+        }
+
+        // Retrieve vertex coordinates
+        float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
+        float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
+        float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
+        
+        // Print vertex coordinates for debugging
+        debugf("Drawing triangle with vertices:\n");
+        debugf("  v1: (%.6f, %.6f)\n", v1[0], v1[1]);
+        debugf("  v2: (%.6f, %.6f)\n", v2[0], v2[1]);
+        debugf("  v3: (%.6f, %.6f)\n", v3[0], v3[1]);
+
+        // Draw the triangle
+        rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+        triCount++;
+        vertCount++;
+    }
 }
 
 // Function to draw a triangle fan from an array of points
@@ -213,7 +250,7 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
 
   // Initialize vert arrays
   float* vertices = NULL;
-  int vertex_count = (segments + 1) * 2; // fan uses 1 center vert and a vert for ever new segments
+  int vertex_count = 0;
   add_vertex(&vertices, &vertex_count, cx, cy);
 
   // Calculate perimeter vertices
@@ -238,25 +275,17 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   
   }
 
+  debugf("Total vertices: %d\n", vertex_count);
+
   // Create indices for a triangle fan
   int* indices = NULL;
-  int index_count = segments * 3; // Each triangle uses 3 indices
-  indices = create_triangle_fan_indices(segments, &index_count);
+  int index_count = 0;
+  indices = create_triangle_fan_indices(indices, segments, &index_count);
+
+  debugf("Total indices: %d\n", index_count);
 
   // Draw the indexed vertices
-  for (int i = 0; i < index_count; i += 3) {
-    int idx1 = indices[i];
-    int idx2 = indices[i + 1];
-    int idx3 = indices[i + 2];
-        
-    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
-    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
-    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
-        
-    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-    triCount++;
-    vertCount++;
-  }
+  draw_indexed_triangles(vertices, vertex_count, indices, index_count);
 
   free(vertices);
   free(indices);
@@ -388,12 +417,12 @@ void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const 
     // Add indices
     if (i < curvePoints.count - 1) {
       int baseIndex = i * 2;
-      add_index(&indices, &indexCount, baseIndex);
-      add_index(&indices, &indexCount, baseIndex + 1);
-      add_index(&indices, &indexCount, baseIndex + 2);
-      add_index(&indices, &indexCount, baseIndex + 1);
-      add_index(&indices, &indexCount, baseIndex + 3);
-      add_index(&indices, &indexCount, baseIndex + 2);
+      //add_index(&indices, &indexCount, baseIndex);
+      //add_index(&indices, &indexCount, baseIndex + 1);
+      //add_index(&indices, &indexCount, baseIndex + 2);
+      //add_index(&indices, &indexCount, baseIndex + 1);
+      //add_index(&indices, &indexCount, baseIndex + 3);
+      //add_index(&indices, &indexCount, baseIndex + 2);
     }
   }
 
