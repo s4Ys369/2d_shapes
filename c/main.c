@@ -16,14 +16,13 @@ uint64_t bootTime, firstTime, secondTime, dispTime, jpTime, drawTime;
 uint32_t screenWidth, screenHeight, frameCounter;
 
 // Shape pointers
-ShapeInterface* currShapeIO;
 Shape* currShape;
-Circle* circle;
-Strip* quad;
-Fan* fan;
+Shape* circle;
+Shape* quad;
+Shape* fan;
 
-Strip* curve;
-Strip* curve2;
+Shape* curve;
+Shape* curve2;
 Point pointA;
 Point pointB;
 Point pointC;
@@ -95,7 +94,7 @@ void setup() {
   dispTime = 0;
   drawTime = 0;
   frameCounter = 0;
-  example = 0;
+  example = 1;
   triCount = 0;
   vertCount = 0;
   currTris = 0;
@@ -104,33 +103,28 @@ void setup() {
   stickX = 0.0f;
   stickY = 0.0f;
 
-  // Allocate the shape interface
-  currShapeIO = (ShapeInterface*)malloc(sizeof(ShapeInterface));
-  // then the shape
+  // Allocate the shape
   currShape = (Shape*)malloc(sizeof(Shape));
-
-  // then attach the shape to the interface
-  init_shape_interface(currShapeIO, currShape);
-  currShapeIO->init(currShape);
-  currShapeColor = currShapeIO->get_fill_color(currShape);
-  currCenter = currShapeIO->get_center(currShape);
+  shape_init(currShape);
+  currShapeColor = get_fill_color(currShape);
+  currCenter = get_center(currShape);
 
   // Circle
-  circle = (Circle*)malloc(sizeof(Circle));
+  circle = (Shape*)malloc(sizeof(Shape));
   circle_init(circle, screenCenter, 20.0f, 0.05f, RED);
 
   // Quad as a strip
-  quad = (Strip*)malloc(sizeof(Strip));
+  quad = (Shape*)malloc(sizeof(Shape));
   strip_init(quad, screenCenter, 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
 
   // Fan has only scale, whereas fan2 has both X and Y scales
-  fan = (Fan*)malloc(sizeof(Fan));
+  fan = (Shape*)malloc(sizeof(Shape));
   fan2_init(fan, screenCenter, 20.0f, 20.0f, 5, BLUE);
 
   // Curves are treat as strips
-  curve = (Strip*)malloc(sizeof(Strip));
+  curve = (Shape*)malloc(sizeof(Shape));
   strip_init(curve, screenCenter, 20.0f, 20.0f, 2.0f, 10, RED);
-  curve2 = (Strip*)malloc(sizeof(Strip));
+  curve2 = (Shape*)malloc(sizeof(Shape));
   strip_init(curve2, screenCenter, 20.0f, 20.0f, 2.0f, 10, GREEN);
 
   // Texture test
@@ -168,23 +162,22 @@ void draw() {
   
   switch (example) {
     case 0:
-      init_shape_interface(currShapeIO, circle);
-      currShape = currShapeIO->shape;
+      currShape = circle;
       currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-      currShapeIO->set_points(circle,currPoints);
-      currShapeIO->resolve(circle, stickX, stickY);
-      currCenter = currShapeIO->get_center(circle);
-      currRadiusX = currShapeIO->get_scaleX(circle);
-      currRadiusY = currShapeIO->get_scaleY(circle);
-      currSegments = currShapeIO->get_segments(circle);
-      currLOD = currShapeIO->get_lod(circle);
+      set_points(currShape,currPoints);
+      resolve(currShape, stickX, stickY);
+      currCenter = get_center(currShape);
+      currRadiusX = get_scaleX(currShape);
+      currRadiusY = get_scaleY(currShape);
+      currSegments = get_segments(currShape);
+      currLOD = get_lod(currShape);
       if(currLOD < ((float)currSegments*0.01f)){
         currLOD = ((float)currSegments*0.01f);
       }
-      currShapeColor = currShapeIO->get_fill_color(circle);
+      currShapeColor = get_fill_color(currShape);
       set_render_color(currShapeColor);
       draw_circle(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
-      PointArray* currPointsUpdated = currShapeIO->get_points(circle);
+      PointArray* currPointsUpdated = get_points(currShape);
       if (currPoints != currPointsUpdated) {
         free(currPoints->points);
         free(currPoints);
@@ -192,7 +185,7 @@ void draw() {
       currPoints = currPointsUpdated;
       break;
     case 1:
-      currShape = (Shape*)quad;
+      currShape = quad;
       resolve(currShape, stickX, stickY);
       currCenter = get_center(currShape);
       currRadiusX = get_scaleX(currShape);
@@ -210,7 +203,7 @@ void draw() {
       );
       break;
     case 2:
-      currShape = (Shape*)fan;
+      currShape = fan;
       currCenter = get_center(currShape);
       currRadiusX = get_scaleX(currShape);
       currRadiusY = get_scaleY(currShape);
@@ -256,7 +249,7 @@ void draw() {
       currPoints = currPointsUpdated;
       break;
     case 3:
-      currShape = (Shape*)curve;
+      currShape = curve;
       currCenter = get_center(currShape);
       currRadiusX = get_scaleX(currShape);
       currRadiusY = get_scaleY(currShape);
@@ -365,9 +358,9 @@ void draw() {
 void reset_example() {
   currAngle = 0;
   if(currShape == (Shape*)circle){
-    currShapeIO->set_center(currShape, screenCenter);
-    currShapeIO->set_scaleX(currShape, 20.0f);
-    currShapeIO->set_lod(currShape, 0.05f);
+    set_center(currShape, screenCenter);
+    set_scaleX(currShape, 20.0f);
+    set_lod(currShape, 0.05f);
   } else if(currShape == (Shape*)fan){
     set_center(currShape, screenCenter);
     set_scaleX(currShape, 20.0f);
@@ -404,99 +397,99 @@ void switch_example() {
 }
 
 void increase_scale(Shape *currShape) {
-  if(currShapeIO->get_scaleX(currShape) < screenWidth && currShapeIO->get_scaleY(currShape) < screenHeight){
-    currShapeIO->set_scaleX(currShape, currShapeIO->get_scaleX(currShape) + 1.0f);
-    currShapeIO->set_scaleY(currShape, currShapeIO->get_scaleY(currShape) + 1.0f);
+  if(get_scaleX(currShape) < screenWidth && get_scaleY(currShape) < screenHeight){
+    set_scaleX(currShape, get_scaleX(currShape) + 1.0f);
+    set_scaleY(currShape, get_scaleY(currShape) + 1.0f);
   } else {
-    currShapeIO->set_scaleX(currShape, 1.0f);
-    currShapeIO->set_scaleY(currShape, 1.0f);
+    set_scaleX(currShape, 1.0f);
+    set_scaleY(currShape, 1.0f);
   }
 }
 
 void decrease_scale(Shape *currShape) {
-  if(currShapeIO->get_scaleX(currShape) > 1.0f && currShapeIO->get_scaleY(currShape) > 1.0f){
-    currShapeIO->set_scaleX(currShape, currShapeIO->get_scaleX(currShape) - 1.0f);
-    currShapeIO->set_scaleY(currShape, currShapeIO->get_scaleY(currShape) - 1.0f);
+  if(get_scaleX(currShape) > 1.0f && get_scaleY(currShape) > 1.0f){
+    set_scaleX(currShape, get_scaleX(currShape) - 1.0f);
+    set_scaleY(currShape, get_scaleY(currShape) - 1.0f);
   } else {
-    currShapeIO->set_scaleX(currShape, screenWidth);
-    currShapeIO->set_scaleY(currShape, screenHeight);
+    set_scaleX(currShape, screenWidth);
+    set_scaleY(currShape, screenHeight);
   }
 }
 
 void increase_x_scale(Shape *currShape) {
-  float currentScaleX = currShapeIO->get_scaleX(currShape);
+  float currentScaleX = get_scaleX(currShape);
   if(currentScaleX < screenWidth){
-    currShapeIO->set_scaleX(currShape, currentScaleX + 0.1f);
+    set_scaleX(currShape, currentScaleX + 0.1f);
   } else {
-    currShapeIO->set_scaleX(currShape, 1.0f);
+    set_scaleX(currShape, 1.0f);
   }
 }
 
 void decrease_x_scale(Shape *currShape) {
-  float currentScaleX = currShapeIO->get_scaleX(currShape);
+  float currentScaleX = get_scaleX(currShape);
   if(currentScaleX > 1.1f){
-    currShapeIO->set_scaleX(currShape, currentScaleX - 0.1f);
+    set_scaleX(currShape, currentScaleX - 0.1f);
   } else {
-    currShapeIO->set_scaleX(currShape, screenWidth);
+    set_scaleX(currShape, screenWidth);
   }
 }
 
 void increase_y_scale(Shape *currShape) {
-  float currentScaleY = currShapeIO->get_scaleY(currShape);
+  float currentScaleY = get_scaleY(currShape);
   if(currentScaleY < screenHeight){
-    currShapeIO->set_scaleY(currShape, currentScaleY + 0.1f);
+    set_scaleY(currShape, currentScaleY + 0.1f);
   } else {
-    currShapeIO->set_scaleY(currShape, 1.0f);
+    set_scaleY(currShape, 1.0f);
   }
 }
 
 void decrease_y_scale(Shape *currShape) {
-  float currentScaleY = currShapeIO->get_scaleY(currShape);
+  float currentScaleY = get_scaleY(currShape);
   if(currentScaleY > 1.1f){
-    currShapeIO->set_scaleX(currShape, currentScaleY - 0.1f);
+    set_scaleX(currShape, currentScaleY - 0.1f);
   } else {
-    currShapeIO->set_scaleX(currShape, screenHeight);
+    set_scaleX(currShape, screenHeight);
   }
 }
 
 void increase_lod(Shape *currShape) {
-  if(currShapeIO->get_lod(currShape) < 2.0f){
-    currShapeIO->set_lod(currShape, currShapeIO->get_lod(currShape) + 0.05f);
+  if(get_lod(currShape) < 2.0f){
+    set_lod(currShape, get_lod(currShape) + 0.05f);
   } else {
-    currShapeIO->set_lod(currShape, 0.05f);
+    set_lod(currShape, 0.05f);
   }
 }
 
 void decrease_lod(Shape *currShape) {
-  if(currShapeIO->get_lod(currShape) >= 0.1f){
-    currShapeIO->set_lod(currShape, currShapeIO->get_lod(currShape) - 0.05f);
+  if(get_lod(currShape) >= 0.1f){
+    set_lod(currShape, get_lod(currShape) - 0.05f);
   } else {
     set_lod(currShape, 2.0f);
   }
 }
 
 void increase_thickness(Shape *currShape) {
-  if(currShapeIO->get_thickness(currShape) < 10.0f){
-    currShapeIO->set_thickness(currShape, currShapeIO->get_thickness(currShape) + 0.01f);
+  if(get_thickness(currShape) < 10.0f){
+    set_thickness(currShape, get_thickness(currShape) + 0.01f);
   } else {
-    currShapeIO->set_thickness(currShape, 0.01f);
+    set_thickness(currShape, 0.01f);
   }
 }
 
 void decrease_thickness(Shape *currShape) {
-  if(currShapeIO->get_thickness(currShape) >= 0.02f){
-    currShapeIO->set_thickness(currShape, currShapeIO->get_thickness(currShape) - 0.01f);
+  if(get_thickness(currShape) >= 0.02f){
+    set_thickness(currShape, get_thickness(currShape) - 0.01f);
   } else {
-    currShapeIO->set_thickness(currShape, 10.0f);
+    set_thickness(currShape, 10.0f);
   }
 }
 
 void increase_segments(Shape *currShape) {
   if(currShape != (Shape*)circle){
-    if(currShapeIO->get_segments(currShape) < 20){
-      currShapeIO->set_segments(currShape, get_segments(currShape) + 1);
+    if(get_segments(currShape) < 20){
+      set_segments(currShape, get_segments(currShape) + 1);
     } else {
-      currShapeIO->set_segments(currShape, 5);
+      set_segments(currShape, 5);
     }
   } else {
     increase_lod(currShape);
@@ -505,10 +498,10 @@ void increase_segments(Shape *currShape) {
 
 void decrease_segments(Shape *currShape) {
   if(currShape != (Shape*)circle){
-    if(currShapeIO->get_segments(currShape) > 5){
-      currShapeIO->set_segments(currShape, currShapeIO->get_segments(currShape) - 1);
+    if(get_segments(currShape) > 5){
+      set_segments(currShape, get_segments(currShape) - 1);
     } else {
-      currShapeIO->set_segments(currShape, 20);
+      set_segments(currShape, 20);
     }
   } else {
     decrease_lod(currShape);
@@ -517,7 +510,7 @@ void decrease_segments(Shape *currShape) {
 
 void cycle_control_point() {
   if(currShape != (Shape*)curve){
-    currPoints = currShapeIO->get_points(currShape);
+    currPoints = get_points(currShape);
     if(controlPoint < currPoints->count){
       controlPoint++;
     } else {
@@ -858,12 +851,12 @@ int main() {
   }
 
   //=========== ~ CLEAN UP ~ =============//
-  free(currShape);
-  free(circle);
-  free(quad);
-  free(fan);
-  free(curve);
-  free(curve2);
+  destroy(currShape);
+  destroy(circle);
+  destroy(quad);
+  destroy(fan);
+  destroy(curve);
+  destroy(curve2);
   free_point_array(bezierPoints);
   free_point_array(basePoints);
   free_point_array(currPoints);
