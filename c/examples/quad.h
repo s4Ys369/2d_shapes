@@ -14,14 +14,14 @@ void create_quad(){
 }
 
 void quad_draw(){
+  // Update current shape properties
   currShape = quad;
   resolve(quad, stickX, stickY);
   currCenter = get_center(currShape);
   currRadiusX = get_scaleX(currShape);
   currRadiusY = get_scaleY(currShape);
-  currThickness = get_thickness(currShape);
+  currThickness = get_thickness(currShape); // FIXME: Isn't utilized in example
   currShapeColor = get_fill_color(currShape);
-  set_segments(currShape, 1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
   currSegments = get_segments(currShape);
   set_render_color(currShapeColor);
   draw_line(

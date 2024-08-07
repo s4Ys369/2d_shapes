@@ -7,6 +7,15 @@
 #include "../shapes.h"
 
 Shape* currShape;
+
+/* 
+  The following values are all part of Shape struct
+  Unnecessary, besides slightly shorter names for
+  examples, ie:
+    currShape->currPoints->points
+      or
+    currPoints->points
+*/
 Point currCenter;
 float currRadiusX;
 float currRadiusY;
@@ -18,13 +27,23 @@ PointArray* currPoints;
 color_t currShapeColor;
 
 void shape_control_init() {
-// Allocate a dummy/control shape
+
+  // Allocate a dummy/control shape
   currShape = (Shape*)malloc_uncached(sizeof(Shape));
+
+  // Initialize shape parameters
   shape_init(currShape);
+
+  // Initialize current point array
   init_point_array(currShape->currPoints);
+
+  // Allocate a dummy pointer array
   currPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+
+  // Populate the array using the previous one
   init_point_array_from_points(currPoints, currShape->currPoints->points, currShape->currPoints->count);
   currPoints = currShape->currPoints;
+
   currShapeColor = get_fill_color(currShape);
   currCenter = get_center(currShape);
 }
