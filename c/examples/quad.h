@@ -24,7 +24,7 @@ void quad_draw(){
   currShapeColor = get_fill_color(currShape);
   currSegments = get_segments(currShape);
   set_render_color(currShapeColor);
-  draw_line(
+  draw_quad(
     currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
     currCenter.x+currRadiusX, currCenter.y+currRadiusY, 
     currAngle,

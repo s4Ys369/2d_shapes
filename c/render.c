@@ -37,7 +37,7 @@ void render_rotate_shape_points(PointArray* pa, Point center, float angle) {
 void render_get_ellipse_points(PointArray* previousPoints, Point center, float rx, float ry, int segments) {
   // Ensure previousPoints is properly initialized
   if (previousPoints == NULL) {
-    debugf("previousPoints is NULL\n");
+    debugf("point array is NULL\n");
     return;
   }
 
@@ -110,12 +110,12 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
     }
 
     // Retrieve vertex coordinates
-    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
-    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
-    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
+    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1], 1.0f };
+    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1], 1.0f };
+    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1], 1.0f };
 
     // Draw the triangle
-    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    rdpq_triangle(&TRIFMT_ZBUF, v1, v2, v3);
     triCount++;
     vertCount++;
   }
@@ -137,6 +137,17 @@ void draw_fan(const PointArray* pa) {
     triCount++;
     vertCount++;
   }
+
+}
+
+// Function to draw a triangle fan from an array of points
+void draw_strip(float* v1, float* v2, float* v3, float* v4) {
+
+  rdpq_triangle(&TRIFMT_ZBUF, v1, v2, v3);
+  rdpq_triangle(&TRIFMT_ZBUF, v2, v4, v3);
+  triCount += 2;
+  vertCount += 4;
+
 
 }
 
@@ -189,7 +200,7 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   } else if (area >= 1.0f && area < 2.9f) {
 
     // If only drawing ~4 pixels or less, just draw a quad to save triangles
-    draw_line(cx-offset,cy-offset,cx+offset,cy+offset,angle,1.0f);
+    draw_quad(cx-offset,cy-offset,cx+offset,cy+offset,angle,1.0f);
     //debugf("Simpilifed to quad\n");
     return;
 
@@ -276,12 +287,102 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   draw_indexed_triangles(vertices, vertex_count, indices, index_count);
 
   free(vertices);
-  free(indices);
+  free_uncached(indices);
 
 }
 
 // Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
-void draw_line(float x1, float y1, float x2, float y2, float angle, float thickness) {
+void draw_line_z(float x1, float y1, float x2, float y2, float thickness, float zDepth) {
+
+  // Check for subpixel thickness
+  if(thickness <= 0.9f){
+    thickness = 1.0f;
+  }
+
+  // Define points
+  Point start = point_new(x1, y1);
+  Point end = point_new(x2, y2);
+
+  // Calculate direction vector
+  Point direction = point_sub(&end, &start);
+  float length =  point_magnitude(&direction);
+
+  // Check for non-zero length and normalize
+  if (length != 0) {
+    point_normalize(&direction);
+  } else {
+    debugf("Line length cannot be 0");  
+    return;
+  }
+
+  // Calculate the perpendicular vector for the thickness
+  Point perp = point_new(-direction.y, direction.x); // Perpendicular to direction
+  perp = point_set_mag(&perp, thickness / 2); // Set the magnitude to half of the thickness
+
+  // Compute the points for the line
+  Point p1_left = { start.x + perp.x, start.y + perp.y };
+  Point p1_right = { start.x - perp.x, start.y - perp.y };
+  Point p2_left = { end.x + perp.x, end.y + perp.y };
+  Point p2_right = { end.x - perp.x, end.y - perp.y };
+
+  // Define vertices for two triangles to form the line with thickness
+  float v1[] = { p1_left.x, p1_left.y, zDepth};
+  float v2[] = { p1_right.x, p1_right.y, zDepth};
+  float v3[] = { p2_left.x, p2_left.y, zDepth};
+  float v4[] = { p2_right.x, p2_right.y, zDepth};
+
+  draw_strip(v1,v2,v3,v4);
+}
+
+// Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
+void draw_line(float x1, float y1, float x2, float y2, float thickness) {
+
+  // Check for subpixel thickness
+  if(thickness <= 0.9f){
+    thickness = 1.0f;
+  }
+
+  // Define points
+  Point start = point_new(x1, y1);
+  Point end = point_new(x2, y2);
+
+  // Calculate direction vector
+  Point direction = point_sub(&end, &start);
+  float length =  point_magnitude(&direction);
+
+  // Check for non-zero length and normalize
+  if (length != 0) {
+    point_normalize(&direction);
+  } else {
+    debugf("Line length cannot be 0");  
+    return;
+  }
+
+  // Calculate the perpendicular vector for the thickness
+  Point perp = point_new(-direction.y, direction.x); // Perpendicular to direction
+  perp = point_set_mag(&perp, thickness / 2); // Set the magnitude to half of the thickness
+
+  // Compute the points for the line
+  Point p1_left = { start.x + perp.x, start.y + perp.y };
+  Point p1_right = { start.x - perp.x, start.y - perp.y };
+  Point p2_left = { end.x + perp.x, end.y + perp.y };
+  Point p2_right = { end.x - perp.x, end.y - perp.y };
+
+  // Define vertices for two triangles to form the line with thickness
+  float v1[] = { p1_left.x, p1_left.y };
+  float v2[] = { p1_right.x, p1_right.y };
+  float v3[] = { p2_left.x, p2_left.y };
+  float v4[] = { p2_right.x, p2_right.y };
+
+  // Draw two triangles to form the line
+  rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
+  rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
+  triCount += 2; // Increment triangle count
+  vertCount += 4; // Increment vertex count
+}
+
+// Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
+void draw_quad(float x1, float y1, float x2, float y2, float angle, float thickness) {
 
   // Check for subpixel thickness
   if(thickness <= 0.9f){

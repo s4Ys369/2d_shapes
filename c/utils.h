@@ -54,7 +54,7 @@ extern const color_t T_GREY;
 extern const color_t DARK_RED;
 extern const color_t DARK_GREEN;
 
-// Constrain functions
+// anim-proc-anim functions
 Point constrain_distance(Point pos, Point anchor, float constraint);
 float simplify_angle(float angle);
 float rel_angle_diff(float angle, float anchor);

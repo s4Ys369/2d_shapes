@@ -46,8 +46,8 @@ Point point_sub(const Point* v1, const Point* v2) {
     return point_subtract(v1, v2);
 }
 
-float point_heading(const Point* p) {
-    return fm_atan2f(p->y, p->x);
+float point_heading(Point p) {
+    return fm_atan2f(p.y, p.x);
 }
 
 Point point_from_angle(float angle) {
@@ -149,6 +149,13 @@ void rotate_line_point(Point* p, const Point* center, float cos_angle, float sin
     float ty = p->y - center->y;
     p->x = center->x + (tx * cos_angle - ty * sin_angle);
     p->y = center->y + (tx * sin_angle + ty * cos_angle);
+}
+
+Point point_lerp(Point* p1, Point* p2, float t) {
+    Point result;
+    result.x = p1->x * (1.0f - t) + p2->x * t;
+    result.y = p1->y * (1.0f - t) + p2->y * t;
+    return result;
 }
 
 // Function to initialize a PointArray

@@ -76,6 +76,7 @@
         "utils.h": "c",
         "shapes.h": "c",
         "render.h": "c",
-        "control.h": "c"
+        "control.h": "c",
+        "rspq_constants.h": "c"
     }
 }

@@ -23,7 +23,7 @@ N64_CFLAGS += -mno-check-zero-division \
 	-ffast-math \
     -mips3 \
 
-SRC = main.c \
+SRC = snake_main.c \
       point.c \
 	  render.c \
       shapes.c \

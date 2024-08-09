@@ -1,3 +1,20 @@
+/*
+* This file includes code from the animal-proc-anim project.
+* animal-proc-anim is licensed under the MIT License.
+* See the LICENSES directory for the full text of the MIT License.
+*
+* Original code by argonaut 
+* Adapted by s4ys
+* August 2024
+*
+* Description of changes or adaptations made:
+* - Port from PDE to C
+* - Focusing on optimization for N64
+*
+*
+* Original source: https://github.com/argonautcode/animal-proc-anim/blob/main/Util.pde
+*/
+
 #include <libdragon.h>
 #include "utils.h"
 
@@ -33,7 +50,7 @@ const color_t T_GREY = (color_t){192, 192, 192, 200};
 const color_t DARK_RED = (color_t){130, 0, 0, 255};
 const color_t DARK_GREEN = (color_t){0, 100, 0, 255};
 
-// Utility function definitions
+// Start of anim-proc-anim functions //
 
 // Function to adjust a point's position to be within a certain range relative to an anchor point, constrained by a given amount
 Point constrain_distance(Point pos, Point anchor, float constraint) {
@@ -49,34 +66,37 @@ Point constrain_distance(Point pos, Point anchor, float constraint) {
 
 // Function to normalize an angle to be within the range [0,2pi]
 float simplify_angle(float angle) {
-    while (angle >= TWO_PI) {
-        angle -= TWO_PI;
-    }
-    while (angle < 0) {
-        angle += TWO_PI;
-    }
-    return angle;
+  while (angle >= TWO_PI) {
+    angle -= TWO_PI;
+  }
+  while (angle < 0) {
+    angle += TWO_PI;
+  }
+  return angle;
 }
 
 // Function to compute the relative angular difference between a given angle and an anchor angle, adjusted by pi
 float rel_angle_diff(float angle, float anchor) {
-    angle = simplify_angle(angle + M_PI - anchor);
-    anchor = M_PI;
-    return anchor - angle;
+  float diff = simplify_angle(angle - anchor);
+  return fmodf(diff + M_PI, TWO_PI) - M_PI; // Normalize within [-π, π]
 }
 
 // Function to adjust an angle to be within a certain angular range relative to an anchor angle, constrained by a given amount
 float constrain_angle(float angle, float anchor, float constraint) {
-    if (fabsf(rel_angle_diff(angle, anchor)) <= constraint) {
-        return simplify_angle(angle);
-    }
+  float diff = rel_angle_diff(angle, anchor);
 
-    if (rel_angle_diff(angle, anchor) > constraint) {
-        return simplify_angle(anchor - constraint);
-    }
+  if (fabsf(diff) <= constraint) {
+    return simplify_angle(angle);
+  }
 
+  if (diff > constraint) {
     return simplify_angle(anchor + constraint);
+  } else {
+    return simplify_angle(anchor - constraint);
+  }
 }
+
+// End of anim-proc-anim functions //
 
 // Function to apply deadzone to a joystick axis input
 const float DEADZONE = 20.0f;
@@ -125,7 +145,7 @@ void add_index(int** indices, int* index_count, int index) {
 // Function to create triangle fan indices
 int* create_triangle_fan_indices(int* indices, int segments, int* index_count) {
   *index_count = (segments + 1) * 3 - 3; // Number of indices needed
-  indices = (int*)malloc(*index_count * sizeof(int));
+  indices = (int*)malloc_uncached(*index_count * sizeof(int));
 
   int center_idx = 0;
   for (int i = 1; i < segments; ++i) {
