@@ -163,16 +163,12 @@ void draw_snake_shape(Snake* snake) {
         scaled_vertices[i] = point_scale(&center, &vertices[i], scale);
     }
 
-    // Z depths for the different shapes
-    float bodyZ = 0.8f;
-    float shadowZ = 0.6f;
-
     for (int i = 0; i < snake->spine->joints->count - 1; ++i) {
 
-        float v1S[] = { scaled_vertices[i].x, scaled_vertices[i].y, shadowZ };
-        float v2S[] = { scaled_vertices[i + 1].x, scaled_vertices[i + 1].y, shadowZ };
-        float v3S[] = { scaled_vertices[vertexCount - 1 - i].x, scaled_vertices[vertexCount - 1 - i].y, shadowZ };
-        float v4S[] = { scaled_vertices[vertexCount - 2 - i].x, scaled_vertices[vertexCount - 2 - i].y, shadowZ };
+        float v1S[] = { scaled_vertices[i].x, scaled_vertices[i].y };
+        float v2S[] = { scaled_vertices[i + 1].x, scaled_vertices[i + 1].y };
+        float v3S[] = { scaled_vertices[vertexCount - 1 - i].x, scaled_vertices[vertexCount - 1 - i].y };
+        float v4S[] = { scaled_vertices[vertexCount - 2 - i].x, scaled_vertices[vertexCount - 2 - i].y };
 
         // Draw drop shadow
         set_render_color(BLACK);
@@ -181,10 +177,10 @@ void draw_snake_shape(Snake* snake) {
 
     for (int i = 0; i < snake->spine->joints->count - 1; ++i) {
         // Draw a triangle between two points on the right edge and two points on the left edge
-        float v1[] = { vertices[i].x, vertices[i].y, bodyZ };
-        float v2[] = { vertices[i + 1].x, vertices[i + 1].y, bodyZ };
-        float v3[] = { vertices[vertexCount - 1 - i].x, vertices[vertexCount - 1 - i].y, bodyZ };
-        float v4[] = { vertices[vertexCount - 2 - i].x, vertices[vertexCount - 2 - i].y, bodyZ };
+        float v1[] = { vertices[i].x, vertices[i].y };
+        float v2[] = { vertices[i + 1].x, vertices[i + 1].y };
+        float v3[] = { vertices[vertexCount - 1 - i].x, vertices[vertexCount - 1 - i].y };
+        float v4[] = { vertices[vertexCount - 2 - i].x, vertices[vertexCount - 2 - i].y };
         
         // Draw snake body
         set_render_color(snake->color); 

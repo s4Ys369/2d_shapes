@@ -111,7 +111,7 @@ void chain_display(Chain* chain) {
         Point endJoint = chain->joints->points[i + 1];
         
         set_render_color(BLACK);
-        draw_line_z(startJoint.x, startJoint.y, endJoint.x, endJoint.y, 2.0f, 0.9f);
+        draw_line(startJoint.x, startJoint.y, endJoint.x, endJoint.y, 2.0f);
         
         // Ensure that drawing circles is safe
         if (i < chain->joints->count) {

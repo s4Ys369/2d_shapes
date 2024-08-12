@@ -18,7 +18,6 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
 void draw_fan(const PointArray* points);
 void draw_strip(float* v1, float* v2, float* v3, float* v4);
 void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod);
-void draw_line_z(float x1, float y1, float x2, float y2, float thickness, float zDepth);
 void draw_line(float x1, float y1, float x2, float y2, float thickness);
 void draw_quad(float x1, float y1, float x2, float y2, float angle, float thickness);
 void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const Point* p3, int segments, float angle, float thickness);
