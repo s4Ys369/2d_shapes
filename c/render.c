@@ -151,6 +151,68 @@ void draw_strip(float* v1, float* v2, float* v3, float* v4) {
 
 }
 
+// Function to draw a strip of triangles from an array of vertices
+void draw_strip_from_array(float* vertices, int vertexCount, float width) {
+  if (vertexCount < 2) {
+    debugf("Not enough vertices to draw a strip\n");
+    return;
+  }
+
+  // Calculate the number of quads and the total number of vertices needed
+  int quadCount = vertexCount - 1;
+  int totalVertices = quadCount * 8; // 8 floats per quad (4 vertices, 2 coords each)
+  float* stripVertices = (float*)malloc(totalVertices * sizeof(float));
+
+  if (!stripVertices) {
+    debugf("Strip vertices allocation failed\n");
+    return;
+  }
+
+  // Calculate perpendicular vectors for the width
+  for (int i = 0; i < vertexCount - 1; ++i) {
+    float dx = vertices[(i + 1) * 2] - vertices[i * 2];
+    float dy = vertices[(i + 1) * 2 + 1] - vertices[i * 2 + 1];
+    float length = sqrtf(dx * dx + dy * dy);
+    if (length == 0) {
+      continue; // Avoid division by zero for overlapping points
+    }
+    float ux = dy / length; // Unit perpendicular vector x
+    float uy = -dx / length; // Unit perpendicular vector y
+
+    // Calculate the offset for width
+    float offsetX = ux * width * 0.5f;
+    float offsetY = uy * width * 0.5f;
+
+    // Set vertices for the quad
+    int index = i * 8;
+    stripVertices[index] = vertices[i * 2] + offsetX;
+    stripVertices[index + 1] = vertices[i * 2 + 1] + offsetY;
+    stripVertices[index + 2] = vertices[i * 2] - offsetX;
+    stripVertices[index + 3] = vertices[i * 2 + 1] - offsetY;
+    stripVertices[index + 4] = vertices[(i + 1) * 2] + offsetX;
+    stripVertices[index + 5] = vertices[(i + 1) * 2 + 1] + offsetY;
+    stripVertices[index + 6] = vertices[(i + 1) * 2] - offsetX;
+    stripVertices[index + 7] = vertices[(i + 1) * 2 + 1] - offsetY;
+  }
+
+  // Draw the quads
+  for (int i = 0; i < quadCount; ++i) {
+    float v1[] = { stripVertices[i * 8], stripVertices[i * 8 + 1] };
+    float v2[] = { stripVertices[i * 8 + 2], stripVertices[i * 8 + 3] };
+    float v3[] = { stripVertices[i * 8 + 4], stripVertices[i * 8 + 5] };
+    float v4[] = { stripVertices[i * 8 + 6], stripVertices[i * 8 + 7] };
+
+    // Draw the two triangles for each quad
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    rdpq_triangle(&TRIFMT_FILL, v2, v4, v3);
+    triCount += 2;
+    vertCount += 4;
+  }
+
+  // Free the allocated memory
+  free(stripVertices);
+}
+
 // Draw a uniformed circle of any number of vertices as a triangle fan
 void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod) {
 

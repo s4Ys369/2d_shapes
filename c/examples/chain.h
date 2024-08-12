@@ -94,37 +94,42 @@ void chain_fabrik_resolve(Chain* chain, Point pos, Point anchor){
 }
 
 
-void chain_display(Chain* chain) {
+void chain_display(Chain* chain, float width) {
     if (chain == NULL || chain->joints == NULL || chain->joints->points == NULL) {
         debugf("Chain or joints are not properly initialized\n");
         return;
     }
 
-    if (chain->joints->count < 2) {
+    int jointCount = chain->joints->count;
+    if (jointCount < 2) {
         debugf("Not enough joints to display\n");
         return;
     }
 
-    // Draw lines between joints
-    for (int i = 0; i < chain->joints->count - 1; ++i) {
-        Point startJoint = chain->joints->points[i];
-        Point endJoint = chain->joints->points[i + 1];
-        
-        set_render_color(BLACK);
-        draw_line(startJoint.x, startJoint.y, endJoint.x, endJoint.y, 2.0f);
-        
-        // Ensure that drawing circles is safe
-        if (i < chain->joints->count) {
-            set_render_color(YELLOW);
-            draw_circle(chain->joints->points[i].x, chain->joints->points[i].y, 1.2f, 1.0f, 0.0f, 0.05f);
-        }
+    // Prepare vertices for the strip
+    float* vertices = (float*)malloc(jointCount * 2 * sizeof(float));
+    if (!vertices) {
+        debugf("Vertices allocation failed\n");
+        return;
     }
 
-    // Draw the last joint circle
-    if (chain->joints->count > 0) {
-        set_render_color(YELLOW);
-        draw_circle(chain->joints->points[chain->joints->count - 1].x, chain->joints->points[chain->joints->count - 1].y, 1.2f, 1.0f, 0.0f, 0.05f);
+    for (int i = 0; i < jointCount; ++i) {
+        vertices[i * 2] = chain->joints->points[i].x;
+        vertices[i * 2 + 1] = chain->joints->points[i].y;
     }
+
+    // Draw the chain as a wide strip
+    set_render_color(BLACK);
+    draw_strip_from_array(vertices, jointCount, width);
+
+    // Draw circles at each joint
+    for (int i = 0; i < jointCount; ++i) {
+        set_render_color(YELLOW);
+        draw_circle(chain->joints->points[i].x, chain->joints->points[i].y, 1.5f, 1.0f, 0.0f, 0.05f);
+    }
+
+    // Free the allocated memory
+    free(vertices);
 }
 
 #endif // CHAIN_H

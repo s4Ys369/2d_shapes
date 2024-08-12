@@ -109,7 +109,7 @@ int main() {
     snake_resolve(snake4, stickX, -stickY);
     draw_snake_shape(snake4);
 //=========== ~ CONTROLS ~ ==============//
-    if(keysDown.a)chain_display(snake1->spine);
+    if(keysDown.a)chain_display(snake1->spine, 2.0f);
 //=========== ~ UI ~ =============//
 
     if(frameCounter > 59){

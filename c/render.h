@@ -17,6 +17,7 @@ void draw_triangle(float* v1, float* v2, float* v3);
 void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
 void draw_fan(const PointArray* points);
 void draw_strip(float* v1, float* v2, float* v3, float* v4);
+void draw_strip_from_array(float* vertices, int vertexCount, float width);
 void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod);
 void draw_line(float x1, float y1, float x2, float y2, float thickness);
 void draw_quad(float x1, float y1, float x2, float y2, float angle, float thickness);
