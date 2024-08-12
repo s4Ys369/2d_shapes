@@ -61,12 +61,15 @@ void chain_resolve(Chain* chain, Point pos) {
         chain->angles[0] = point_heading(point_sub(&pos, &chain->joints->points[1]));
         chain->joints->points[0] = pos;
 
+        float precomputedLinkSize = chain->linkSize; // Assuming chain->linkSize doesn't change
+        float precomputedConstraint = chain->angleConstraint; // Assuming chain->angleConstraint doesn't change
+
         for (size_t i = 1; i < chain->joints->count; i++) {
-            // Calculate the current joint angle
+            // Use precomputed values
             float currAngle = point_heading(point_sub(&chain->joints->points[i - 1], &chain->joints->points[i]));
-            chain->angles[i] = constrain_angle(currAngle, chain->angles[i - 1], chain->angleConstraint);
+            chain->angles[i] = constrain_angle(currAngle, chain->angles[i - 1], precomputedConstraint);
             Point anglePoint = point_from_angle(chain->angles[i]);
-            Point offset = point_set_mag(&anglePoint, chain->linkSize);
+            Point offset = point_set_mag(&anglePoint, precomputedLinkSize);
             chain->joints->points[i] = point_sub(&chain->joints->points[i - 1], &offset);
         }
     } else {
@@ -113,14 +116,14 @@ void chain_display(Chain* chain) {
         // Ensure that drawing circles is safe
         if (i < chain->joints->count) {
             set_render_color(YELLOW);
-            draw_circle(chain->joints->points[i].x, chain->joints->points[i].y, 1.5f, 1.0f, 0.0f, 0.05f);
+            draw_circle(chain->joints->points[i].x, chain->joints->points[i].y, 1.2f, 1.0f, 0.0f, 0.05f);
         }
     }
 
     // Draw the last joint circle
     if (chain->joints->count > 0) {
         set_render_color(YELLOW);
-        draw_circle(chain->joints->points[chain->joints->count - 1].x, chain->joints->points[chain->joints->count - 1].y, 1.5f, 1.0f, 0.0f, 0.05f);
+        draw_circle(chain->joints->points[chain->joints->count - 1].x, chain->joints->points[chain->joints->count - 1].y, 1.2f, 1.0f, 0.0f, 0.05f);
     }
 }
 

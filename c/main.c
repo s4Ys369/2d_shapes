@@ -9,7 +9,8 @@
 
 #include "rspq_constants.h"
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
-#include "profile_print.h"
+#include "rspq_profile.h"
+static rspq_profile_data_t profile_data;
 #endif // RSPQ_PROFILE
 
 // Texture test
@@ -393,11 +394,7 @@ int main() {
 
   // Every second we profile the RSPQ
     if(frameCounter > 59){
-      for (size_t i = 0; i < RSPQ_PROFILE_SLOT_COUNT; i++) {
-        profile_data.slots[i].sample_count = 1000 + i * 100;
-        profile_data.slots[i].total_ticks = 2000000 + i * 200000;
-      }
-      debug_print_profile_data();// prints all profiler data to console, use sparingly
+      rspq_profile_dump();
       rspq_profile_reset();    
     }
 

@@ -60,6 +60,8 @@ void snake_init(Snake* snake, Point origin, int jointCount, color_t color) {
         snake->bodyWidth[i] = tempBodyWidth[i];
     }
 
+    free(tempBodyWidth);
+
     snake->color = color;
 
 }
