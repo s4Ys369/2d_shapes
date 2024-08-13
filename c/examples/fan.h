@@ -9,7 +9,7 @@ Shape* fan;
 void create_fan(){
 // `fan` has only scale, whereas `fan2` has both X and Y scales
   fan = (Shape*)malloc_uncached(sizeof(Shape));
-  fan2_init(fan, screenCenter, 20.0f, 20.0f, 5, BLUE);
+  fan2_init(fan, screenCenter, 20.0f, 20.0f, 3, BLUE);
 }
 
 void fan_draw(){
@@ -26,6 +26,9 @@ void fan_draw(){
   currLOD = get_lod(currShape);
   currShapeColor = get_fill_color(currShape);
 
+  // Start example with center selected
+  controlPoint = currPoints->count;
+
   // Update rotation then position based on joypad input
   render_rotate_point(currPoints, controlPoint, currCenter, currAngle);
   render_move_point(currPoints, controlPoint, stickX, -stickY);
@@ -35,7 +38,7 @@ void fan_draw(){
   }
 
   // Should be as easy as generate verts, set color, draw    
-  set_render_color(currShapeColor);
+  //set_render_color(currShapeColor);
   draw_rdp_fan(currPoints, currCenter);
 
   // Draw selected control point

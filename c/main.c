@@ -57,6 +57,9 @@ void setup() {
   create_fan();
   create_bezier();
 
+  // For quick fan testing
+  example = 2;
+
   
 }
 
@@ -91,8 +94,9 @@ void reset_example() {
     set_scaleX(currShape, 20.0f);
     set_scaleY(currShape, 20.0f);
     set_lod(currShape, 0.05f);
-    set_segments(currShape, 5);
-    controlPoint = 0;
+    set_segments(currShape, 3);
+    currPoints = get_points(currShape);
+    controlPoint = currPoints->count;
   } else if (currShape == curve) {
     set_center(currShape, screenCenter);
     set_scaleX(currShape, 20.0f);
@@ -365,8 +369,8 @@ int main() {
         rotationDegrees,
         currSegments,
         controlPoint+1, // Point being transformed, where the last of the current Points is the center of the fan
-        (currPoints->count+1), // Always triangles + center
-        currSegments, // Always verts - center
+        vertCount - 14, // Subtract the UX circle's verts
+        triCount - 13, // Subtract the UX circle's tris
         display_get_fps(),
         drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)

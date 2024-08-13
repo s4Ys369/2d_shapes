@@ -28,31 +28,27 @@ static int32_t float_to_s16_16(float f)
 }
 
 typedef struct rdpq_fan_s {
-    const float* cv; // Center vertex
-    const float* v1; // First vertex of the fan after the center
-    const float* pv; // Holds the previous vertex
+    float cv[2]; // Center vertex
+    float v1[2]; // First vertex of the fan after the center
+    float pv[2]; // Holds the previous vertex
     const rdpq_trifmt_t* fmt; // Triangle format
     uint32_t cmd_id; // RPDQ command ID
     bool v1Added; // Check to see any vertices have been added after rdpq_fan_begin
+    int vtxCount; // Counts number of vertices
 } rdpq_fan_t;
 
 rdpq_fan_t* state;
 
-rdpq_fan_t* rdpq_fan_init(){
+rdpq_fan_t* rdpq_fan_init() {
     state = (rdpq_fan_t*)malloc_uncached(sizeof(rdpq_fan_t));
-    state->cv = NULL;
-    state->v1 = NULL;
-    state->pv = NULL;
-    state->fmt = NULL;
-    state->cmd_id = 0;
-    state->v1Added = false;
+    memset(state, 0, sizeof(rdpq_fan_t)); // Initialize all values to 0
     return state;
 }
 
 // Function to initialize the fan drawing
 void rdpq_fan_begin(const rdpq_trifmt_t *fmt, const float *cv) {
     state = rdpq_fan_init();
-    state->cv = cv;
+    memcpy(state->cv, cv, sizeof(state->cv));
     state->v1Added = false;
     state->cmd_id = RDPQ_CMD_TRI;
     if (fmt->shade_offset >= 0) state->cmd_id |= 0x4;
@@ -63,19 +59,39 @@ void rdpq_fan_begin(const rdpq_trifmt_t *fmt, const float *cv) {
 }
 
 void rdpq_fan_add_vertex(const float* v) {
-    if (!state->v1Added) {
+    if (state->vtxCount == 0) {
         // Store the first vertex
-        state->v1 = v;
+        memcpy(state->v1, v, sizeof(state->v1));
         state->v1Added = true;
-    } else {
+        state->vtxCount++;
+        
+    } else if (state->vtxCount == 1) {
+        // Store first vertex as previous point
+        memcpy(state->pv, state->v1, sizeof(state->pv));
+        state->vtxCount++;
+    } else if (state->vtxCount >= 2) {
+
         // Draw the triangle with the center, previous vertex, and the new vertex using RDPQ_CMD_TRIANGLE_DATA
-        const float *vtx[3] = { state->cv, state->pv, v };
+        const float *vtx[3] = { v, state->cv, state->pv};
+
+        /*
+        
+        // Print vertices to debug the fan
+        for (int i = 0; i < 3; i++) {
+            const float *verts = vtx[i];
+            int16_t x = floorf(verts[state->fmt->pos_offset + 0] * 4.0f);
+            int16_t y = floorf(verts[state->fmt->pos_offset + 1] * 4.0f);
+            debugf("Vertex %d: x = %d, y = %d (Original: x = %f, y = %f)\n", i+1, x, y, verts[state->fmt->pos_offset + 0], verts[state->fmt->pos_offset + 1]);
+        }
+
+        */
 
         for (int i = 0; i < 3; i++) {
             const float *verts = vtx[i];
             // X,Y: s13.2
             int16_t x = floorf(verts[state->fmt->pos_offset + 0] * 4.0f);
             int16_t y = floorf(verts[state->fmt->pos_offset + 1] * 4.0f);
+
             int16_t z = 0;
             if (state->fmt->z_offset >= 0) {
                 z = verts[state->fmt->z_offset + 0] * 0x7FFF;
@@ -98,7 +114,7 @@ void rdpq_fan_add_vertex(const float* v) {
                 inv_w = float_to_s16_16(verts[state->fmt->tex_offset + 2]);
             }
             rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE_DATA,
-                0, 
+                16 * i, 
                 (x << 16) | (y & 0xFFFF), 
                 (z << 16), 
                 rgba, 
@@ -107,31 +123,28 @@ void rdpq_fan_add_vertex(const float* v) {
                 inv_w);
         }
 
-        rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE, 
-        0xC000 | (state->cmd_id << 8) | 
-        (state->fmt->tex_mipmaps ? (state->fmt->tex_mipmaps - 1) << 3 : 0) | 
-        (state->fmt->tex_tile & 7));
+        // Store current vertex and increment counter
+        memcpy(state->pv, v, sizeof(state->pv));
+        state->vtxCount++;
+
 
     }
 
-    // Update the previous vertex to the current one
-    state->pv = v;
-}
-
-// Function to close the fan and complete the shape
-void rdpq_fan_end() {
-    if (state->v1Added) {
-        // Close the loop by adding the first vertex as the last one
-        rdpq_fan_add_vertex(state->v1);
-    }
-
+    // Render the command to draw the triangle
     rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE, 
         0xC000 | (state->cmd_id << 8) | 
         (state->fmt->tex_mipmaps ? (state->fmt->tex_mipmaps - 1) << 3 : 0) | 
         (state->fmt->tex_tile & 7));
-    
+
+}
+
+// Function to close the fan and complete the shape
+void rdpq_fan_end() {
+
+    rdpq_fan_add_vertex(state->v1);
 
     free_uncached(state);
 }
+
 
 #endif // RDPQ_FAN_H
