@@ -59,6 +59,8 @@ void rdpq_fan_begin(const rdpq_trifmt_t *fmt, const float *cv) {
 }
 
 void rdpq_fan_add_vertex(const float* v) {
+    const int TRI_DATA_LEN = ROUND_UP((2+1+1+3)*4, 16);
+
     if (state->vtxCount == 0) {
         // Store the first vertex
         memcpy(state->v1, v, sizeof(state->v1));
@@ -75,7 +77,7 @@ void rdpq_fan_add_vertex(const float* v) {
         const float *vtx[3] = { v, state->cv, state->pv};
 
         /*
-        
+
         // Print vertices to debug the fan
         for (int i = 0; i < 3; i++) {
             const float *verts = vtx[i];
@@ -114,7 +116,7 @@ void rdpq_fan_add_vertex(const float* v) {
                 inv_w = float_to_s16_16(verts[state->fmt->tex_offset + 2]);
             }
             rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE_DATA,
-                16 * i, 
+                TRI_DATA_LEN * i, 
                 (x << 16) | (y & 0xFFFF), 
                 (z << 16), 
                 rgba, 

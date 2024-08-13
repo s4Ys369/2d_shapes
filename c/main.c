@@ -95,7 +95,7 @@ void reset_example() {
     set_scaleY(currShape, 20.0f);
     set_lod(currShape, 0.05f);
     set_segments(currShape, 3);
-    currPoints = get_points(currShape);
+    currPoints = get_points(fan);
     controlPoint = currPoints->count;
   } else if (currShape == curve) {
     set_center(currShape, screenCenter);

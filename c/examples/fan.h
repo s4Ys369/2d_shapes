@@ -26,9 +26,6 @@ void fan_draw(){
   currLOD = get_lod(currShape);
   currShapeColor = get_fill_color(currShape);
 
-  // Start example with center selected
-  controlPoint = currPoints->count;
-
   // Update rotation then position based on joypad input
   render_rotate_point(currPoints, controlPoint, currCenter, currAngle);
   render_move_point(currPoints, controlPoint, stickX, -stickY);
