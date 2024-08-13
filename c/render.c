@@ -1,4 +1,5 @@
 #include <libdragon.h>
+#include "rdpq/rdpq_fan.h"
 #include "point.h"
 #include "shapes.h"
 #include "render.h"
@@ -136,6 +137,19 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
     triCount++;
     vertCount++;
   }
+}
+
+void draw_rdp_fan(const PointArray* pa, const Point center) {
+  float cv[] = { center.x, center.y };
+
+  rdpq_fan_begin(&TRIFMT_FILL, cv);
+
+  for (size_t i = 0; i < pa->count; ++i) {
+    float vertex[] = { pa->points[i].x, pa->points[i].y };
+    rdpq_fan_add_vertex(vertex);
+  }
+
+  rdpq_fan_end();
 }
 
 // Function to draw a triangle fan from an array of points

@@ -36,7 +36,7 @@ void fan_draw(){
 
   // Should be as easy as generate verts, set color, draw    
   set_render_color(currShapeColor);
-  draw_fan(currPoints, currCenter);
+  draw_rdp_fan(currPoints, currCenter);
 
   // Draw selected control point
   if ( controlPoint < currPoints->count){
