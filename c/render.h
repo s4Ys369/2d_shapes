@@ -8,6 +8,7 @@
 
 
 void set_render_color(color_t color);
+void set_random_render_color();
 void render_move_point(PointArray* points, size_t index, float dx, float dy);
 void render_move_shape_points(PointArray* points, float dx, float dy);
 void render_rotate_point(PointArray* points, size_t index, Point center, float angle);
@@ -15,7 +16,7 @@ void render_rotate_shape_points(PointArray* points, Point center, float angle);
 void render_get_ellipse_points(PointArray* previousPoints, Point center, float rx, float ry, int segments);
 void draw_triangle(float* v1, float* v2, float* v3);
 void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
-void draw_fan(const PointArray* points);
+void draw_fan(const PointArray* pa, const Point center);
 void draw_strip(float* v1, float* v2, float* v3, float* v4);
 void draw_strip_from_array(float* vertices, int vertexCount, float width);
 void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod);

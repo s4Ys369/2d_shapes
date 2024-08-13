@@ -7,6 +7,23 @@ void set_render_color(color_t color){
   rdpq_set_prim_color(color);
 }
 
+void set_random_render_color() {
+  const color_t colors[] = {
+    RED,
+    ORANGE,
+    YELLOW,
+    GREEN,
+    BLUE,
+    INDIGO,
+    VIOLET
+  };
+    
+  int index = rand() % 7;
+    
+  // Set the render color to the selected color
+  set_render_color(colors[index]);
+}
+
 void render_move_point(PointArray* pa, size_t index, float dx, float dy) {
   if (index < pa->count) {
     Point p = point_new(dx,dy);
@@ -122,21 +139,32 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
 }
 
 // Function to draw a triangle fan from an array of points
-void draw_fan(const PointArray* pa) {
-  if (pa->count < 3){ debugf("Need at least 3 points to form a triangle"); return; }
+void draw_fan(const PointArray* pa, const Point center) {
+  if (pa->count < 2){ debugf("Need at least 3 points to form a triangle"); return; }
 
-  // First point is the center of the fan
-  Point center = pa->points[0];
+  for (size_t i = 0; i < pa->count - 1; ++i) {
+    Point p2 = pa->points[i];
+    Point p3 = pa->points[i + 1];
 
-  for (size_t i = 1; i < pa->count - 1; ++i) {
-    Point v1 = center;
-    Point v2 = pa->points[i];
-    Point v3 = pa->points[i + 1];
+    float v1[] = { center.x, center.y };
+    float v2[] = { p2.x, p2.y };
+    float v3[] = { p3.x, p3.y };
 
-    rdpq_triangle(&TRIFMT_FILL, &v1.x, &v2.x, &v3.x);
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
     triCount++;
-    vertCount++;
+    vertCount += 2;
   }
+
+  // Add a final triangle to close the loop
+  Point lastPoint = pa->points[pa->count - 1];
+  Point firstPoint = pa->points[0];
+
+  float lastV1[] = { center.x, center.y };
+  float lastV2[] = { lastPoint.x, lastPoint.y };
+  float lastV3[] = { firstPoint.x, firstPoint.y };
+
+  rdpq_triangle(&TRIFMT_FILL, lastV1, lastV2, lastV3);
+  triCount++;
 
 }
 
@@ -263,7 +291,7 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
     return;
   } else {
     // Default segments calculation for areas > 2.9f
-    int segments = (int)((area < 3.0f) ? 3.0f : area) / ((area >= 9.9f) ? 2 : 3);
+    segments = (int)((area < 3.0f) ? 3.0f : area) / ((area >= 9.9f) ? 2 : 3);
 
     // Enforce a minimum of 6 segments
     segments = segments < 6 ? 6 : segments;

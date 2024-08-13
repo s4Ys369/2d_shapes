@@ -136,12 +136,12 @@ void increase_segments(Shape *currShape) {
   if(get_segments(currShape) < 20){
     set_segments(currShape, get_segments(currShape) + 1);
   } else {
-    set_segments(currShape, 5);
+    set_segments(currShape, 3);
   }
 }
 
 void decrease_segments(Shape *currShape) {
-  if(get_segments(currShape) > 5){
+  if(get_segments(currShape) > 3){
     set_segments(currShape, get_segments(currShape) - 1);
   } else {
     set_segments(currShape, 20);
