@@ -341,7 +341,7 @@ int main() {
       );
     } else {
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 14, // sorry overscan sufferers
         "Triangle Fan\n"
         "Scale: (%.0fpx,%.0fpx)\n"
         "Rotation: %.0f\n"

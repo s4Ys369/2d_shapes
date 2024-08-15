@@ -31,12 +31,12 @@ void fan_draw(){
   render_move_point(currPoints, controlPoint, stickX, -stickY);
   if(controlPoint == currPoints->count){
     render_rotate_shape_points(currPoints, currCenter, currAngle);
-    render_move_shape_points(currPoints, stickX, -stickY);
+    resolve(currShape, stickX, stickY);
   }
 
   // Should be as easy as generate verts, set color, draw    
   set_render_color(currShapeColor);
-  draw_fan(currPoints);
+  draw_fan(currPoints, currCenter);
 
   // Draw selected control point
   if ( controlPoint < currPoints->count){

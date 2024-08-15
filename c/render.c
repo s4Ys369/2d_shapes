@@ -122,21 +122,32 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
 }
 
 // Function to draw a triangle fan from an array of points
-void draw_fan(const PointArray* pa) {
-  if (pa->count < 3){ debugf("Need at least 3 points to form a triangle"); return; }
+void draw_fan(const PointArray* pa, const Point center) {
+  if (pa->count < 2){ debugf("Need at least 3 points to form a triangle"); return; }
 
-  // First point is the center of the fan
-  Point center = pa->points[0];
+  for (size_t i = 0; i < pa->count - 1; ++i) {
+    Point p2 = pa->points[i];
+    Point p3 = pa->points[i + 1];
 
-  for (size_t i = 1; i < pa->count - 1; ++i) {
-    Point v1 = center;
-    Point v2 = pa->points[i];
-    Point v3 = pa->points[i + 1];
+    float v1[] = { center.x, center.y };
+    float v2[] = { p2.x, p2.y };
+    float v3[] = { p3.x, p3.y };
 
-    rdpq_triangle(&TRIFMT_FILL, &v1.x, &v2.x, &v3.x);
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
     triCount++;
-    vertCount++;
+    vertCount += 2;
   }
+
+  // Add a final triangle to close the loop
+  Point lastPoint = pa->points[pa->count - 1];
+  Point firstPoint = pa->points[0];
+
+  float lastV1[] = { center.x, center.y };
+  float lastV2[] = { lastPoint.x, lastPoint.y };
+  float lastV3[] = { firstPoint.x, firstPoint.y };
+
+  rdpq_triangle(&TRIFMT_FILL, lastV1, lastV2, lastV3);
+  triCount++;
 
 }
 

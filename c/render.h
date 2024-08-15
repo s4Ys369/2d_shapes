@@ -15,7 +15,7 @@ void render_rotate_shape_points(PointArray* points, Point center, float angle);
 void render_get_ellipse_points(PointArray* previousPoints, Point center, float rx, float ry, int segments);
 void draw_triangle(float* v1, float* v2, float* v3);
 void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
-void draw_fan(const PointArray* points);
+void draw_fan(const PointArray* pa, const Point center);
 void draw_strip(float* v1, float* v2, float* v3, float* v4);
 void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod);
 void draw_line_z(float x1, float y1, float x2, float y2, float thickness, float zDepth);
