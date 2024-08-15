@@ -154,51 +154,27 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
 
   //debugf("Area %.0f\n", area);
 
-  if(area <= 0.9f) {
-
+  if (area <= 0.9f) {
     // If only drawing subpixels, exit
     debugf("Do you really need subpixels?\n");
     return;
-
   } else if (area >= 1.0f && area < 2.9f) {
-
     // If only drawing ~4 pixels or less, just draw a quad to save triangles
-    draw_line(cx-offset,cy-offset,cx+offset,cy+offset,angle,1.0f);
-    //debugf("Simpilifed to quad\n");
+    draw_line(cx - offset, cy - offset, cx + offset, cy + offset, angle, 1.0f);
     return;
+  } else {
+    // Default segments calculation for areas > 2.9f
+    segments = (int)((area < 3.0f) ? 3.0f : area) / ((area >= 9.9f) ? 2 : 3);
 
-  } else  if (area >= 3.0f && area <= 4.9f) {
+    // Enforce a minimum of 6 segments
+    segments = segments < 6 ? 6 : segments;
 
-    segments = (int)(area)/2;
-    if(segments < 6){
-      segments = 6;
-    }
-    //debugf("Segments %u\n", segments);
-
-  } else  if (area > 5.0f && area <= 9.9f) {
-
-    segments = (int)(area)/3;
-  
-    if(segments < 6){
-      segments = 6;
+    // Enforce a maximum of 200 segments for high detail levels
+    if (area > 9.9f) {
+      segments = (segments > 200 || lod > 2.0f) ? 200 : segments;
     }
 
-    //debugf("Segments %u\n", segments);
-
-  } else  if (area > 9.9f) {
-
-    segments = (int)(area)/2;
-
-    if(segments < 6){
-      segments = 6;
-    }
-
-    // CHANGE: Set highest level of detail, currently 100 triangles
-    if(segments > 200 || lod > 2.0f){
-      segments = 200;
-    }
-
-    //debugf("Segments %u\n", segments);
+    // debugf("Segments %u\n", segments);
   }
 
   // Calculate angles for position
