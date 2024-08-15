@@ -54,7 +54,7 @@ extern const color_t T_GREY;
 extern const color_t DARK_RED;
 extern const color_t DARK_GREEN;
 
-// Constrain functions
+// anim-proc-anim functions
 Point constrain_distance(Point pos, Point anchor, float constraint);
 float simplify_angle(float angle);
 float rel_angle_diff(float angle, float anchor);
@@ -67,6 +67,6 @@ float apply_deadzone(float value);
 // C++ auto constructor replacements
 void add_vertex(float** vertices, int* vertex_count, float x, float y);
 void add_index(int** indices, int* index_count, int index);
-int* create_triangle_fan_indices(int segments, int* index_count);
+int* create_triangle_fan_indices(int* indices, int segments, int* index_count);
 
 #endif // UTILS_H

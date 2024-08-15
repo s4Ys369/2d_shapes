@@ -1,3 +1,20 @@
+/*
+* This file includes code from the animal-proc-anim project.
+* animal-proc-anim is licensed under the MIT License.
+* See the LICENSES directory for the full text of the MIT License.
+*
+* Original code by argonaut 
+* Adapted by s4ys
+* August 2024
+*
+* Description of changes or adaptations made:
+* - Port from PDE to C
+* - Focusing on optimization for N64
+*
+*
+* Original source: https://github.com/argonautcode/animal-proc-anim/blob/main/Util.pde
+*/
+
 #include <libdragon.h>
 #include "utils.h"
 
@@ -33,120 +50,117 @@ const color_t T_GREY = (color_t){192, 192, 192, 200};
 const color_t DARK_RED = (color_t){130, 0, 0, 255};
 const color_t DARK_GREEN = (color_t){0, 100, 0, 255};
 
-// Utility function definitions
+// Start of anim-proc-anim functions //
 
 // Function to adjust a point's position to be within a certain range relative to an anchor point, constrained by a given amount
 Point constrain_distance(Point pos, Point anchor, float constraint) {
-    // Calculate the vector from anchor to pos
-    Point direction = point_sub(&pos, &anchor);
+  // Calculate the vector from anchor to pos
+  Point direction = point_sub(&pos, &anchor);
     
-    // Set the magnitude of this vector to the constraint distance
-    Point constrainedDirection = point_set_mag(&direction, constraint);
+  // Set the magnitude of this vector to the constraint distance
+  Point constrainedDirection = point_set_mag(&direction, constraint);
     
-    // Sum the anchor point and the constrained direction vector
-    return point_sum(&anchor, &constrainedDirection);
+  // Sum the anchor point and the constrained direction vector
+  return point_sum(&anchor, &constrainedDirection);
 }
 
 // Function to normalize an angle to be within the range [0,2pi]
 float simplify_angle(float angle) {
-    while (angle >= TWO_PI) {
-        angle -= TWO_PI;
-    }
-    while (angle < 0) {
-        angle += TWO_PI;
-    }
-    return angle;
+  // Modulus operation to bring the angle within [0, 2*pi)
+  angle = fmodf(angle, TWO_PI);
+    
+  // If the angle is negative, bring it to the positive equivalent within [0, 2*pi)
+  angle += (angle < 0) ? TWO_PI : 0;
+    
+  return angle;
 }
 
 // Function to compute the relative angular difference between a given angle and an anchor angle, adjusted by pi
 float rel_angle_diff(float angle, float anchor) {
-    angle = simplify_angle(angle + M_PI - anchor);
-    anchor = M_PI;
-    return anchor - angle;
+  float diff = simplify_angle(angle - anchor);
+  return fmodf(diff + M_PI, TWO_PI) - M_PI; // Normalize within [-π, π]
 }
 
 // Function to adjust an angle to be within a certain angular range relative to an anchor angle, constrained by a given amount
 float constrain_angle(float angle, float anchor, float constraint) {
-    if (fabsf(rel_angle_diff(angle, anchor)) <= constraint) {
-        return simplify_angle(angle);
-    }
+  float diff = rel_angle_diff(angle, anchor);
 
-    if (rel_angle_diff(angle, anchor) > constraint) {
-        return simplify_angle(anchor - constraint);
-    }
+  // Calculate the clamped difference using mathematical operations
+  float clampedDiff = fminf(fmaxf(diff, -constraint), constraint);
 
-    return simplify_angle(anchor + constraint);
+  // Compute the constrained angle based on the clamped difference
+  float constrainedAngle = anchor + clampedDiff;
+
+  // Normalize the constrained angle within [0, 2*pi)
+  return simplify_angle(constrainedAngle);
 }
+
+// End of anim-proc-anim functions //
 
 // Function to apply deadzone to a joystick axis input
 const float DEADZONE = 20.0f;
 float apply_deadzone(float value) {
-  if (fabsf(value) < DEADZONE) {
-    return 0.0f; // Within deadzone, treat as zero
-  } else {
-    // Remap the value outside the deadzone
-    if (value > 0) {
-        return (value - DEADZONE) / (1.0f - DEADZONE);
-    } else {
-      return (value + DEADZONE) / (1.0f - DEADZONE);
-    }
-  }
+
+  float sign = copysignf(1.0f, value);
+
+  float absValue = fabsf(value);
+
+  float remappedValue = fmaxf(absValue - DEADZONE, 0.0f) / (1.0f - DEADZONE);
+
+  return sign * remappedValue * (absValue >= DEADZONE);
 }
 
 /* C++ replacements , possibly move to render? */
 
-// emplace_back for a float array
+// Function to add a vertex to a vertex array
 void add_vertex(float** vertices, int* vertex_count, float x, float y) {
-    // Increase the size of the vertices array
-    *vertices = (float*)realloc(*vertices, sizeof(float) * (*vertex_count + 2));
-    if (*vertices == NULL) {
-        debugf("Vertex reallocation failed\n");
-        return;
-    }
-
-    // Add the new vertex
-    (*vertices)[*vertex_count] = x;
-    (*vertices)[*vertex_count + 1] = y;
-    *vertex_count += 2;
+  float* new_vertices = (float*)realloc(*vertices, sizeof(float) * (*vertex_count + 2));
+  if (new_vertices == NULL) {
+    debugf("Vertex reallocation failed\n");
+    return;
+  }
+  *vertices = new_vertices;
+  (*vertices)[*vertex_count] = x;
+  (*vertices)[*vertex_count + 1] = y;
+  *vertex_count += 2;
 }
 
-// emplace_back for a int array
+// Function to add an index to the index array
 void add_index(int** indices, int* index_count, int index) {
-    // Increase the size of the indices array
-    *indices = (int*)realloc(*indices, sizeof(int) * (*index_count + 1));
-    if (*indices == NULL) {
-        debugf("Index reallocation failed\n");
-        return;
-    }
+  int new_size = *index_count + 1;
+  int* new_indices = (int*)realloc(*indices, sizeof(int) * new_size);
+  if (new_indices == NULL) {
+    debugf("Index reallocation failed\n");
+    return;
+  }
+  *indices = new_indices;
 
-    // Add the new index
-    (*indices)[*index_count] = index;
-    *index_count += 1;
+  (*indices)[*index_count] = index;
+  *index_count = new_size;
 }
 
-// Function to create indices for a triangle fan
-int* create_triangle_fan_indices(int segments, int* index_count) {
-    if (segments < 1) {
-        segments = 1;
-    }
+// Function to create triangle fan indices
+int* create_triangle_fan_indices(int* indices, int segments, int* index_count) {
+  *index_count = (segments + 1) * 3 - 3; // Number of indices needed
+  indices = (int*)malloc_uncached(*index_count * sizeof(int));
 
-    // Initialize index array
-    int* indices = NULL;
-    *index_count = segments * 3; // Each triangle uses 3 indices
+  int center_idx = 0;
+  for (int i = 1; i < segments; ++i) {
+    indices[(i - 1) * 3] = center_idx;
+    indices[(i - 1) * 3 + 1] = i;
+    indices[(i - 1) * 3 + 2] = i + 1;
+  }
+  // Last triangle to close the fan
+  indices[(segments - 1) * 3] = center_idx;
+  indices[(segments - 1) * 3 + 1] = segments;
+  indices[(segments - 1) * 3 + 2] = 1;
 
-    // Add indices for the triangle fan
-    for (int i = 1; i <= segments; ++i) {
-        add_index(&indices, index_count, 0); // Center vertex
-        add_index(&indices, index_count, i); // Current perimeter vertex
-        add_index(&indices, index_count, (i % segments) + 1); // Next perimeter vertex
-    }
-
-    return indices;
+  return indices;
 }
 
 /* Bernstein polynominal for bezier curve
 void get_bezier_points(PointArray* curvePoints, int segments){
-    for (int i = 0; i <= segments; ++i) {
+  for (int i = 0; i <= segments; ++i) {
     float t = i * step;
     float u = 1 - t;
     float tt = t * t;

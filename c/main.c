@@ -1,57 +1,17 @@
 #include <libdragon.h>
-#include "point.h"
-#include "render.h"
-#include "shapes.h"
+
+#include "examples/globals.h"
+#include "examples/control.h"
+#include "examples/bezier.h"
+#include "examples/circle.h"
+#include "examples/quad.h"
+#include "examples/fan.h"
 
 #include "rspq_constants.h"
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
-#include "profile_print.h"
+#include "rspq_profile.h"
+static rspq_profile_data_t profile_data;
 #endif // RSPQ_PROFILE
-
-// Global variables
-surface_t disp;
-int example, triCount, vertCount, currVerts, currTris, fillTris;
-float stickX, stickY;
-uint64_t bootTime, firstTime, secondTime, dispTime, jpTime, drawTime;
-uint32_t screenWidth, screenHeight, frameCounter;
-
-// Shape pointers
-ShapeInterface* currShapeIO;
-Shape* currShape;
-Circle* circle;
-Strip* quad;
-Fan* fan;
-
-Strip* curve;
-Strip* curve2;
-Point pointA;
-Point pointB;
-Point pointC;
-Point pointD;
-Point resetA;
-Point resetB;
-Point resetC;
-Point resetD;
-int resetCurve = 0;
-size_t controlPoint = 0;
-PointArray* bezierPoints;
-PointArray* basePoints;
-int bezierMode = 0;
-
-
-// Local variables
-Point currCenter;
-Point screenCenter;
-float currRadiusX = 0;
-float currRadiusY = 0;
-float currThickness = 0;
-int currSegments = 0;
-float currLOD = 0.0f;
-float currAngle = 0.0f;
-PointArray* currPoints; 
-
-color_t currShapeColor;
-
 
 // Texture test
 static sprite_t *test_sprite;
@@ -86,81 +46,18 @@ void setup() {
 
   rdpq_text_register_font(FONT_BUILTIN_DEBUG_MONO, rdpq_font_load_builtin(FONT_BUILTIN_DEBUG_MONO));
 
-
-  // Initialize acummulators
-  bootTime= 0;
-  firstTime = 0;
-  secondTime = 0;
-  jpTime = 0;
-  dispTime = 0;
-  drawTime = 0;
-  frameCounter = 0;
-  example = 0;
-  triCount = 0;
-  vertCount = 0;
-  currTris = 0;
-  fillTris = 0;
-  currVerts = 0;
-  stickX = 0.0f;
-  stickY = 0.0f;
-
-  // Allocate the shape interface
-  currShapeIO = (ShapeInterface*)malloc(sizeof(ShapeInterface));
-  // then the shape
-  currShape = (Shape*)malloc(sizeof(Shape));
-
-  // then attach the shape to the interface
-  init_shape_interface(currShapeIO, currShape);
-  currShapeIO->init(currShape);
-  currShapeColor = currShapeIO->get_fill_color(currShape);
-  currCenter = currShapeIO->get_center(currShape);
-
-  // Circle
-  circle = (Circle*)malloc(sizeof(Circle));
-  circle_init(circle, screenCenter, 20.0f, 0.05f, RED);
-
-  // Quad as a strip
-  quad = (Strip*)malloc(sizeof(Strip));
-  strip_init(quad, screenCenter, 20.0f, 20.0f, 0.01f, 1, DARK_GREEN);
-
-  // Fan has only scale, whereas fan2 has both X and Y scales
-  fan = (Fan*)malloc(sizeof(Fan));
-  fan2_init(fan, screenCenter, 20.0f, 20.0f, 5, BLUE);
-
-  // Curves are treat as strips
-  curve = (Strip*)malloc(sizeof(Strip));
-  strip_init(curve, screenCenter, 20.0f, 20.0f, 2.0f, 10, RED);
-  curve2 = (Strip*)malloc(sizeof(Strip));
-  strip_init(curve2, screenCenter, 20.0f, 20.0f, 2.0f, 10, GREEN);
-
   // Texture test
   test_sprite = sprite_load("rom:/n64brew.sprite");
   rdpq_sprite_upload(TILE0, test_sprite, NULL);
 
+  accums_init();
+  shape_control_init();
+  create_circle();
+  create_quad();
+  create_fan();
+  create_bezier();
 
-  // Set up control points for Bezier examples
-  pointA = point_new( ((float)(screenWidth/2) - 40.0f), ((float)(screenHeight/2) + 20.0f) );
-  pointB = point_new( ((float)(screenWidth/2) - 20.0f), ((float)(screenHeight/2) - 40.0f) );
-  pointC = point_new( ((float)(screenWidth/2) + 20.0f), ((float)(screenHeight/2) - 40.0f) );
-  pointD = point_new( ((float)(screenWidth/2) + 40.0f), ((float)(screenHeight/2) + 20.0f) );
-
-  resetA = pointA;
-  resetB = pointB;
-  resetC = pointC;
-  resetD = pointD;
-
-  Point points[] = {pointA, pointB, pointC, pointD, screenCenter};
-  size_t numPoints = sizeof(points) / sizeof(points[0]);
-
-  bezierPoints = (PointArray*)malloc(sizeof(PointArray));
-  init_point_array_from_points(bezierPoints, points, numPoints);
-
-  Point resets[] = {resetA, resetB, resetC, resetD, screenCenter};
-  size_t numResets = sizeof(points) / sizeof(points[0]);
-
-  basePoints = (PointArray*)malloc(sizeof(PointArray));
-  init_point_array_from_points(basePoints, resets, numResets);
-
+  
 }
 
 // Main rendering function
@@ -168,195 +65,16 @@ void draw() {
   
   switch (example) {
     case 0:
-      init_shape_interface(currShapeIO, circle);
-      currShape = currShapeIO->shape;
-      currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-      currShapeIO->set_points(circle,currPoints);
-      currShapeIO->resolve(circle, stickX, stickY);
-      currCenter = currShapeIO->get_center(circle);
-      currRadiusX = currShapeIO->get_scaleX(circle);
-      currRadiusY = currShapeIO->get_scaleY(circle);
-      currSegments = currShapeIO->get_segments(circle);
-      currLOD = currShapeIO->get_lod(circle);
-      if(currLOD < ((float)currSegments*0.01f)){
-        currLOD = ((float)currSegments*0.01f);
-      }
-      currShapeColor = currShapeIO->get_fill_color(circle);
-      set_render_color(currShapeColor);
-      draw_circle(currCenter.x, currCenter.y, currRadiusX, currRadiusY, currAngle, currLOD);
-      PointArray* currPointsUpdated = currShapeIO->get_points(circle);
-      if (currPoints != currPointsUpdated) {
-        free(currPoints->points);
-        free(currPoints);
-      }
-      currPoints = currPointsUpdated;
+      circle_draw();
       break;
     case 1:
-      currShape = (Shape*)quad;
-      resolve(currShape, stickX, stickY);
-      currCenter = get_center(currShape);
-      currRadiusX = get_scaleX(currShape);
-      currRadiusY = get_scaleY(currShape);
-      currThickness = get_thickness(currShape);
-      currShapeColor = get_fill_color(currShape);
-      set_segments(currShape, 1); // Always initializes as at least 3 for ellipse, but a quad has only one segment per draw
-      currSegments = get_segments(currShape);
-      set_render_color(currShapeColor);
-      draw_line(
-        currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
-        currCenter.x+currRadiusX, currCenter.y+currRadiusY, 
-        currAngle,
-        currThickness
-      );
+      quad_draw();
       break;
     case 2:
-      currShape = (Shape*)fan;
-      currCenter = get_center(currShape);
-      currRadiusX = get_scaleX(currShape);
-      currRadiusY = get_scaleY(currShape);
-      currSegments = get_segments(currShape);
-      currLOD = get_lod(currShape);
-
-      currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-      set_points(currShape, currPoints);
-      currPointsUpdated = get_points(currShape);
-      if (currPoints != currPointsUpdated) {
-        free(currPoints->points);
-        free(currPoints);
-      }
-      currPoints = currPointsUpdated;
-
-      render_move_point(currPoints, controlPoint, stickX, -stickY);
-      render_rotate_point(currPoints, controlPoint, currCenter, currAngle);
-      if(controlPoint == currPoints->count){
-        render_move_shape_points(currPoints, stickX, -stickY);
-        render_rotate_shape_points(currPoints, currCenter, currAngle);
-      }
-      
-      set_render_color(currShapeColor);
-      draw_fan(currPoints);
-
-      if ( controlPoint < currPoints->count){
-        set_render_color(BLACK);
-        draw_circle(currPoints->points[controlPoint].x, currPoints->points[controlPoint].y, 3.0f, 3.0f, 0.0f, 0.05f);
-        set_render_color(YELLOW);
-        draw_circle(currPoints->points[controlPoint].x, currPoints->points[controlPoint].y, 2.0f, 2.0f, 0.0f, 0.05f);
-      } else {
-        set_render_color(BLACK);
-        draw_circle(currCenter.x, currCenter.y, 3.0f, 3.0f, 0.0f, 0.05f);
-        set_render_color(YELLOW);
-        draw_circle(currCenter.x, currCenter.y, 2.0f, 2.0f, 0.0f, 0.05f);
-      }
-
-      currPointsUpdated = get_points(currShape);
-      if (currPoints != currPointsUpdated) {
-        free(currPoints->points);
-        free(currPoints);
-      }
-      currPoints = currPointsUpdated;
+      fan_draw();
       break;
     case 3:
-      currShape = (Shape*)curve;
-      currCenter = get_center(currShape);
-      currRadiusX = get_scaleX(currShape);
-      currRadiusY = get_scaleY(currShape);
-      currSegments = get_segments(currShape);
-      if(currSegments > 100){
-        currSegments = 5;
-      }
-      currThickness = get_thickness(currShape);
-      if(currThickness > 10.0f){
-        currThickness = 1.0f;
-      }
-
-      if(resetCurve == 0){
-        render_move_point(bezierPoints, controlPoint, stickX*0.05f, -stickY*0.05f);
-        render_rotate_point(bezierPoints, controlPoint, currCenter, currAngle*0.05f);
-      } else {
-        bezierPoints = basePoints;
-      }
-
-      if(controlPoint == bezierPoints->count - 1){
-        resolve(curve, stickX,stickY);
-        render_move_shape_points(bezierPoints, stickX*0.05f, -stickY*0.05f);
-        render_rotate_shape_points(bezierPoints, currCenter, currAngle*0.05f);
-      }
-
-      //debugf("Total bezierPoints %d\n", bezierPoints.size());
-
-      // Limit movement to inside screen with offset here because shape.resolve(x,y) doesn't apply to curves
-      float offset = 5.0f;
-      float width = display_get_width();
-      float height = display_get_height();
-
-      for( size_t i = 0; i < bezierPoints->count - 1; ++i) {
-        if (bezierPoints->points[controlPoint].x < offset) {
-          bezierPoints->points[controlPoint].x = offset;
-        }
-        if (bezierPoints->points[controlPoint].x > width - offset) {
-          bezierPoints->points[controlPoint].x = width - offset;
-        }
-        if (bezierPoints->points[controlPoint].y < offset) {
-          bezierPoints->points[controlPoint].y = offset;
-        }
-        if (bezierPoints->points[controlPoint].y > height - offset) {
-          bezierPoints->points[controlPoint].y = height - offset;
-        }
-      }
-
-      currShapeColor = get_fill_color(currShape);
-      set_render_color(currShapeColor);
-      draw_bezier_curve(
-        &pointA, &pointB, &pointC, &pointD,
-        currSegments,
-        currAngle,
-        currThickness
-      );
-
-      set_render_color(BLUE);
-      draw_filled_beziers(
-        &bezierPoints->points[0], &bezierPoints->points[1], &bezierPoints->points[2], &bezierPoints->points[3],
-        &basePoints->points[0], &basePoints->points[1], &basePoints->points[2], &basePoints->points[3],
-        currSegments
-      );
-
-      set_render_color(get_fill_color(curve2));
-      draw_bezier_curve(
-        &resetA, &resetB, &resetC, &resetD,
-        currSegments,
-        0.0f,
-        currThickness
-      );
-
-
-      set_render_color(BLACK);
-      for( size_t i = 0; i < bezierPoints->count; ++i){
-        draw_circle(bezierPoints->points[i].x, bezierPoints->points[i].y, 2.0f, 2.0f, currAngle, 0.01f);
-      }
-      set_render_color(YELLOW);
-      draw_circle(bezierPoints->points[controlPoint].x, bezierPoints->points[controlPoint].y, 1.5f, 1.5f, currAngle, 0.01f);
-
-      set_points(currShape, bezierPoints);
-      currPoints = get_points(currShape);
-
-      
-      pointA = currPoints->points[0];
-      pointB = currPoints->points[1];
-      pointC = currPoints->points[2];
-      pointD = currPoints->points[3];
-      
-
-      //debugf(
-      //  "A (%.2f,%.2f)\n"
-      //  "B (%.2f,%.2f)\n"
-      //  "C (%.2f,%.2f)\n"
-      //  "D (%.2f,%.2f)\n", 
-      //  pointA.x, pointA.y,
-      //  pointB.x, pointB.y,
-      //  pointC.x, pointC.y,
-      //  pointD.x, pointD.y
-      //);
-      
+      bezier_draw();
       break;
   }
 
@@ -364,30 +82,25 @@ void draw() {
 
 void reset_example() {
   currAngle = 0;
-  if(currShape == (Shape*)circle){
-    currShapeIO->set_center(currShape, screenCenter);
-    currShapeIO->set_scaleX(currShape, 20.0f);
-    currShapeIO->set_lod(currShape, 0.05f);
-  } else if(currShape == (Shape*)fan){
+  if(currShape == circle){
+    set_center(currShape, screenCenter);
+    set_scaleX(currShape, 20.0f);
+    set_lod(currShape, 0.05f);
+  } else if(currShape == fan){
     set_center(currShape, screenCenter);
     set_scaleX(currShape, 20.0f);
     set_scaleY(currShape, 20.0f);
     set_lod(currShape, 0.05f);
     set_segments(currShape, 5);
     controlPoint = 0;
-  } else if (currShape == (Shape*)curve) {
+  } else if (currShape == curve) {
     set_center(currShape, screenCenter);
     set_scaleX(currShape, 20.0f);
     set_scaleY(currShape, 20.0f);
     set_thickness(currShape, 2.0f);
     set_segments(currShape, 10);
     controlPoint = 0;
-    free(currPoints);
     resetCurve = 1;
-    pointA = resetA;
-    pointB = resetB;
-    pointC = resetC;
-    pointD = resetD;
   } else { // Quad
     set_center(currShape, screenCenter);
     set_scaleX(currShape, 20.0f);
@@ -397,138 +110,9 @@ void reset_example() {
 }
 
 void switch_example() {
+  reset_example();
   if (++example > 3) {
     example = 0;
-    reset_example();
-  }
-}
-
-void increase_scale(Shape *currShape) {
-  if(currShapeIO->get_scaleX(currShape) < screenWidth && currShapeIO->get_scaleY(currShape) < screenHeight){
-    currShapeIO->set_scaleX(currShape, currShapeIO->get_scaleX(currShape) + 1.0f);
-    currShapeIO->set_scaleY(currShape, currShapeIO->get_scaleY(currShape) + 1.0f);
-  } else {
-    currShapeIO->set_scaleX(currShape, 1.0f);
-    currShapeIO->set_scaleY(currShape, 1.0f);
-  }
-}
-
-void decrease_scale(Shape *currShape) {
-  if(currShapeIO->get_scaleX(currShape) > 1.0f && currShapeIO->get_scaleY(currShape) > 1.0f){
-    currShapeIO->set_scaleX(currShape, currShapeIO->get_scaleX(currShape) - 1.0f);
-    currShapeIO->set_scaleY(currShape, currShapeIO->get_scaleY(currShape) - 1.0f);
-  } else {
-    currShapeIO->set_scaleX(currShape, screenWidth);
-    currShapeIO->set_scaleY(currShape, screenHeight);
-  }
-}
-
-void increase_x_scale(Shape *currShape) {
-  float currentScaleX = currShapeIO->get_scaleX(currShape);
-  if(currentScaleX < screenWidth){
-    currShapeIO->set_scaleX(currShape, currentScaleX + 0.1f);
-  } else {
-    currShapeIO->set_scaleX(currShape, 1.0f);
-  }
-}
-
-void decrease_x_scale(Shape *currShape) {
-  float currentScaleX = currShapeIO->get_scaleX(currShape);
-  if(currentScaleX > 1.1f){
-    currShapeIO->set_scaleX(currShape, currentScaleX - 0.1f);
-  } else {
-    currShapeIO->set_scaleX(currShape, screenWidth);
-  }
-}
-
-void increase_y_scale(Shape *currShape) {
-  float currentScaleY = currShapeIO->get_scaleY(currShape);
-  if(currentScaleY < screenHeight){
-    currShapeIO->set_scaleY(currShape, currentScaleY + 0.1f);
-  } else {
-    currShapeIO->set_scaleY(currShape, 1.0f);
-  }
-}
-
-void decrease_y_scale(Shape *currShape) {
-  float currentScaleY = currShapeIO->get_scaleY(currShape);
-  if(currentScaleY > 1.1f){
-    currShapeIO->set_scaleX(currShape, currentScaleY - 0.1f);
-  } else {
-    currShapeIO->set_scaleX(currShape, screenHeight);
-  }
-}
-
-void increase_lod(Shape *currShape) {
-  if(currShapeIO->get_lod(currShape) < 2.0f){
-    currShapeIO->set_lod(currShape, currShapeIO->get_lod(currShape) + 0.05f);
-  } else {
-    currShapeIO->set_lod(currShape, 0.05f);
-  }
-}
-
-void decrease_lod(Shape *currShape) {
-  if(currShapeIO->get_lod(currShape) >= 0.1f){
-    currShapeIO->set_lod(currShape, currShapeIO->get_lod(currShape) - 0.05f);
-  } else {
-    set_lod(currShape, 2.0f);
-  }
-}
-
-void increase_thickness(Shape *currShape) {
-  if(currShapeIO->get_thickness(currShape) < 10.0f){
-    currShapeIO->set_thickness(currShape, currShapeIO->get_thickness(currShape) + 0.01f);
-  } else {
-    currShapeIO->set_thickness(currShape, 0.01f);
-  }
-}
-
-void decrease_thickness(Shape *currShape) {
-  if(currShapeIO->get_thickness(currShape) >= 0.02f){
-    currShapeIO->set_thickness(currShape, currShapeIO->get_thickness(currShape) - 0.01f);
-  } else {
-    currShapeIO->set_thickness(currShape, 10.0f);
-  }
-}
-
-void increase_segments(Shape *currShape) {
-  if(currShape != (Shape*)circle){
-    if(currShapeIO->get_segments(currShape) < 20){
-      currShapeIO->set_segments(currShape, get_segments(currShape) + 1);
-    } else {
-      currShapeIO->set_segments(currShape, 5);
-    }
-  } else {
-    increase_lod(currShape);
-  }
-}
-
-void decrease_segments(Shape *currShape) {
-  if(currShape != (Shape*)circle){
-    if(currShapeIO->get_segments(currShape) > 5){
-      currShapeIO->set_segments(currShape, currShapeIO->get_segments(currShape) - 1);
-    } else {
-      currShapeIO->set_segments(currShape, 20);
-    }
-  } else {
-    decrease_lod(currShape);
-  }
-}
-
-void cycle_control_point() {
-  if(currShape != (Shape*)curve){
-    currPoints = currShapeIO->get_points(currShape);
-    if(controlPoint < currPoints->count){
-      controlPoint++;
-    } else {
-      controlPoint = 0;
-    }
-  } else {
-    if(controlPoint < bezierPoints->count - 1){
-      controlPoint++;
-    } else {
-      controlPoint = 0;
-    }
   }
 }
 
@@ -579,40 +163,6 @@ int main() {
 
     draw();
 
-    // Shape update
-    currCenter = get_center(currShape);
-    currRadiusX = get_scaleX(currShape);
-    currSegments = get_segments(currShape);
-    currLOD = get_lod(currShape);
-
-    if(currShape == (Shape*)circle){
-      set_segments(currShape, triCount); // For the ellipse (ie fan) segments and triangles are essentially the same
-      if(currLOD < ((float)currSegments*0.01f)){
-        currLOD = ((float)currSegments*0.01f);
-      }
-    } else if(currShape == (Shape*)quad){
-      set_segments(currShape, triCount/2); // 1 segment per 2 triangles for the quad
-      currRadiusY = get_scaleY(currShape);
-      currThickness = get_thickness(currShape);
-    } else if(currShape == (Shape*)curve){
-      if(currSegments > 30){
-        currSegments = 5;
-      }
-    } else {
-      if(currLOD < ((float)currSegments*0.01f)){
-        currLOD = ((float)currSegments*0.01f);
-      }
-    }
-
-    currShapeColor = get_fill_color(currShape);
-    currPoints = render_get_ellipse_points(currCenter, currRadiusX, currRadiusY, currSegments);
-    PointArray* currPointsUpdated = get_points(currShape);
-    if (currPoints != currPointsUpdated) {
-      free(currPoints->points);
-      free(currPoints);
-    }
-    currPoints = currPointsUpdated;
-
 //=========== ~ CONTROLS ~ ==============//
 
     // Add rotation
@@ -630,7 +180,7 @@ int main() {
       currAngle -= rotation;
     }
 
-    if(currShape != (Shape*)curve) {
+    if(currShape != curve) {
       // Adjust single scale shape
       if(keysDown.r){
         increase_scale(currShape);
@@ -647,14 +197,14 @@ int main() {
       }
     }
 
-    if(currShape == (Shape*)circle){
+    if(currShape == circle){
       if(keysDown.c_left){
         increase_lod(currShape);
       }
       if(keysDown.c_down){
         decrease_lod(currShape);
       }
-    } else if(currShape != (Shape*)curve) {
+    } else if(currShape != curve) {
       // Fine tunes individual scales
       if(keysDown.c_up){
         increase_y_scale(currShape);
@@ -670,7 +220,7 @@ int main() {
       }
 
       // Specific to fan example
-      if(currShape == (Shape*)fan) {
+      if(currShape == fan) {
         if(keys.d_up){
           increase_segments(currShape);
         }
@@ -687,10 +237,10 @@ int main() {
 
     } else {
       if(keys.c_down){
-        cycle_control_point();
+        cycle_bezier_points();
       }
       if(keys.c_left){
-        cycle_control_point();
+        cycle_bezier_points();
       }
     }
 
@@ -704,7 +254,7 @@ int main() {
 
 
 
-    if(currShape == (Shape*)circle){
+    if(currShape == circle){
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, 
         "Circle\n\n"
@@ -731,17 +281,17 @@ int main() {
         drawTime ,
         (ramUsed / 1024), (get_memory_size() / 1024)
       );
-    } else if (currShape ==(Shape*) quad) {
+    } else if (currShape == quad) {
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
-        "Quad\n\n"
+        "Quad\n"
         "Width: %.0fpx\n"
         "Height: %.0fpx\n"
         "Rotation: %.0f\n"
         "Verts: %u\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
-        "CPU Time: %lldms\n\n"
+        "CPU Time: %lldms\n"
         "Stick to Move\n"
         "R/Z: Scale\n"
         "CL/CR: X Scale\n"
@@ -759,7 +309,7 @@ int main() {
         drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)
       );
-    } else if (currShape == (Shape*)curve) {
+    } else if (currShape == curve) {
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
         "Bezier Curves with Fill\n\n"
@@ -791,7 +341,7 @@ int main() {
       );
     } else {
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 14, // sorry overscan sufferers
         "Triangle Fan\n"
         "Scale: (%.0fpx,%.0fpx)\n"
         "Rotation: %.0f\n"
@@ -844,11 +394,7 @@ int main() {
 
   // Every second we profile the RSPQ
     if(frameCounter > 59){
-      for (size_t i = 0; i < RSPQ_PROFILE_SLOT_COUNT; i++) {
-        profile_data.slots[i].sample_count = 1000 + i * 100;
-        profile_data.slots[i].total_ticks = 2000000 + i * 200000;
-      }
-      debug_print_profile_data();// prints all profiler data to console, use sparingly
+      rspq_profile_dump();
       rspq_profile_reset();    
     }
 
@@ -858,14 +404,14 @@ int main() {
   }
 
   //=========== ~ CLEAN UP ~ =============//
-  free(currShape);
-  free(circle);
-  free(quad);
-  free(fan);
-  free(curve);
-  free(curve2);
-  free_point_array(bezierPoints);
-  free_point_array(basePoints);
-  free_point_array(currPoints);
+  free_uncached(currShape);
+  free_uncached(circle);
+  free_uncached(quad);
+  free_uncached(fan);
+  free_uncached(curve);
+  free_uncached(curve2);
+  free_uncached(bezierPoints);
+  free_uncached(basePoints);
+  free_uncached(currPoints);
   return 0;
 }

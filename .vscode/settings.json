@@ -73,6 +73,10 @@
         "variant": "cpp",
         "point.h": "c",
         "malloc.h": "c",
-        "utils.h": "c"
+        "utils.h": "c",
+        "shapes.h": "c",
+        "render.h": "c",
+        "control.h": "c",
+        "rspq_constants.h": "c"
     }
 }

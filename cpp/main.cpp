@@ -6,7 +6,8 @@
 
 #include "rspq_constants.h"
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
-#include "profile_print.h"
+#include "rspq_profile.h"
+static rspq_profile_data_t profile_data;
 #endif // RSPQ_PROFILE
 
 // Global variables
@@ -199,11 +200,11 @@ void fan_update(){
   renderer.rotate_point(currPoints, controlPoint, currCenter, currAngle);
   if(controlPoint == currPoints.size()){
     renderer.move_shape_points(currPoints, stickX, -stickY);
-    renderer.rotate_shape_points(currPoints, currCenter, currAngle);
+    fan->resolve(stickX, stickY);
   }
       
   renderer.set_fill_color(currShapeColor);
-  renderer.draw_fan(currPoints);
+  renderer.draw_fan(currPoints, currCenter);
 
   if ( controlPoint < currPoints.size()){
     renderer.set_fill_color(BLACK);
@@ -477,7 +478,7 @@ void increase_segments(Shape *currShape) {
     if(currShape->get_segments() < 20){
       currShape->set_segments(currShape->get_segments() + 1);
     } else {
-      currShape->set_segments(5);
+      currShape->set_segments(3);
     }
   } else {
     increase_lod(currShape);
@@ -486,7 +487,7 @@ void increase_segments(Shape *currShape) {
 
 void decrease_segments(Shape *currShape) {
   if(currShape != ellipse){
-    if(currShape->get_segments() > 5){
+    if(currShape->get_segments() > 3){
       currShape->set_segments(currShape->get_segments() - 1);
     } else {
       currShape->set_segments(20);
@@ -768,7 +769,7 @@ int main() {
       );
     } else {
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 14, // sorry overscan sufferers
         "Triangle Fan\n"
         "Scale: (%.0fpx,%.0fpx)\n"
         "Rotation: %.0f\n"
@@ -821,11 +822,7 @@ int main() {
 
   // Every second we profile the RSPQ
     if(frameCounter > 59){
-      for (size_t i = 0; i < RSPQ_PROFILE_SLOT_COUNT; i++) {
-        profile_data.slots[i].sample_count = 1000 + i * 100;
-        profile_data.slots[i].total_ticks = 2000000 + i * 200000;
-      }
-      debug_print_profile_data();// prints all profiler data to console, use sparingly
+      rspq_profile_dump();
       rspq_profile_reset();    
     }
 
