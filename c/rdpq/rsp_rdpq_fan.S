@@ -4,26 +4,43 @@
 
     .func RDPQCmd_FanAddVertex
 RDPQCmd_FanAddVertex:
-    # Store the fourth vertex in memory
-    sw a1, %lo(RDPQ_TRI_DATA3) + 0(a0)  # X/Y of Vertex 4
-    sw a2, %lo(RDPQ_TRI_DATA3) + 4(a0)  # Z of Vertex 4
-    sw a3, %lo(RDPQ_TRI_DATA3) + 8(a0)  # RGBA of Vertex 4
 
-    lw t0, CMD_ADDR(16, 28)
-    lw t1, CMD_ADDR(20, 28)
-    lw t2, CMD_ADDR(24, 28)
+    # Copy the last vertex (RDPQ_TRI_DATA0) to the new slot (RDPQ_TRI_DATA1)
 
-    sw t0, %lo(RDPQ_TRI_DATA3) + 12(a0)  # S/T of Vertex 4
-    sw t1, %lo(RDPQ_TRI_DATA3) + 16(a0)  # W of Vertex 4
-    sw t2, %lo(RDPQ_TRI_DATA3) + 20(a0)  # INV_W of Vertex 4
+    lw t0, %lo(RDPQ_TRI_DATA0) + 0(a0)  # Copy X/Y of Last Vertex
+    lw t1, %lo(RDPQ_TRI_DATA0) + 4(a0)  # Copy Z of Last Vertex
+    lw t2, %lo(RDPQ_TRI_DATA0) + 8(a0)  # Copy RGBA of Last Vertex
+    sw t0, %lo(RDPQ_TRI_DATA1) + 0(a0)
+    sw t1, %lo(RDPQ_TRI_DATA1) + 4(a0)
+    sw t2, %lo(RDPQ_TRI_DATA1) + 8(a0)
 
-    # Load the data for vertices 1, 3, and 4 from memory
-    lw a1, %lo(RDPQ_TRI_DATA0) + 0(a0)   # X/Y of Vertex 1
-    lw a2, %lo(RDPQ_TRI_DATA2) + 0(a0)   # X/Y of Vertex 3
-    lw a3, %lo(RDPQ_TRI_DATA3) + 0(a0)   # X/Y of Vertex 4
+    lw t0, %lo(RDPQ_TRI_DATA0) + 12(a0) # Copy S/T of Last Vertex
+    lw t1, %lo(RDPQ_TRI_DATA0) + 16(a0) # Copy W of Last Vertex
+    lw t2, %lo(RDPQ_TRI_DATA0) + 20(a0) # Copy INV_W of Last Vertex
+    sw t0, %lo(RDPQ_TRI_DATA1) + 12(a0)
+    sw t1, %lo(RDPQ_TRI_DATA1) + 16(a0)
+    sw t2, %lo(RDPQ_TRI_DATA1) + 20(a0)
+
+    # Store the next vertex in memory
+    sw a1, %lo(RDPQ_TRI_DATA0) + 0(a0)  # X/Y of Next Vertex
+    sw a2, %lo(RDPQ_TRI_DATA0) + 4(a0)  # Z of Next Vertex
+    sw a3, %lo(RDPQ_TRI_DATA0) + 8(a0)  # RGBA of Next Vertex
+
+    lw t0, CMD_ADDR(16, 28) # S/T Address
+    lw t1, CMD_ADDR(20, 28) # W Address
+    lw t2, CMD_ADDR(24, 28) # INV_W Address
+
+    sw t0, %lo(RDPQ_TRI_DATA0) + 12(a0)  # S/T of Next Vertex
+    sw t1, %lo(RDPQ_TRI_DATA0) + 16(a0)  # W of Next Vertex
+    sw t2, %lo(RDPQ_TRI_DATA0) + 20(a0)  # INV_W of Next Vertex
+
+    # Load the data for the current and previous vertices to draw the new triangle
+    lw a1, %lo(RDPQ_TRI_DATA0) + 0(a0)   # X/Y of Next Vertex
+    lw a2, %lo(RDPQ_TRI_DATA1) + 0(a0)   # X/Y of Last Vertex
 
     # Send this new triangle to RDP
     jal RDPQ_Triangle_Send_Async
 
+    # Jump back to RA register
     jr ra
     .endfunc

@@ -3,8 +3,8 @@
 
 #include <libdragon.h>
 
-// I noticed cmd_id 0x20 through 0x23 aren't used. Intentional?
-#define RDPQ_CMD_FAN_ADD 0x20
+// I noticed cmd_id 0x20 through 0x23 aren't used, but trying to use those IDs won't fit
+// #define RDPQ_CMD_FAN_ADD 0x??
 
 /** @brief Round n up to the next multiple of d */
 #define ROUND_UP(n, d) ({ \
@@ -61,56 +61,55 @@ void rdpq_fan_begin(const rdpq_trifmt_t *fmt, const float *cv) {
 
 }
 
-void rdpq_fan_add_vertex(const rdpq_trifmt_t *fmt, const float* vtx) {
-    uint32_t cmd_id = RDPQ_CMD_FAN_ADD;
-    if (fmt->shade_offset >= 0) cmd_id |= 0x4;
-    if (fmt->tex_offset >= 0)   cmd_id |= 0x2;
-    if (fmt->z_offset >= 0)     cmd_id |= 0x1;
+// This is the higher level call for RSP code
+void rdpq_fan_add_new_triangle(const float* vtx) {
+    uint32_t cmd_id = RDPQ_CMD_TRIANGLE;
+    if (state->fmt->shade_offset >= 0) cmd_id |= 0x4;
+    if (state->fmt->tex_offset >= 0)   cmd_id |= 0x2;
+    if (state->fmt->z_offset >= 0)     cmd_id |= 0x1;
 
-    const int TRI_DATA_LEN = ROUND_UP((2+1+1+3)*4, 16);
-
-    const float *v = vtx;
+    const int TRI_DATA_LEN __attribute__((unused)) = ROUND_UP((2+1+1+3)*4, 16);
 
     // X,Y: s13.2
-    int16_t x = floorf(v[fmt->pos_offset+0] * 4.0f);
-    int16_t y = floorf(v[fmt->pos_offset+1] * 4.0f);
-        
-    int16_t z = 0;
-    if (fmt->z_offset >= 0) {
-        z = v[fmt->z_offset+0] * 0x7FFF;
-    } 
+    int16_t x __attribute__((unused)) = floorf(vtx[state->fmt->pos_offset + 0] * 4.0f);
+    int16_t y __attribute__((unused)) = floorf(vtx[state->fmt->pos_offset + 1] * 4.0f);
 
-    int32_t rgba = 0;
-    if (fmt->shade_offset >= 0) {
-        const float *v_shade = v;
-        uint32_t r = v_shade[fmt->shade_offset+0] * 255.0;
-        uint32_t g = v_shade[fmt->shade_offset+1] * 255.0;
-        uint32_t b = v_shade[fmt->shade_offset+2] * 255.0;
-        uint32_t a = v_shade[fmt->shade_offset+3] * 255.0;
+    int16_t z __attribute__((unused)) = 0;
+    if (state->fmt->z_offset >= 0) {
+        z = vtx[state->fmt->z_offset + 0] * 0x7FFF;
+    }
+    int32_t rgba __attribute__((unused)) = 0;
+    if (state->fmt->shade_offset >= 0) {
+        const float *v_shade = vtx;
+        uint32_t r = v_shade[state->fmt->shade_offset + 0] * 255.0;
+        uint32_t g = v_shade[state->fmt->shade_offset + 1] * 255.0;
+        uint32_t b = v_shade[state->fmt->shade_offset + 2] * 255.0;
+        uint32_t a = v_shade[state->fmt->shade_offset + 3] * 255.0;
         rgba = (r << 24) | (g << 16) | (b << 8) | a;
     }
-
-    int16_t s=0, t=0;
-    int32_t w=0, inv_w=0;
-    if (fmt->tex_offset >= 0) {
-        s     = v[fmt->tex_offset+0] * 32.0f;
-        t     = v[fmt->tex_offset+1] * 32.0f;
-        w     = float_to_s16_16(1.0f / v[fmt->tex_offset+2]);
-        inv_w = float_to_s16_16(       v[fmt->tex_offset+2]);
+    int16_t s __attribute__((unused)) = 0, t __attribute__((unused)) = 0;
+    int32_t w __attribute__((unused)) = 0, inv_w __attribute__((unused)) = 0;
+    if (state->fmt->tex_offset >= 0) {
+        s = vtx[state->fmt->tex_offset + 0] * 32.0f;
+        t = vtx[state->fmt->tex_offset + 1] * 32.0f;
+        w = float_to_s16_16(1.0f / vtx[state->fmt->tex_offset + 2]);
+        inv_w = float_to_s16_16(vtx[state->fmt->tex_offset + 2]);
     }
 
-    rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE_DATA,
-        TRI_DATA_LEN * 2, 
+    /*
+    rspq_write(RDPQ_OVL_ID, RDPQ_CMD_FAN_ADD,
+        0, 
         (x << 16) | (y & 0xFFFF), 
         (z << 16), 
         rgba, 
         (s << 16) | (t & 0xFFFF), 
         w,
         inv_w);
+    */
 
 }
 
-void rdpq_fan_add_new_triangle(const float* v) {
+void rdpq_fan_add_vertex(const float* v) {
     const int TRI_DATA_LEN = ROUND_UP((2+1+1+3)*4, 16);
 
     if (state->vtxCount == 0) {
@@ -123,10 +122,10 @@ void rdpq_fan_add_new_triangle(const float* v) {
         // Store first vertex as previous point
         memcpy(state->pv, state->v1, sizeof(state->pv));
         state->vtxCount++;
-    } else if (state->vtxCount == 2) {
+    } else if (state->vtxCount >= 2) {
 
         // Draw the triangle with the center, previous vertex, and the new vertex using RDPQ_CMD_TRIANGLE_DATA
-        const float *vtx[3] = { v, state->cv, state->pv};
+        const float *vtx[3] = { v, state->pv, state->cv};
 
         /*
 
@@ -177,29 +176,32 @@ void rdpq_fan_add_new_triangle(const float* v) {
                 inv_w);
         }
 
-        // Store current vertex and increment counter
-        memcpy(state->pv, v, sizeof(state->pv));
-        state->vtxCount++;
-
         // Render the command to draw the triangle
         rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE, 
             0xC000 | (state->cmd_id << 8) | 
             (state->fmt->tex_mipmaps ? (state->fmt->tex_mipmaps - 1) << 3 : 0) | 
             (state->fmt->tex_tile & 7));
 
+        // Store current vertex and increment counter
+        memcpy(state->pv, v, sizeof(state->pv));
+        state->vtxCount++;
 
-    } else {
 
-        // The idea is to hopefully just write the new vertex to RDPQ_TRI_DATA3
-        rdpq_fan_add_vertex(state->fmt, v);
     }
+    /*
+    else {
+
+        // The idea is to hopefully just write the new vertex to RDPQ_TRI_DATA0
+        rdpq_fan_add_new_triangle(v);
+    }
+    */
 
 }
 
 // Function to close the fan and complete the shape
 void rdpq_fan_end() {
 
-    rdpq_fan_add_new_triangle(state->v1);
+    rdpq_fan_add_vertex(state->v1);
 
     free_uncached(state);
 }
