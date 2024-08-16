@@ -184,10 +184,12 @@ void rdpq_fan_begin(const rdpq_trifmt_t *fmt, const float *cv) {
     state->cmd_id = RDPQ_CMD_TRI;
     state->v1Added = false;
 
+    rdpq_add_tri_data(cv, TRI_DATA_CENTER);
+
 }
 
 // This is the higher level CPU implementation of the RSP code
-void rdpq_fan_add_new_triangle(const float* pv, const float* v) {
+void rdpq_fan_add_new_triangle_cpu(const float* pv, const float* v) {
     // Move last position and store current vertex
     rdpq_add_tri_data(v, TRI_DATA_NEXT);
     rdpq_add_tri_data(pv, TRI_DATA_LAST);
@@ -205,13 +207,12 @@ void rdpq_fan_add_vertex(const float* v) {
         memcpy(state->v1, v, sizeof(float) * 4);
         state->v1Added = true;
         state->vtxCount++;
+        rdpq_add_tri_data(state->v1, TRI_DATA_LAST);
         
     } else if (state->vtxCount >= 1) {
 
         if (state->vtxCount == 1){
             rdpq_add_tri_data(v, TRI_DATA_NEXT);
-            rdpq_add_tri_data(state->v1, TRI_DATA_LAST);
-            rdpq_add_tri_data(state->cv, TRI_DATA_CENTER);
 
             // Store first vertex as previous point
             memcpy(state->pv, state->v1, sizeof(float) * 4);
@@ -220,7 +221,7 @@ void rdpq_fan_add_vertex(const float* v) {
 
 
         // Move last position and store current vertex
-        rdpq_fan_add_new_triangle(state->pv, v);
+        rdpq_fan_add_new_triangle_cpu(state->pv, v);
 
         // Until i get the overlay working, i have to call this for each new vertex
         rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE, 
