@@ -140,6 +140,7 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
 }
 
 void draw_rdp_fan(const PointArray* pa, const Point center) {
+
   float cv[] = { center.x, center.y };
   float v1[] = { pa->points[0].x, pa->points[0].y };
 
@@ -159,6 +160,7 @@ void draw_rdp_fan(const PointArray* pa, const Point center) {
   rdpq_fan_end();
   triCount++;
   vertCount++;
+
 }
 
 // Function to draw a triangle fan from an array of points

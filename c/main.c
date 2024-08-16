@@ -16,6 +16,9 @@ static rspq_profile_data_t profile_data;
 // Texture test
 static sprite_t *test_sprite;
 
+DEFINE_RSP_UCODE(rsp_rdpq_fan);
+uint32_t fan_add_id;
+
 int ramUsed = 0;
 
 // Initialize libdragon
@@ -36,6 +39,9 @@ void setup() {
 #ifdef DEBUG_RDPQ
   rdpq_debug_start();
 #endif // DEBUG_RDPQ
+
+  rspq_init();
+  fan_add_id = rspq_overlay_register(&rsp_rdpq_fan);
 
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
   profile_data.frame_count = 0;
@@ -60,6 +66,7 @@ void setup() {
   // For quick fan testing
   example = 2;
 
+  
   
 }
 
