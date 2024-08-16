@@ -150,13 +150,13 @@ void draw_rdp_fan(const PointArray* pa, const Point center) {
 
   for (size_t i = 0; i < pa->count; ++i) {
     float vertex[] = { pa->points[i].x, pa->points[i].y };
-    set_random_render_color();
+    //set_random_render_color();
     rdpq_fan_add_vertex(vertex);
     triCount++;
     vertCount++;
   }
 
-  set_random_render_color();
+  //set_random_render_color();
   rdpq_fan_end();
   triCount++;
   vertCount++;
