@@ -40,6 +40,11 @@ void setup() {
   rdpq_debug_start();
 #endif // DEBUG_RDPQ
 
+  rspq_init();
+  void* ovlState __attribute__((unused)) = UncachedAddr(rspq_overlay_get_state(&rsp_rdpq_fan));
+  //memset(ovlState, 0, 0xA7C); // Size of common code hasn't been matched: text 2068 | 0x814, data 616 | 0x268, total 2684 | 0xA7C
+  fan_add_id = rspq_overlay_register(&rsp_rdpq_fan);
+
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
   profile_data.frame_count = 0;
   rspq_profile_start();

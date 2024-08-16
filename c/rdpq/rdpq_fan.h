@@ -71,7 +71,7 @@ void rdpq_fan_begin(const rdpq_trifmt_t *fmt, const float *cv) {
 
 }
 
-// This is the higher level call for RSP code
+// This is the higher level CPU implementation of the RSP code
 void rdpq_fan_add_new_triangle(const float* vtx) {
 
     const int TRI_DATA_LEN = ROUND_UP((2+1+1+3)*4, 16);
@@ -107,7 +107,7 @@ void rdpq_fan_add_new_triangle(const float* vtx) {
     if (state->fmt->tex_offset >= 0) {
         s = vertsNew[state->fmt->tex_offset + 0] * 32.0f;
         t = vertsNew[state->fmt->tex_offset + 1] * 32.0f;
-        w = float_to_s16_16(1.0f / vtx[state->fmt->tex_offset + 2]);
+        w = float_to_s16_16(1.0f / vertsNew[state->fmt->tex_offset + 2]);
         inv_w = float_to_s16_16(vertsNew[state->fmt->tex_offset + 2]);
     }
 
@@ -121,6 +121,53 @@ void rdpq_fan_add_new_triangle(const float* vtx) {
         w,
         inv_w);
     }
+}
+
+// This is the higher level call for RSP code
+void rdpq_fan_add_new(const float* vtx) {
+
+    // Follow the normal steps for getting the vertex data
+    uint32_t cmd_id = RDPQ_CMD_TRIANGLE;
+    if (state->fmt->shade_offset >= 0) cmd_id |= 0x4;
+    if (state->fmt->tex_offset >= 0)   cmd_id |= 0x2;
+    if (state->fmt->z_offset >= 0)     cmd_id |= 0x1;
+
+
+    int16_t x = floorf(vtx[state->fmt->pos_offset + 0] * 4.0f);
+    int16_t y = floorf(vtx[state->fmt->pos_offset + 1] * 4.0f);
+
+    int16_t z = 0;
+    if (state->fmt->z_offset >= 0) {
+        z = vtx[state->fmt->z_offset + 0] * 0x7FFF;
+    }
+    int32_t rgba = 0;
+    if (state->fmt->shade_offset >= 0) {
+        const float *v_shade = vtx;
+        uint32_t r = v_shade[state->fmt->shade_offset + 0] * 255.0;
+        uint32_t g = v_shade[state->fmt->shade_offset + 1] * 255.0;
+        uint32_t b = v_shade[state->fmt->shade_offset + 2] * 255.0;
+        uint32_t a = v_shade[state->fmt->shade_offset + 3] * 255.0;
+        rgba = (r << 24) | (g << 16) | (b << 8) | a;
+    }
+    int16_t s = 0, t = 0;
+    int32_t w = 0, inv_w = 0;
+    if (state->fmt->tex_offset >= 0) {
+        s = vtx[state->fmt->tex_offset + 0] * 32.0f;
+        t = vtx[state->fmt->tex_offset + 1] * 32.0f;
+        w = float_to_s16_16(1.0f / vtx[state->fmt->tex_offset + 2]);
+        inv_w = float_to_s16_16(vtx[state->fmt->tex_offset + 2]);
+    }
+
+    // Write vertex and send tri async using overlay cmd
+    rspq_write(fan_add_id, RDPQ_CMD_FAN_ADD,
+        0, 
+        (x << 16) | (y & 0xFFFF), 
+        (z << 16), 
+        rgba, 
+        (s << 16) | (t & 0xFFFF), 
+        w,
+        inv_w);
+
 }
 
 // This is the higher level call to handle constructing the fan
