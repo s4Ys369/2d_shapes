@@ -8,7 +8,7 @@
 
 
 // Define whether to use RDPQ Validate
-//#define DEBUG_RDPQ
+#define DEBUG_RDPQ
 
 // Math constants
 #ifndef M_PI

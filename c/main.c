@@ -40,9 +40,6 @@ void setup() {
   rdpq_debug_start();
 #endif // DEBUG_RDPQ
 
-  rspq_init();
-  fan_add_id = rspq_overlay_register(&rsp_rdpq_fan);
-
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
   profile_data.frame_count = 0;
   rspq_profile_start();

@@ -15,11 +15,11 @@
     .data
 
 RSPQ_BeginOverlayHeader
-    RSPQ_DefineCommand RDPQCmd_FanAddVertex,         28
+    RSPQ_DefineCommand RDPQCmd_FanAddVertex,         28 # Use size of RDPQCmd_TriangleData?
 RSPQ_EndOverlayHeader
 
 RSPQ_BeginSavedState
-
+    .align 4
 RSPQ_EndSavedState
 
     .text
@@ -70,6 +70,7 @@ RDPQCmd_FanAddVertex:
     sw t2, 20(RDPQ_TRI_DATA0)  # INV_W of Next Vertex
 
     # Load the data for the current and previous vertices to draw the new triangle
+    li v0, 2   # disable culling
     lw a1, 0(RDPQ_TRI_DATA0)   # X/Y of Next Vertex
     lw a2, 0(RDPQ_TRI_DATA1)   # X/Y of Last Vertex
 
