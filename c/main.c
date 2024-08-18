@@ -145,6 +145,7 @@ int main() {
     rdpq_sync_pipe();
     rdpq_set_mode_standard();
     rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+    rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
 
     dispTime = get_ticks_ms() - firstTime; // set display time
     secondTime = get_ticks_ms();

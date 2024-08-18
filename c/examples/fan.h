@@ -9,7 +9,7 @@ Shape* fan;
 void create_fan(){
 // `fan` has only scale, whereas `fan2` has both X and Y scales
   fan = (Shape*)malloc_uncached(sizeof(Shape));
-  fan2_init(fan, screenCenter, 20.0f, 20.0f, 3, BLUE);
+  fan2_init(fan, screenCenter, 20.0f, 20.0f, 3, T_BLUE);
 }
 
 void fan_draw(){
