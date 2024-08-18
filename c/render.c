@@ -1,5 +1,6 @@
 #include <libdragon.h>
 #include "rdpq/rdpq_fan.h"
+#include "rdpq/rdpq_strip.h"
 #include "point.h"
 #include "shapes.h"
 #include "render.h"
@@ -204,6 +205,16 @@ void draw_strip(float* v1, float* v2, float* v3, float* v4) {
 
 }
 
+// Function to draw a triangle fan from an array of points
+void draw_rdp_strip(float* v1, float* v2, float* v3, float* v4) {
+  rdpq_strip_begin(&TRIFMT_FILL, v1, v2, v3);
+  rdpq_strip_add_segment(v4);
+  rdpq_strip_destroy();
+  triCount += 2;
+  vertCount += 4;
+
+}
+
 // Function to draw a strip of triangles from an array of vertices
 void draw_strip_from_array(float* vertices, int vertexCount, float width) {
   if (vertexCount < 2) {
@@ -256,10 +267,7 @@ void draw_strip_from_array(float* vertices, int vertexCount, float width) {
     float v4[] = { stripVertices[i * 8 + 6], stripVertices[i * 8 + 7] };
 
     // Draw the two triangles for each quad
-    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
-    rdpq_triangle(&TRIFMT_FILL, v2, v4, v3);
-    triCount += 2;
-    vertCount += 4;
+    draw_rdp_strip(v1,v2,v3,v4);
   }
 
   // Free the allocated memory
@@ -480,7 +488,7 @@ void draw_quad(float x1, float y1, float x2, float y2, float angle, float thickn
   float v4[] = { p2_right.x, p2_right.y };
 
   // Draw two triangles to form the line
-  draw_strip(v1,v2,v3,v4);
+  draw_rdp_strip(v1,v2,v3,v4);
 }
 
 

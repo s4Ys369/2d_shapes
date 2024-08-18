@@ -2,34 +2,7 @@
 #define RDPQ_FAN_H
 
 #include <libdragon.h>
-
-// ====~ Required functions from RDPQ - start ~==== //
-
-/** @brief Round n up to the next multiple of d */
-#define ROUND_UP(n, d) ({ \
-	typeof(n) _n = n; typeof(d) _d = d; \
-	(((_n) + (_d) - 1) / (_d) * (_d)); \
-})
-
-/** @brief Converts a float to a s16.16 fixed point number */
-static int32_t float_to_s16_16(float f)
-{
-    // Currently the float must be clamped to this range because
-    // otherwise the trunc.w.s instruction can potentially trigger
-    // an unimplemented operation exception due to integer overflow.
-    // TODO: maybe handle the exception? Clamp the value in the exception handler?
-    if (f >= 32768.f) {
-        return 0x7FFFFFFF;
-    }
-
-    if (f < -32768.f) {
-        return 0x80000000;
-    }
-
-    return floor(f * 65536.f);
-}
-
-// ====~ Required functions from RDPQ - end ~==== //
+#include "rdpq_common.h"
 
 // ============~ Fan Overlay - start ~=========== //
 
@@ -39,12 +12,6 @@ extern uint32_t fan_add_id;
 // ============~ Fan Overlay - end ~============ //
 
 // ================~ Fan API ~================== //
-
-typedef enum {
-    TRI_DATA_NEXT,
-    TRI_DATA_LAST,
-    TRI_DATA_CENTER
-} TRI_DATA_SLOT;
 
 typedef struct rdpq_fan_s {
     float cv[8]; // Center vertex
@@ -105,59 +72,6 @@ void rdpq_fan_add_new(const rdpq_trifmt_t *fmt, const float* vtx) {
 
 }
 
-// This is the higher level call to add to TRI_DATA
-void rdpq_add_tri_data(const float* vtx, int triDataSlot) {
-
-    if (!vtx) {
-        debugf("rdpq_add_tri_data: Invalid arguments\n");
-        return;
-    }
-
-    const int TRI_DATA_LEN = ROUND_UP((2+1+1+3)*4, 16);
-
-    // Follow the normal steps for getting the vertex data
-    if (state->fmt->shade_offset >= 0) state->cmd_id |= 0x4;
-    if (state->fmt->tex_offset >= 0)   state->cmd_id |= 0x2;
-    if (state->fmt->z_offset >= 0)     state->cmd_id |= 0x1;
-
-
-    int16_t x = floorf(vtx[state->fmt->pos_offset + 0] * 4.0f);
-    int16_t y = floorf(vtx[state->fmt->pos_offset + 1] * 4.0f);
-
-    int16_t z = 0;
-    if (state->fmt->z_offset >= 0) {
-        z = vtx[state->fmt->z_offset + 0] * 0x7FFF;
-    }
-    int32_t rgba = 0;
-    if (state->fmt->shade_offset >= 0) {
-        const float *v_shade = vtx;
-        uint32_t r = v_shade[state->fmt->shade_offset + 0] * 255.0;
-        uint32_t g = v_shade[state->fmt->shade_offset + 1] * 255.0;
-        uint32_t b = v_shade[state->fmt->shade_offset + 2] * 255.0;
-        uint32_t a = v_shade[state->fmt->shade_offset + 3] * 255.0;
-        rgba = (r << 24) | (g << 16) | (b << 8) | a;
-    }
-    int16_t s = 0, t = 0;
-    int32_t w = 0, inv_w = 0;
-    if (state->fmt->tex_offset >= 0) {
-        s = vtx[state->fmt->tex_offset + 0] * 32.0f;
-        t = vtx[state->fmt->tex_offset + 1] * 32.0f;
-        w = float_to_s16_16(1.0f / vtx[state->fmt->tex_offset + 2]);
-        inv_w = float_to_s16_16(vtx[state->fmt->tex_offset + 2]);
-    }
-
-    // Write vertex one at a time
-    rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE_DATA,
-        TRI_DATA_LEN * triDataSlot, 
-        (x << 16) | (y & 0xFFFF), 
-        (z << 16), 
-        rgba, 
-        (s << 16) | (t & 0xFFFF), 
-        w,
-        inv_w);
-
-}
-
 rdpq_fan_t* rdpq_fan_init() {
     state = (rdpq_fan_t*)malloc_uncached(sizeof(rdpq_fan_t));
     memset(state, 0, sizeof(rdpq_fan_t)); // Initialize all values to 0
@@ -184,15 +98,15 @@ void rdpq_fan_begin(const rdpq_trifmt_t *fmt, const float *cv) {
     state->cmd_id = RDPQ_CMD_TRI;
     state->v1Added = false;
 
-    rdpq_add_tri_data(cv, TRI_DATA_CENTER);
+    rdpq_add_tri_data(fmt, cv, TRI_DATA_CENTER);
 
 }
 
 // This is the higher level CPU implementation of the RSP code
 void rdpq_fan_add_new_triangle_cpu(const float* pv, const float* v) {
     // Move last position and store current vertex
-    rdpq_add_tri_data(v, TRI_DATA_NEXT);
-    rdpq_add_tri_data(pv, TRI_DATA_LAST);
+    rdpq_add_tri_data(state->fmt, v, TRI_DATA_NEXT);
+    rdpq_add_tri_data(state->fmt, pv, TRI_DATA_LAST);
 
     // Store current vertex and increment counter
     memcpy(state->pv, v, sizeof(float) * 8);
@@ -207,12 +121,12 @@ void rdpq_fan_add_vertex(const float* v) {
         memcpy(state->v1, v, sizeof(float) * 8);
         state->v1Added = true;
         state->vtxCount++;
-        rdpq_add_tri_data(state->v1, TRI_DATA_LAST);
+        rdpq_add_tri_data(state->fmt, state->v1, TRI_DATA_LAST);
         
     } else if (state->vtxCount >= 1) {
 
         if (state->vtxCount == 1){
-            rdpq_add_tri_data(v, TRI_DATA_NEXT);
+            rdpq_add_tri_data(state->fmt, v, TRI_DATA_NEXT);
 
 
             // Store first vertex as previous point
@@ -235,13 +149,17 @@ void rdpq_fan_add_vertex(const float* v) {
 
 }
 
+void rdpq_fan_destroy(){
+    free_uncached(state);
+    state = NULL;
+}
+
 // Function to close the fan and complete the shape
 void rdpq_fan_end() {
 
     rdpq_fan_add_vertex(state->v1);
-
-    free_uncached(state);
-    state = NULL;
+    rdpq_fan_destroy();
+    
 }
 
 

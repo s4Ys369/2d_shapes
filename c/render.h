@@ -18,6 +18,7 @@ void draw_triangle(float* v1, float* v2, float* v3);
 void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
 void draw_rdp_fan(const PointArray* pa, const Point center);
 void draw_fan(const PointArray* pa, const Point center);
+void draw_rdp_strip(float* v1, float* v2, float* v3, float* v4);
 void draw_strip(float* v1, float* v2, float* v3, float* v4);
 void draw_strip_from_array(float* vertices, int vertexCount, float width);
 void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod);

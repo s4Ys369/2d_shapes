@@ -172,7 +172,7 @@ void draw_snake_shape(Snake* snake) {
 
         // Draw drop shadow
         set_render_color(BLACK);
-        draw_strip(v1S,v2S,v3S,v4S); 
+        draw_rdp_strip(v1S,v2S,v3S,v4S); 
     }
 
     for (int i = 0; i < snake->spine->joints->count - 1; ++i) {
@@ -184,7 +184,7 @@ void draw_snake_shape(Snake* snake) {
         
         // Draw snake body
         set_render_color(snake->color); 
-        draw_strip(v1,v2,v3,v4);     
+        draw_rdp_strip(v1,v2,v3,v4);     
         
     }
 
