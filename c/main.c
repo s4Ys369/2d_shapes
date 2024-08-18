@@ -16,8 +16,8 @@ static rspq_profile_data_t profile_data;
 // Texture test
 static sprite_t *test_sprite;
 
-DEFINE_RSP_UCODE(rsp_rdpq_fan);
-uint32_t fan_add_id;
+//DEFINE_RSP_UCODE(rsp_rdpq_fan);
+//uint32_t fan_add_id;
 
 int ramUsed = 0;
 
@@ -40,10 +40,10 @@ void setup() {
   rdpq_debug_start();
 #endif // DEBUG_RDPQ
 
-  rspq_init();
-  void* ovlState __attribute__((unused)) = UncachedAddr(rspq_overlay_get_state(&rsp_rdpq_fan));
-  //memset(ovlState, 0, 0xA7C); // Size of common code hasn't been matched: text 2068 | 0x814, data 616 | 0x268, total 2684 | 0xA7C
-  fan_add_id = rspq_overlay_register(&rsp_rdpq_fan);
+  //rspq_init();
+  //void* ovlState  = UncachedAddr(rspq_overlay_get_state(&rsp_rdpq_fan));
+  //memset(ovlState, 0, 0x10); // One vertex is 0x7, so doubled and aligned to 4
+  //fan_add_id = rspq_overlay_register(&rsp_rdpq_fan);
 
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
   profile_data.frame_count = 0;

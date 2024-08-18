@@ -47,9 +47,9 @@ typedef enum {
 } TRI_DATA_SLOT;
 
 typedef struct rdpq_fan_s {
-    float cv[4]; // Center vertex
-    float v1[4]; // First vertex of the fan after the center
-    float pv[4]; // Holds the previous vertex
+    float cv[8]; // Center vertex
+    float v1[8]; // First vertex of the fan after the center
+    float pv[8]; // Holds the previous vertex
     const rdpq_trifmt_t* fmt; // Triangle format
     uint32_t cmd_id; // RPDQ command ID
     bool v1Added; // Check to see any vertices have been added after rdpq_fan_begin
@@ -178,7 +178,7 @@ void rdpq_fan_begin(const rdpq_trifmt_t *fmt, const float *cv) {
         return;
     }
 
-    memcpy(state->cv, cv, sizeof(float) * 4);
+    memcpy(state->cv, cv, sizeof(float) * 8);
 
     state->fmt = fmt;
     state->cmd_id = RDPQ_CMD_TRI;
@@ -195,7 +195,7 @@ void rdpq_fan_add_new_triangle_cpu(const float* pv, const float* v) {
     rdpq_add_tri_data(pv, TRI_DATA_LAST);
 
     // Store current vertex and increment counter
-    memcpy(state->pv, v, sizeof(float) * 4);
+    memcpy(state->pv, v, sizeof(float) * 8);
     state->vtxCount++;
 }
 
@@ -204,7 +204,7 @@ void rdpq_fan_add_vertex(const float* v) {
 
     if (state->vtxCount == 0) {
         // Store the first vertex
-        memcpy(state->v1, v, sizeof(float) * 4);
+        memcpy(state->v1, v, sizeof(float) * 8);
         state->v1Added = true;
         state->vtxCount++;
         rdpq_add_tri_data(state->v1, TRI_DATA_LAST);
@@ -214,8 +214,9 @@ void rdpq_fan_add_vertex(const float* v) {
         if (state->vtxCount == 1){
             rdpq_add_tri_data(v, TRI_DATA_NEXT);
 
+
             // Store first vertex as previous point
-            memcpy(state->pv, state->v1, sizeof(float) * 4);
+            memcpy(state->pv, state->v1, sizeof(float) * 8);
             state->vtxCount++;
         }
 
@@ -223,11 +224,11 @@ void rdpq_fan_add_vertex(const float* v) {
         // Move last position and store current vertex
         rdpq_fan_add_new_triangle_cpu(state->pv, v);
 
-        // Until i get the overlay working, i have to call this for each new vertex
         rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE, 
-            0xC000 | (state->cmd_id << 8) | 
-            (state->fmt->tex_mipmaps ? (state->fmt->tex_mipmaps - 1) << 3 : 0) | 
-            (state->fmt->tex_tile & 7));
+                0xC000 | (state->cmd_id << 8) | 
+                (state->fmt->tex_mipmaps ? (state->fmt->tex_mipmaps-1) << 3 : 0) | 
+                (state->fmt->tex_tile & 7));
+
 
     }
 
