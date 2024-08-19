@@ -5,8 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "/opt/libdragon",
-                "~/libdragon/**",
-                "~/t3d/**"
+                "~/libdragon/**"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

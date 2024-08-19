@@ -79,7 +79,7 @@ void snake_resolve(Snake* snake, float stickX, float stickY) {
     point_normalize(&direction);
 
     // Determine the target position based on the direction and a fixed magnitude
-    float move_mag = 3.5f;
+    float move_mag = 3.0f;
     direction = point_set_mag(&direction, move_mag);
     Point targetPos = point_sub(&headPos, &direction);
     chain_resolve(snake->spine, targetPos);
@@ -171,7 +171,7 @@ void draw_snake_shape(Snake* snake) {
         float v4S[] = { scaled_vertices[vertexCount - 2 - i].x, scaled_vertices[vertexCount - 2 - i].y };
 
         // Draw drop shadow
-        set_render_color(BLACK);
+        set_render_color(T_BLACK);
         draw_strip(v1S,v2S,v3S,v4S); 
     }
 
@@ -203,6 +203,29 @@ void draw_snake_shape(Snake* snake) {
     free(vertices);
     free(scaled_vertices);
 
+}
+
+void init_snakes(){
+    snake1 = (Snake*)malloc_uncached(sizeof(Snake));
+    snake_init(snake1, screenCenter, 32, RED);
+    snake2 = (Snake*)malloc_uncached(sizeof(Snake));
+    snake_init(snake2, screenCenter, 32, BLUE);
+    snake3 = (Snake*)malloc_uncached(sizeof(Snake));
+    snake_init(snake3, screenCenter, 32, ORANGE);
+    snake4 = (Snake*)malloc_uncached(sizeof(Snake));
+    snake_init(snake4, screenCenter, 32, INDIGO);
+}
+
+void draw_snakes(){
+    snake_resolve(snake1, stickX, stickY);
+    snake_resolve(snake2, -stickX, -stickY);
+    snake_resolve(snake3, -stickX, stickY);
+    snake_resolve(snake4, stickX, -stickY);
+    draw_snake_shape(snake1);
+    draw_snake_shape(snake2);
+    draw_snake_shape(snake3);
+    draw_snake_shape(snake4);
+    
 }
 
 #endif // SNAKE_H

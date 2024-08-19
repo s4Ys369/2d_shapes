@@ -1,10 +1,30 @@
 #include <libdragon.h>
+#include "rdpq/rdpq_fan.h"
 #include "point.h"
 #include "shapes.h"
 #include "render.h"
 
 void set_render_color(color_t color){
   rdpq_set_prim_color(color);
+}
+
+color_t get_random_render_color() {
+  const color_t colors[] = {
+    RED,
+    ORANGE,
+    YELLOW,
+    GREEN,
+    BLUE,
+    INDIGO,
+    VIOLET
+  };
+    
+  int index = rand() % 7;
+  return colors[index];
+}
+
+void set_random_render_color() {
+  set_render_color(get_random_render_color());
 }
 
 void render_move_point(PointArray* pa, size_t index, float dx, float dy) {
@@ -121,22 +141,53 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
   }
 }
 
-// Function to draw a triangle fan from an array of points
-void draw_fan(const PointArray* pa) {
-  if (pa->count < 3){ debugf("Need at least 3 points to form a triangle"); return; }
+void draw_rdp_fan(const PointArray* pa, const Point center) {
 
-  // First point is the center of the fan
-  Point center = pa->points[0];
+  float cv[] = { center.x, center.y };
+  float v1[] = { pa->points[0].x, pa->points[0].y };
 
-  for (size_t i = 1; i < pa->count - 1; ++i) {
-    Point v1 = center;
-    Point v2 = pa->points[i];
-    Point v3 = pa->points[i + 1];
+  rdpq_fan_begin(&TRIFMT_FILL, cv);
+  rdpq_fan_add_vertex(v1);
+  vertCount++;
 
-    rdpq_triangle(&TRIFMT_FILL, &v1.x, &v2.x, &v3.x);
+  for (size_t i = 0; i < pa->count; ++i) {
+    float vertex[] = { pa->points[i].x, pa->points[i].y };
+    rdpq_fan_add_vertex(vertex);
     triCount++;
     vertCount++;
   }
+
+  rdpq_fan_end();
+
+}
+
+// Function to draw a triangle fan from an array of points
+void draw_fan(const PointArray* pa, const Point center) {
+  if (pa->count < 2){ debugf("Need at least 3 points to form a triangle"); return; }
+
+  for (size_t i = 0; i < pa->count - 1; ++i) {
+    Point p2 = pa->points[i];
+    Point p3 = pa->points[i + 1];
+
+    float v1[] = { center.x, center.y };
+    float v2[] = { p2.x, p2.y };
+    float v3[] = { p3.x, p3.y };
+
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    triCount++;
+    vertCount += 2;
+  }
+
+  // Add a final triangle to close the loop
+  Point lastPoint = pa->points[pa->count - 1];
+  Point firstPoint = pa->points[0];
+
+  float lastV1[] = { center.x, center.y };
+  float lastV2[] = { lastPoint.x, lastPoint.y };
+  float lastV3[] = { firstPoint.x, firstPoint.y };
+
+  rdpq_triangle(&TRIFMT_FILL, lastV1, lastV2, lastV3);
+  triCount++;
 
 }
 
@@ -149,6 +200,68 @@ void draw_strip(float* v1, float* v2, float* v3, float* v4) {
   vertCount += 4;
 
 
+}
+
+// Function to draw a strip of triangles from an array of vertices
+void draw_strip_from_array(float* vertices, int vertexCount, float width) {
+  if (vertexCount < 2) {
+    debugf("Not enough vertices to draw a strip\n");
+    return;
+  }
+
+  // Calculate the number of quads and the total number of vertices needed
+  int quadCount = vertexCount - 1;
+  int totalVertices = quadCount * 8; // 8 floats per quad (4 vertices, 2 coords each)
+  float* stripVertices = (float*)malloc(totalVertices * sizeof(float));
+
+  if (!stripVertices) {
+    debugf("Strip vertices allocation failed\n");
+    return;
+  }
+
+  // Calculate perpendicular vectors for the width
+  for (int i = 0; i < vertexCount - 1; ++i) {
+    float dx = vertices[(i + 1) * 2] - vertices[i * 2];
+    float dy = vertices[(i + 1) * 2 + 1] - vertices[i * 2 + 1];
+    float length = sqrtf(dx * dx + dy * dy);
+    if (length == 0) {
+      continue; // Avoid division by zero for overlapping points
+    }
+    float ux = dy / length; // Unit perpendicular vector x
+    float uy = -dx / length; // Unit perpendicular vector y
+
+    // Calculate the offset for width
+    float offsetX = ux * width * 0.5f;
+    float offsetY = uy * width * 0.5f;
+
+    // Set vertices for the quad
+    int index = i * 8;
+    stripVertices[index] = vertices[i * 2] + offsetX;
+    stripVertices[index + 1] = vertices[i * 2 + 1] + offsetY;
+    stripVertices[index + 2] = vertices[i * 2] - offsetX;
+    stripVertices[index + 3] = vertices[i * 2 + 1] - offsetY;
+    stripVertices[index + 4] = vertices[(i + 1) * 2] + offsetX;
+    stripVertices[index + 5] = vertices[(i + 1) * 2 + 1] + offsetY;
+    stripVertices[index + 6] = vertices[(i + 1) * 2] - offsetX;
+    stripVertices[index + 7] = vertices[(i + 1) * 2 + 1] - offsetY;
+  }
+
+  // Draw the quads
+  for (int i = 0; i < quadCount; ++i) {
+    float v1[] = { stripVertices[i * 8], stripVertices[i * 8 + 1] };
+    float v2[] = { stripVertices[i * 8 + 2], stripVertices[i * 8 + 3] };
+    float v3[] = { stripVertices[i * 8 + 4], stripVertices[i * 8 + 5] };
+    float v4[] = { stripVertices[i * 8 + 6], stripVertices[i * 8 + 7] };
+
+    // Draw the two triangles for each quad
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    rdpq_triangle(&TRIFMT_FILL, v2, v4, v3);
+    triCount += 2;
+    vertCount += 4;
+  }
+
+  // Free the allocated memory
+  free(stripVertices);
 }
 
 // Draw a uniformed circle of any number of vertices as a triangle fan
@@ -201,7 +314,7 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
     return;
   } else {
     // Default segments calculation for areas > 2.9f
-    int segments = (int)((area < 3.0f) ? 3.0f : area) / ((area >= 9.9f) ? 2 : 3);
+    segments = (int)((area < 3.0f) ? 3.0f : area) / ((area >= 9.9f) ? 2 : 3);
 
     // Enforce a minimum of 6 segments
     segments = segments < 6 ? 6 : segments;
@@ -223,10 +336,12 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   float cos_angle = fm_cosf(angle);
   float sin_angle = fm_sinf(angle);
 
-  // Initialize vert arrays
-  float* vertices = NULL;
-  int vertex_count = 0;
-  add_vertex(&vertices, &vertex_count, cx, cy);
+  // Initialize PointArray
+  PointArray pa = { .count = segments, .points = malloc(segments * sizeof(Point)) };
+  if (!pa.points) {
+    debugf("Point array allocation failed\n");
+    return;
+  }
 
   // Calculate perimeter vertices
   float x = rx;
@@ -238,7 +353,8 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
     // Apply rotation
     float rotatedX = x * cos_angle - y * sin_angle;
     float rotatedY = x * sin_angle + y * cos_angle;
-    add_vertex(&vertices, &vertex_count, cx + rotatedX, cy+ rotatedY);
+    pa.points[i].x = cx + rotatedX;
+    pa.points[i].y = cy + rotatedY;
 
     // Calculate next position from rotation matrix
     float nextX = cos_theta * x - sin_theta * y;
@@ -251,19 +367,11 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   }
 
   //debugf("Total vertices: %d\n", vertex_count);
+  Point center = point_new(cx,cy);
+  draw_rdp_fan(&pa, center);
 
-  // Create indices for a triangle fan
-  int* indices = NULL;
-  int index_count = 0;
-  indices = create_triangle_fan_indices(indices, segments, &index_count);
+  free(pa.points);
 
-  //debugf("Total indices: %d\n", index_count);
-
-  // Draw the indexed vertices
-  draw_indexed_triangles(vertices, vertex_count, indices, index_count);
-
-  free(vertices);
-  free_uncached(indices);
 
 }
 

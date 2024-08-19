@@ -17,7 +17,7 @@ public:
     std::vector<Point> get_ellipse_points(Point center, float rx, float ry, int segments);
     void draw_triangle(float* v1, float* v2, float* v3);
     void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int index_count);
-    void draw_fan(const std::vector<Point>& points);
+    void draw_fan(const std::vector<Point>& points, const Point center);
     void draw_ellipse(float cx, float cy, float rx, float ry, float angle, float lod);
     void draw_line(float x1, float y1, float x2, float y2, float angle, float thickness);
     void draw_bezier_curve(const Point& p0, const Point& p1, const Point& p2, const Point& p3, int segments, float angle, float thickness);

@@ -23,11 +23,13 @@ N64_CFLAGS += -mno-check-zero-division \
 	-ffast-math \
     -mips3 \
 
-SRC = snake_main.c \
-      point.c \
-	  render.c \
-      shapes.c \
-      utils.c
+ASM = rdpq/rsp_rdpq_fan.S
+
+SRC = main.c \
+	point.c \
+	render.c \
+	shapes.c \
+	utils.c
 
 OBJ = $(SRC:%.c=$(BUILD_DIR)/%.o)
 
@@ -44,7 +46,7 @@ filesystem/%.sprite: assets/%.png
 filesystem/n64brew.sprite: MKSPRITE_FLAGS=--format RGBA16
 
 $(BUILD_DIR)/$(PROJECT_NAME).dfs: $(assets_conv)
-$(BUILD_DIR)/$(PROJECT_NAME).elf: $(SRC:%.c=$(BUILD_DIR)/%.o)
+$(BUILD_DIR)/$(PROJECT_NAME).elf: $(ASM:%.S=$(BUILD_DIR)/%.o) $(SRC:%.c=$(BUILD_DIR)/%.o)
 
 $(BUILD_DIR)/%.o: %.c
 	@mkdir -p $(BUILD_DIR)
@@ -58,6 +60,6 @@ clean:
 	rm -rf $(BUILD_DIR) *.z64
 	rm -rf filesystem
 
--include $(wildcard $(BUILD_DIR)/*.d) $(wildcard $(BUILD_DIR)/examples/*.d)
+-include $(wildcard $(BUILD_DIR)/rdpq/*.d) $(wildcard $(BUILD_DIR)/*.d) $(wildcard $(BUILD_DIR)/examples/*.d)
 
 .PHONY: all clean
