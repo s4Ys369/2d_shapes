@@ -171,7 +171,7 @@ void draw_snake_shape(Snake* snake) {
         float v4S[] = { scaled_vertices[vertexCount - 2 - i].x, scaled_vertices[vertexCount - 2 - i].y };
 
         // Draw drop shadow
-        set_render_color(BLACK);
+        set_render_color(T_BLACK);
         draw_strip(v1S,v2S,v3S,v4S); 
     }
 

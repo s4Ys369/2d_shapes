@@ -43,7 +43,7 @@ const color_t T_GREEN = (color_t){51, 221, 0, 200};
 const color_t T_BLUE = (color_t){17, 51, 204, 200};
 const color_t T_INDIGO = (color_t){34, 0, 102, 200};
 const color_t T_VIOLET = (color_t){51, 0, 68, 200};
-const color_t T_BLACK = (color_t){0,0,0,200};
+const color_t T_BLACK = (color_t){31,31,31,200};
 const color_t T_WHITE = (color_t){255, 255, 255, 200};
 const color_t T_GREY = (color_t){192, 192, 192, 200};
 
