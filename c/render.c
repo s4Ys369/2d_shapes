@@ -367,8 +367,7 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   }
 
   //debugf("Total vertices: %d\n", vertex_count);
-  Point center = point_new(cx,cy);
-  draw_rdp_fan(&pa, center);
+  draw_rdp_fan(&pa, pa.points[0]);
 
   free(pa.points);
 

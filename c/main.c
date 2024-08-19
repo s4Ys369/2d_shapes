@@ -172,19 +172,9 @@ int main() {
 
     jpTime = get_ticks_ms() - secondTime; // set input time
 
-    if (keys.l) { // CHANGE: L for console
-      switch_example(); 
-    }
+    if (keys.l)switch_example();
 
-    if (keys.start) {
-      reset_example();
-    }
-
-    if(example != SNAKES){
-      if(currShape == NULL) {
-        shape_control_init();
-      }
-    }
+    if (keys.start)reset_example();
 
 
 //=========== ~ UPDATE ~ ==============//
@@ -202,78 +192,66 @@ int main() {
       rotationDegrees = 0;
     }
 
-    if(example != SNAKES){
-
-      if(currShape == circle){
-        if(keys.a){
-          set_fill_color(circle, get_random_render_color());
-        }
-      } else {
+    switch(example){
+      case CIRCLE:
+        // Color
+          if(keys.a)set_fill_color(currShape, get_random_render_color());
+        // Scale
+        if(keysDown.r)increase_scale(currShape);
+        if(keysDown.z)decrease_scale(currShape);
+        break;
+      case QUAD:
+        // Scale
+        if(keysDown.r)increase_scale(currShape);
+        if(keysDown.z)decrease_scale(currShape);
+        if(keysDown.c_up)increase_y_scale(currShape);
+        if(keysDown.c_down)decrease_y_scale(currShape);
+        if(keysDown.c_right)increase_x_scale(currShape);
+        if(keysDown.c_left)decrease_x_scale(currShape);
+        // Rotation
         if(keysDown.a){
           currAngle += rotation;
         } else if (keysDown.b) {
           currAngle -= rotation;
         }
-      }
-
-      if(currShape != curve) {
-        // Adjust single scale shape
-        if(keysDown.r){
-          increase_scale(currShape);
+        break;
+      case FAN:
+        // Scale
+        if(keysDown.r)increase_scale(currShape);
+        if(keysDown.z)decrease_scale(currShape);
+        if(keysDown.c_up)increase_y_scale(currShape);
+        if(keysDown.c_down)decrease_y_scale(currShape);
+        if(keysDown.c_right)increase_x_scale(currShape);
+        if(keysDown.c_left)decrease_x_scale(currShape);
+        // Segments
+        if(keys.d_up)increase_segments(currShape);
+        if(keys.d_down)decrease_segments(currShape);
+        if(keys.d_right)cycle_control_point();
+        if(keys.d_left)cycle_control_point();
+        // Rotation
+        if(keysDown.a){
+          currAngle += rotation;
+        } else if (keysDown.b) {
+          currAngle -= rotation;
         }
-        if(keysDown.z){ // CHANGE: Z for console
-          decrease_scale(currShape);
+        break;
+      case BEZIER:
+        // Segments
+        if(keys.r)decrease_segments(currShape);
+        if(keys.z)increase_segments(currShape);
+        // Control points
+        if(keys.c_down)cycle_bezier_points();
+        if(keys.c_left)cycle_bezier_points();
+        //Rotation
+        if(keysDown.a){
+          currAngle += rotation;
+        } else if (keysDown.b) {
+          currAngle -= rotation;
         }
-      } else {
-        if(keys.r){
-          decrease_segments(currShape);
-        }
-        if(keys.z){ // CHANGE: Z for console
-          increase_segments(currShape);
-        }
-      }
-
-      if(currShape != curve) {
-        // Fine tunes individual scales
-        if(keysDown.c_up){
-          increase_y_scale(currShape);
-        }
-        if(keysDown.c_down){
-          decrease_y_scale(currShape);
-        }
-        if(keysDown.c_right){
-          increase_x_scale(currShape);
-        }  
-        if(keysDown.c_left){
-          decrease_x_scale(currShape);
-        }
-
-        // Specific to fan example
-        if(currShape == fan) {
-          if(keys.d_up){
-            increase_segments(currShape);
-          }
-          if(keys.d_down){
-            decrease_segments(currShape);
-          }
-          if(keys.d_right){
-            cycle_control_point();
-          }  
-          if(keys.d_left){
-            cycle_control_point();
-          }
-        }
-
-      } else {
-        if(keys.c_down){
-          cycle_bezier_points();
-        }
-        if(keys.c_left){
-          cycle_bezier_points();
-        }
-      }
-    } else {
-      if(keysDown.a)chain_display(snake1->spine, 3.0f);
+        break;
+      case SNAKES:
+        if(keysDown.a)chain_display(snake1->spine, 3.0f);
+        break;
     }
 
 
