@@ -4,6 +4,7 @@
 #include <libdragon.h>
 #include <math.h>
 #include <stdbool.h>
+#include "rspq/vector_helper.h"
 
 typedef struct {
     float x, y;
@@ -38,6 +39,7 @@ Point point_scale(const Point* center, const Point* point, float scale);
 Point point_translate(Point p, float dx, float dy);
 void point_rotate(Point* p, const Point* center, float angle);
 Point point_transform(const Point* point, float angle, float width);
+Point point_transform_4x4(const Point* point, const mtx4x4_t *mat);
 float point_cross(const Point* p1, const Point* p2);
 float point_dot(const Point* p1, const Point* p2);
 float point_epsilon_test(const Point* A, const Point* B, const Point* C);

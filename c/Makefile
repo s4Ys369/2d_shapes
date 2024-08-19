@@ -23,9 +23,12 @@ N64_CFLAGS += -mno-check-zero-division \
 	-ffast-math \
     -mips3 \
 
-ASM = rdpq/rsp_rdpq_fan.S
+ASM = rdpq/rsp_rdpq_fan.S \
+	rspq/rsp_vec.S
 
-SRC = main.c \
+SRC = rspq/vec.c \
+	rspq/vector_helper.c \
+	main.c \
 	point.c \
 	render.c \
 	shapes.c \
@@ -60,6 +63,6 @@ clean:
 	rm -rf $(BUILD_DIR) *.z64
 	rm -rf filesystem
 
--include $(wildcard $(BUILD_DIR)/rdpq/*.d) $(wildcard $(BUILD_DIR)/*.d) $(wildcard $(BUILD_DIR)/examples/*.d)
+-include $(wildcard $(BUILD_DIR)/rdpq/*.d) $(wildcard $(BUILD_DIR)/rspq/*.d) $(wildcard $(BUILD_DIR)/*.d) $(wildcard $(BUILD_DIR)/examples/*.d)
 
 .PHONY: all clean
