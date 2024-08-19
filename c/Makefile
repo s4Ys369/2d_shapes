@@ -27,6 +27,7 @@ ASM = rdpq/rsp_rdpq_fan.S \
 	rspq/rsp_vec.S
 
 SRC = rspq/vec.c \
+	rspq/vec_gfx.c \
 	rspq/vector_helper.c \
 	main.c \
 	point.c \

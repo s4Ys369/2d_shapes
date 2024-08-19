@@ -36,8 +36,8 @@ void matrix_scale(mtx4x4_t *dest, float x, float y, float z)
 
 void matrix_rotate_x(mtx4x4_t *dest, float angle)
 {
-    float c = cosf(angle);
-    float s = sinf(angle);
+    float c = fm_cosf(angle);
+    float s = fm_sinf(angle);
 
     *dest = (mtx4x4_t){ .m={
         {1.f, 0.f, 0.f, 0.f},
@@ -49,8 +49,8 @@ void matrix_rotate_x(mtx4x4_t *dest, float angle)
 
 void matrix_rotate_y(mtx4x4_t *dest, float angle)
 {
-    float c = cosf(angle);
-    float s = sinf(angle);
+    float c = fm_cosf(angle);
+    float s = fm_sinf(angle);
 
     *dest = (mtx4x4_t){ .m={
         {c,   0.f, -s,  0.f},
@@ -62,8 +62,8 @@ void matrix_rotate_y(mtx4x4_t *dest, float angle)
 
 void matrix_rotate_z(mtx4x4_t *dest, float angle)
 {
-    float c = cosf(angle);
-    float s = sinf(angle);
+    float c = fm_cosf(angle);
+    float s = fm_sinf(angle);
 
     *dest = (mtx4x4_t){ .m={
         {c,   s,   0.f, 0.f},
@@ -73,11 +73,32 @@ void matrix_rotate_z(mtx4x4_t *dest, float angle)
     }};
 }
 
+// Multiply two 4x4 matrices
+void matrix_multiply(const mtx4x4_t *a, const mtx4x4_t *b, mtx4x4_t *result) {
+    // Initialize result matrix to zero
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            result->m[i][j] = 0;
+        }
+    }
+    
+    // Perform matrix multiplication
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            for (int k = 0; k < 4; k++) {
+                result->m[i][j] += a->m[i][k] * b->m[k][j];
+            }
+        }
+    }
+}
+
 vec4_t vec4_transform(const mtx4x4_t *mat, const vec4_t *vec) {
-    return (vec4_t){
-        .v[0] = mat->m[0][0] * vec->v[0] + mat->m[0][1] * vec->v[1] + mat->m[0][2] * vec->v[2] + mat->m[0][3] * vec->v[3],
-        .v[1] = mat->m[1][0] * vec->v[0] + mat->m[1][1] * vec->v[1] + mat->m[1][2] * vec->v[2] + mat->m[1][3] * vec->v[3],
-        .v[2] = mat->m[2][0] * vec->v[0] + mat->m[2][1] * vec->v[1] + mat->m[2][2] * vec->v[2] + mat->m[2][3] * vec->v[3],
-        .v[3] = mat->m[3][0] * vec->v[0] + mat->m[3][1] * vec->v[1] + mat->m[3][2] * vec->v[2] + mat->m[3][3] * vec->v[3],
-    };
+    vec4_t result;
+
+    result.v[0] = mat->m[0][0] * vec->v[0] + mat->m[0][1] * vec->v[1] + mat->m[0][2] * vec->v[2] + mat->m[0][3] * vec->v[3];
+    result.v[1] = mat->m[1][0] * vec->v[0] + mat->m[1][1] * vec->v[1] + mat->m[1][2] * vec->v[2] + mat->m[1][3] * vec->v[3];
+    result.v[2] = mat->m[2][0] * vec->v[0] + mat->m[2][1] * vec->v[1] + mat->m[2][2] * vec->v[2] + mat->m[2][3] * vec->v[3];
+    result.v[3] = mat->m[3][0] * vec->v[0] + mat->m[3][1] * vec->v[1] + mat->m[3][2] * vec->v[2] + mat->m[3][3] * vec->v[3];
+
+    return result;
 }

@@ -4,7 +4,7 @@
 #include <libdragon.h>
 #include <math.h>
 #include <stdbool.h>
-#include "rspq/vector_helper.h"
+#include "rspq/vec_gfx.h"
 
 typedef struct {
     float x, y;
@@ -14,6 +14,8 @@ typedef struct {
     Point* points;
     size_t count;
 } PointArray;
+
+#define MAX_BATCH_SIZE 128
 
 // Constructors
 Point point_new(float x, float y);
@@ -36,10 +38,12 @@ void point_normalize(Point* p);
 Point point_set_mag(Point* p, float newMag);
 Point point_copy(const Point* p);
 Point point_scale(const Point* center, const Point* point, float scale);
+void point_scale_batch(const Point* centers, const Point* points, float* scales, Point* scaled_points, uint32_t count);
 Point point_translate(Point p, float dx, float dy);
 void point_rotate(Point* p, const Point* center, float angle);
+void point_rotate_batch(Point* points, const Point* center, float* angles, int count);
 Point point_transform(const Point* point, float angle, float width);
-Point point_transform_4x4(const Point* point, const mtx4x4_t *mat);
+void point_transform_4x4_batch(Point* points, const mtx4x4_t *mat, int count);
 float point_cross(const Point* p1, const Point* p2);
 float point_dot(const Point* p1, const Point* p2);
 float point_epsilon_test(const Point* A, const Point* B, const Point* C);
@@ -55,5 +59,7 @@ void add_point(PointArray* array, float x, float y);
 void add_existing_point(PointArray* array, Point p);
 void calculate_array_center(const PointArray* points, Point* center);
 void free_point_array(PointArray* array);
+
+void constrain_dist_rsp(Point* positions, Point* anchors, float* constraints, int count);
 
 #endif // POINT_H

@@ -813,32 +813,54 @@ void fill_edge_ellipse_to_line(PointArray* previousPoints, PointArray* currentPo
   Point currCenter = point_default();
 
   if (previousPoints->count != 0) {
-
     // Calculate centers for previous and current points
     calculate_array_center(previousPoints, &prevCenter);
     calculate_array_center(currentPoints, &currCenter);
 
-    // Scale points outward to fill in any gaps
-    for (int i = 0; i < segments; ++i) {
-      Point v1r = point_scale(&prevCenter, &previousPoints->points[i], scale);
-      Point v2r = point_scale(&prevCenter, &previousPoints->points[(i + 1) % segments], scale); // Use modulo to wrap around
-      Point v3r = point_scale(&currCenter, &currentPoints->points[i], scale);
-      Point v4r = point_scale(&currCenter, &currentPoints->points[(i + 1) % segments], scale); // Use modulo to wrap around
+    // Arrays for scaling
+    float* scales = (float*)malloc(segments * sizeof(float));
+    if (!scales) {
+      debugf("Scales allocation failed\n");
+      return;
+    }
 
-      // Create triangles between scaled points
-      float v1f[] = { v1r.x, v1r.y };
-      float v2f[] = { v2r.x, v2r.y };
-      float v3f[] = { v3r.x, v3r.y };
-      float v4f[] = { v4r.x, v4r.y };
+    Point* scaled_prevPoints = (Point*)malloc(segments * sizeof(Point));
+    Point* scaled_currPoints = (Point*)malloc(segments * sizeof(Point));
+    if (!scaled_prevPoints || !scaled_currPoints) {
+      debugf("Scaled points allocation failed\n");
+      free(scales);
+      if (scaled_prevPoints) free(scaled_prevPoints);
+      if (scaled_currPoints) free(scaled_currPoints);
+      return;
+    }
+
+    // Initialize scales array
+    for (int i = 0; i < segments; ++i) {
+      scales[i] = scale;
+    }
+
+    // Scale previous and current points in batch
+    point_scale_batch(&prevCenter, previousPoints->points, scales, scaled_prevPoints, segments);
+    point_scale_batch(&currCenter, currentPoints->points, scales, scaled_currPoints, segments);
+
+    // Draw triangles
+    for (int i = 0; i < segments; ++i) {
+      float v1f[] = { scaled_prevPoints[i].x, scaled_prevPoints[i].y };
+      float v2f[] = { scaled_prevPoints[(i + 1) % segments].x, scaled_prevPoints[(i + 1) % segments].y };
+      float v3f[] = { scaled_currPoints[i].x, scaled_currPoints[i].y };
+      float v4f[] = { scaled_currPoints[(i + 1) % segments].x, scaled_currPoints[(i + 1) % segments].y };
 
       // Draw two triangles to form a quad between the points
       rdpq_triangle(&TRIFMT_FILL, v1f, v2f, v3f);
       rdpq_triangle(&TRIFMT_FILL, v2f, v4f, v3f);
-      triCount++;
+      triCount += 2;
       vertCount += 4;
     }
-  }
 
-  previousPoints = currentPoints; // Save current points for the next iteration
+    // Free allocated memory
+    free(scaled_prevPoints);
+    free(scaled_currPoints);
+    free(scales);
+  }
 }
 

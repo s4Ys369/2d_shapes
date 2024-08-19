@@ -1,5 +1,5 @@
 #include <libdragon.h>
-#include "rspq/vector_helper.h"
+#include "rspq/vec_gfx.h"
 #include "point.h"
 
 // Constructors
@@ -77,17 +77,42 @@ Point point_copy(const Point* p) {
 }
 
 Point point_scale(const Point* center, const Point* point, float scale) {
-    mtx4x4_t scale_mat;
-    matrix_scale(&scale_mat, scale, scale, 1.0f); // Create a uniform scaling matrix
-
-    // Translate to origin
     Point direction = point_subtract(point, center);
-
-    // Apply scaling
-    Point scaled = point_transform_4x4(&direction, &scale_mat);
-
-    // Translate back
+    Point scaled = point_multiply(&direction, scale);
     return point_add(center, &scaled);
+}
+
+void point_scale_batch(const Point* centers, const Point* points, float* scales, Point* scaled_points, uint32_t count) {
+    // Ensure batch size does not exceed the allocated space
+    if (count > MAX_BATCH_SIZE) {
+        // Handle error or batch in chunks
+        return;
+    }
+
+    vec_slot_t input_vecs[MAX_BATCH_SIZE];
+    vec_slot_t output_vecs[MAX_BATCH_SIZE];
+    vec_mtx_t scale_mtx;
+    
+    // Prepare a single scale matrix for all points
+    mtx4x4_t scale_mat;
+    matrix_scale(&scale_mat, scales[0], scales[0], 1.0f); // Use the first scale for simplicity
+    floats_to_vectors(scale_mtx.c, scale_mat.m[0], 16);
+
+    // Convert points to vectors and apply scaling
+    for (uint32_t i = 0; i < count; ++i) {
+        Point direction = point_subtract(&points[i], &centers[i]);
+        floats_to_vectors(&input_vecs[i], (float*)&direction, 2);
+    }
+
+    // Apply transformation in batch
+    apply_transformation(input_vecs, output_vecs, &scale_mtx, count);
+
+    // Convert back to float and store results
+    for (uint32_t i = 0; i < count; ++i) {
+        float output_floats[2];
+        vectors_to_floats(output_floats, &output_vecs[i], 2);
+        scaled_points[i] = point_add(&centers[i], (Point*)output_floats);
+    }
 }
 
 Point point_translate(Point p, float dx, float dy) {
@@ -95,17 +120,51 @@ Point point_translate(Point p, float dx, float dy) {
 }
 
 void point_rotate(Point* p, const Point* center, float angle) {
-    mtx4x4_t rot_mat;
-    matrix_rotate_z(&rot_mat, angle); // Create a Z-axis rotation matrix
+    float s = fm_sinf(angle);
+    float c = fm_cosf(angle);
     
-    // Translate to origin
-    Point temp = point_subtract(p, center);
+    p->x -= center->x;
+    p->y -= center->y;
 
-    // Apply rotation
-    temp = point_transform_4x4(&temp, &rot_mat);
+    float xnew = p->x * c - p->y * s;
+    float ynew = p->x * s + p->y * c;
 
-    // Translate back
-    *p = point_add(&temp, center);
+    p->x = xnew + center->x;
+    p->y = ynew + center->y;
+}
+
+
+void point_rotate_batch(Point* points, const Point* center, float* angles, int count) {
+    // Allocate space for vectors and results
+    vec_slot_t input_vecs[count];
+    vec_slot_t output_vecs[count];
+    vec_mtx_t matrices[MAX_BATCH_SIZE];
+
+    // Prepare the rotation matrices for each point
+    for ( int i = 0; i < count; ++i) {
+        mtx4x4_t rot_mat;
+        matrix_rotate_z(&rot_mat, angles[i]); // Rotate by specific angle
+        floats_to_vectors(matrices[i].c, rot_mat.m[0], 16); // Convert the rotation matrix to vec_mtx_t
+    }
+
+
+    // Prepare vectors
+    for (int i = 0; i < count; i++) {
+        Point temp = point_subtract(&points[i], center);
+        floats_to_vectors(&input_vecs[i], (float*)&temp, 2);
+    }
+
+    // Apply rotation transformation
+    for (int i = 0; i < count; ++i) {
+        apply_transformation(&input_vecs[i], &output_vecs[i], &matrices[i], 1);
+    }
+
+    // Convert back to float and update points
+    for (int i = 0; i < count; ++i) {
+        float output_floats[2];
+        vectors_to_floats(output_floats, &output_vecs[i], 2);
+        points[i] = point_add(&center[i], (Point*)output_floats);
+    }
 }
 
 Point point_transform(const Point* point, float angle, float width) {
@@ -114,10 +173,30 @@ Point point_transform(const Point* point, float angle, float width) {
     return point_add(point, &scaled);
 }
 
-Point point_transform_4x4(const Point* point, const mtx4x4_t *mat) {
-    vec4_t vec = {{ point->x, point->y, 0.0f, 1.0f }}; // Extend Point to vec4
-    vec4_t transformed_vec = vec4_transform(mat, &vec);
-    return point_new(transformed_vec.v[0], transformed_vec.v[1]);
+void point_transform_4x4_batch(Point* points, const mtx4x4_t *mat, int count) {
+    // Allocate space for vectors and results
+    vec_slot_t input_vecs[count];
+    vec_slot_t output_vecs[count];
+    vec_mtx_t transform_mtx;
+    
+    // Convert transformation matrix to fixed point format
+    floats_to_vectors(transform_mtx.c, mat->m[0], 16);
+
+    // Prepare vectors
+    for (int i = 0; i < count; i++) {
+        floats_to_vectors(&input_vecs[i], (float*)&points[i], 2);
+    }
+
+    // Apply transformation to all points
+    apply_transformation(input_vecs, output_vecs, &transform_mtx, count);
+
+    // Convert back to float and update points
+    float output_floats[count * 2];
+    vectors_to_floats(output_floats, output_vecs, count * 2);
+
+    for (int i = 0; i < count; i++) {
+        points[i] = point_new(output_floats[i * 2], output_floats[i * 2 + 1]);
+    }
 }
 
 float point_cross(const Point* p1, const Point* p2) {
@@ -239,4 +318,50 @@ void calculate_array_center(const PointArray* points, Point* center) {
 // Function to free a PointArray
 void free_point_array(PointArray* array) {
     free_uncached(array);
+}
+
+void constrain_dist_rsp(Point* positions, Point* anchors, float* constraints, int count) {
+    // Allocate memory for DMA transfers
+    vec_slot_t* input_vectors = (vec_slot_t *)malloc_uncached(sizeof(vec_slot_t) * count);
+    vec_slot_t* output_vectors = (vec_slot_t *)malloc_uncached(sizeof(vec_slot_t) * count);
+    vec_mtx_t* matrices = (vec_mtx_t *)malloc_uncached(sizeof(vec_mtx_t) * count);
+
+    memset(input_vectors, 0, sizeof(vec_slot_t) * count);
+    memset(output_vectors, 0, sizeof(vec_slot_t) * count);
+    memset(matrices, 0, sizeof(vec_mtx_t) * count);
+
+    // Initialize vectors and matrices
+    for (int i = 0; i < count; i++) {
+        mtx4x4_t translation, scale;
+        matrix_translate(&translation, -anchors[i].x, -anchors[i].y, 0);
+        matrix_scale(&scale, constraints[i], constraints[i], 1);
+
+        // Set up points
+        vec4_t vectors[2] = {
+            {{ positions[i].x, positions[i].y, 0, 1 }},
+            {{ 0, 0, 0, 1 }}
+        };
+
+        // Convert vectors to fixed point format required by the overlay
+        floats_to_vectors(&input_vectors[i], (float*)&vectors[0], 2);
+
+        // Convert matrices to fixed point format required by the overlay
+        floats_to_vectors(matrices[i].c, translation.m[0], 16);
+        floats_to_vectors(matrices[i].c, scale.m[0], 16);
+    }
+
+    // Apply transformations in batch
+    apply_transformation_batch(input_vectors, output_vectors, matrices, count);
+
+    // Store results back into positions
+    float* output_floats = (float*)malloc(NUM_VECTOR_SLOTS * sizeof(float));
+    for (int i = 0; i < count; i++) {
+        vectors_to_floats(output_floats, &output_vectors[i], 2);
+        positions[i] = (Point){ output_floats[0], output_floats[1] };
+    }
+    
+    free(output_floats);
+    free_uncached(matrices);
+    free_uncached(output_vectors);
+    free_uncached(input_vectors);
 }

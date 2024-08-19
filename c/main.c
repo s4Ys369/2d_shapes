@@ -44,7 +44,8 @@ void setup() {
   rdpq_debug_start();
 #endif // DEBUG_RDPQ
 
-  //rspq_init();
+  rspq_init();
+  vec_init();
   //void* ovlState  = UncachedAddr(rspq_overlay_get_state(&rsp_rdpq_fan));
   //memset(ovlState, 0, 0x10); // One vertex is 0x7, so doubled and aligned to 4
   //fan_add_id = rspq_overlay_register(&rsp_rdpq_fan);
@@ -77,7 +78,7 @@ void setup() {
 
 // Main rendering function
 void draw() {
-  
+  vec_gfx_alloc();
   switch (example) {
     case CIRCLE:
       circle_draw();
@@ -95,7 +96,7 @@ void draw() {
       draw_snakes();
       break;
   }
-
+  vec_gfx_destroy();
 }
 
 void reset_example() {
