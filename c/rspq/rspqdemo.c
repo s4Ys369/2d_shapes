@@ -2,7 +2,7 @@
 #include <string.h>
 
 #include "vec.h"
-#include "vec2_helper.h"
+#include "vector_helper.h"
 
 #define NUM_VECTOR_SLOTS  16
 #define NUM_VECTORS       (NUM_VECTOR_SLOTS*2)
@@ -40,59 +40,47 @@ int main()
     // Initialize systems
     console_init();
     console_set_debug(true);
-    debug_init_isviewer();
-    debug_init_usblog();
+	debug_init_isviewer();
+	debug_init_usblog();
 
     // Initialize the "vec" library that this example is based on (see vec.h)
     vec_init();
 
     // Allocate memory for DMA transfers
-    input_vectors = malloc_uncached(sizeof(vec_slot_t) * NUM_VECTOR_SLOTS);
-    output_vectors = malloc_uncached(sizeof(vec_slot_t) * NUM_VECTOR_SLOTS);
-    matrices = malloc_uncached(sizeof(vec_mtx_t) * NUM_MATRICES);
+    input_vectors = malloc_uncached(sizeof(vec_slot_t)*NUM_VECTOR_SLOTS);
+    output_vectors = malloc_uncached(sizeof(vec_slot_t)*NUM_VECTOR_SLOTS);
+    matrices = malloc_uncached(sizeof(vec_mtx_t)*NUM_MATRICES);
 
-    memset(input_vectors, 0, sizeof(vec_slot_t) * NUM_VECTOR_SLOTS);
-    memset(output_vectors, 0, sizeof(vec_slot_t) * NUM_VECTOR_SLOTS);
-    memset(matrices, 0, sizeof(vec_mtx_t) * NUM_MATRICES);
+    memset(input_vectors, 0, sizeof(vec_slot_t)*NUM_VECTOR_SLOTS);
+    memset(output_vectors, 0, sizeof(vec_slot_t)*NUM_VECTOR_SLOTS);
+    memset(matrices, 0, sizeof(vec_slot_t)*NUM_MATRICES);
 
-   // Initialize input vectors (vec4_t) with layout [x1, y1, x2, y2]
+    // Initialize input vectors
     for (uint32_t z = 0; z < 2; z++)
     {
         for (uint32_t y = 0; y < 4; y++)
         {
             for (uint32_t x = 0; x < 4; x++)
             {
-                // Use x and y for the first vec2_t (x1, y1) and
-                // x+1 and y+1 for the second vec2_t (x2, y2)
-                vectors[z * 4 * 4 + y * 4 + x] = (vec4_t){ .v = { x, y, x + 1, y + 1 } };
+                vectors[z*4*4 + y*4 + x] = (vec4_t){ .v={
+                    x, y, z, 1.f
+                }};
             }
         }
     }
-
-    // Example of converting vec2_t to vec4_t and vice versa
-    vec2_t v2_a = { .v = {1.0f, 2.0f} };
-    vec2_t v2_b = { .v = {3.0f, 4.0f} };
-    vec4_t v4 = vec2_to_vec4(&v2_a, &v2_b);
-    vec2_t v2_a_converted, v2_b_converted;
-    vec4_to_vec2(&v4, &v2_a_converted, &v2_b_converted);
-
-    // Print converted vec2_t for debugging
-    printf("Converted vec2_a: %f, %f\n", v2_a_converted.v[0], v2_a_converted.v[1]);
-    printf("Converted vec2_b: %f, %f\n", v2_b_converted.v[0], v2_b_converted.v[1]);
-
     // Convert to fixed point format required by the overlay
-    floats_to_vectors(input_vectors, vectors[0].v, NUM_VECTORS * 4);
+    floats_to_vectors(input_vectors, vectors[0].v, NUM_VECTORS*4);
 
     // Initialize matrices
     matrix_identity(&identity);
-    matrix_scale(&scale, 0.5f, 2.0f, 1.1f, 1.1f);
+    matrix_scale(&scale, 0.5f, 2.0f, 1.1f);
     matrix_rotate_y(&rotation, 4.f);
-    matrix_translate(&translation, 0.f, -3.1f, 8.f, 4.f);
+    matrix_translate(&translation, 0.f, -3.1f, 8.f);
 
     // Convert to fixed point format required by the overlay
-    floats_to_vectors(matrices[0].c, identity.m[0], 16);
-    floats_to_vectors(matrices[1].c, scale.m[0], 16);
-    floats_to_vectors(matrices[2].c, rotation.m[0], 16);
+    floats_to_vectors(matrices[0].c, identity.m[0],    16);
+    floats_to_vectors(matrices[1].c, scale.m[0],       16);
+    floats_to_vectors(matrices[2].c, rotation.m[0],    16);
     floats_to_vectors(matrices[3].c, translation.m[0], 16);
 
     // This block defines a reusable sequence of commands that could
@@ -133,10 +121,10 @@ int main()
     vec_load(16, matrices[1].c, 6);
     // Perform matrix composition by multiplying them together (transforming column vectors)
     // The resulting matrix is written to MTX_SLOT
-    vec_transform(22, 18, 16); // Rotation * scale (first two columns)
-    vec_transform(23, 18, 17); // Rotation * scale (last two columns)
-    vec_transform(MTX_SLOT + 0, 20, 22); // Translation * rotation * scale (first two columns)
-    vec_transform(MTX_SLOT + 1, 20, 23); // Translation * rotation * scale (last two columns)
+    vec_transform(22, 18, 16);         // Rotation * scale (first two columns)
+    vec_transform(23, 18, 17);         // Rotation * scale (last two columns)
+    vec_transform(MTX_SLOT+0, 20, 22); // Translation * rotation * scale (first two columns)
+    vec_transform(MTX_SLOT+1, 20, 23); // Translation * rotation * scale (last two columns)
     rspq_block_run(transform_vectors_block);
     print_output("Combined:");
 

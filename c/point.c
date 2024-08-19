@@ -1,4 +1,5 @@
 #include <libdragon.h>
+#include "rspq/vector_helper.h"
 #include "point.h"
 
 // Constructors
@@ -76,8 +77,16 @@ Point point_copy(const Point* p) {
 }
 
 Point point_scale(const Point* center, const Point* point, float scale) {
+    mtx4x4_t scale_mat;
+    mtx4x4_scale(&scale_mat, scale, scale, 1.0f); // Create a uniform scaling matrix
+
+    // Translate to origin
     Point direction = point_subtract(point, center);
-    Point scaled = point_multiply(&direction, scale);
+
+    // Apply scaling
+    Point scaled = point_transform(&direction, &scale_mat);
+
+    // Translate back
     return point_add(center, &scaled);
 }
 
@@ -86,23 +95,23 @@ Point point_translate(Point p, float dx, float dy) {
 }
 
 void point_rotate(Point* p, const Point* center, float angle) {
-    float s = fm_sinf(angle);
-    float c = fm_cosf(angle);
+    mtx4x4_t rot_mat;
+    mtx4x4_rotation_z(&rot_mat, angle); // Create a Z-axis rotation matrix
     
-    p->x -= center->x;
-    p->y -= center->y;
+    // Translate to origin
+    Point temp = point_subtract(p, center);
 
-    float xnew = p->x * c - p->y * s;
-    float ynew = p->x * s + p->y * c;
+    // Apply rotation
+    temp = point_transform(&temp, &rot_mat);
 
-    p->x = xnew + center->x;
-    p->y = ynew + center->y;
+    // Translate back
+    *p = point_add(&temp, center);
 }
 
-Point point_transform(const Point* point, float angle, float width) {
-    Point rotated = point_from_angle(angle);
-    Point scaled = point_multiply(&rotated, width);
-    return point_add(point, &scaled);
+Point point_transform(const Point* point, const mtx4x4_t *mat) {
+    vec4_t vec = { point->x, point->y, 0.0f, 1.0f }; // Extend Point to vec4
+    vec4_t transformed_vec = vec4_transform(mat, &vec);
+    return point_new(transformed_vec.v[0], transformed_vec.v[1]);
 }
 
 float point_cross(const Point* p1, const Point* p2) {
