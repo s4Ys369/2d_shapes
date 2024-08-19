@@ -94,36 +94,32 @@ void chain_fabrik_resolve(Chain* chain, Point pos, Point anchor){
 }
 
 
-void chain_display(Chain* chain) {
+void chain_display(Chain* chain, float width) {
     if (chain == NULL || chain->joints == NULL || chain->joints->points == NULL) {
         debugf("Chain or joints are not properly initialized\n");
         return;
     }
 
-    if (chain->joints->count < 2) {
-        debugf("Not enough joints to display\n");
+    int jointCount = chain->joints->count;
+    if (jointCount < 4) {
+        debugf("Not enough joints to display Bézier curves\n");
         return;
     }
 
-    // Draw lines between joints
-    for (int i = 0; i < chain->joints->count - 1; ++i) {
-        Point startJoint = chain->joints->points[i];
-        Point endJoint = chain->joints->points[i + 1];
-        
-        set_render_color(BLACK);
-        draw_line_z(startJoint.x, startJoint.y, endJoint.x, endJoint.y, 2.0f, 0.9f);
-        
-        // Ensure that drawing circles is safe
-        if (i < chain->joints->count) {
-            set_render_color(YELLOW);
-            draw_circle(chain->joints->points[i].x, chain->joints->points[i].y, 1.2f, 1.0f, 0.0f, 0.05f);
-        }
-    }
 
-    // Draw the last joint circle
-    if (chain->joints->count > 0) {
+    // Loop through joints in groups of 4 to draw Bézier curves
+    set_render_color(YELLOW);
+    for (int i = 0; i < jointCount - 3; i += 3) { // Increment by 3 for the Bézier curves
+        // Control points for the Bézier curve
+        Point* p0 = &chain->joints->points[i];
+        Point* p1 = &chain->joints->points[i + 1];
+        Point* p2 = &chain->joints->points[i + 2];
+        Point* p3 = &chain->joints->points[i + 3];
+
+        set_render_color(BLACK);
+        draw_bezier_curve(p0, p1, p2, p3, 1, 0.0f, width*2.0f);
         set_render_color(YELLOW);
-        draw_circle(chain->joints->points[chain->joints->count - 1].x, chain->joints->points[chain->joints->count - 1].y, 1.2f, 1.0f, 0.0f, 0.05f);
+        draw_bezier_curve(p0, p1, p2, p3, 1, 0.0f, width);
     }
 }
 

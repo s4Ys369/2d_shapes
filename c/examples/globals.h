@@ -13,6 +13,14 @@ uint32_t screenWidth, screenHeight, frameCounter;
 Point screenCenter;
 size_t controlPoint;
 
+typedef enum {
+  CIRCLE,
+  QUAD,
+  FAN,
+  BEZIER,
+  SNAKES
+} EXAMPLES;
+
 void accums_init(){
 // Initialize acummulators
   bootTime= 0;

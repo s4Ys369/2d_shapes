@@ -43,7 +43,7 @@ const color_t T_GREEN = (color_t){51, 221, 0, 200};
 const color_t T_BLUE = (color_t){17, 51, 204, 200};
 const color_t T_INDIGO = (color_t){34, 0, 102, 200};
 const color_t T_VIOLET = (color_t){51, 0, 68, 200};
-const color_t T_BLACK = (color_t){0,0,0,200};
+const color_t T_BLACK = (color_t){31,31,31,200};
 const color_t T_WHITE = (color_t){255, 255, 255, 200};
 const color_t T_GREY = (color_t){192, 192, 192, 200};
 
@@ -96,6 +96,19 @@ float constrain_angle(float angle, float anchor, float constraint) {
 }
 
 // End of anim-proc-anim functions //
+
+// Function to compute the perpendicular vector
+void get_perp(const Point* p1, const Point* p2, float* perpX, float* perpY) {
+    float dx = p2->x - p1->x;
+    float dy = p2->y - p1->y;
+    float length = sqrtf(dx * dx + dy * dy);
+
+    // Normalize and then compute the perpendicular
+    if(length != 0) {
+        *perpX = -dy / length;
+        *perpY = dx / length;
+    }
+}
 
 // Function to apply deadzone to a joystick axis input
 const float DEADZONE = 20.0f;

@@ -60,6 +60,8 @@ float simplify_angle(float angle);
 float rel_angle_diff(float angle, float anchor);
 float constrain_angle(float angle, float anchor, float constraint);
 
+void get_perp(const Point* p1, const Point* p2, float* perpX, float* perpY);
+
 // Controller specific
 extern const float DEADZONE;
 float apply_deadzone(float value);

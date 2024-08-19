@@ -9,7 +9,7 @@ Shape* fan;
 void create_fan(){
 // `fan` has only scale, whereas `fan2` has both X and Y scales
   fan = (Shape*)malloc_uncached(sizeof(Shape));
-  fan2_init(fan, screenCenter, 20.0f, 20.0f, 5, BLUE);
+  fan2_init(fan, screenCenter, 20.0f, 20.0f, 3, T_BLUE);
 }
 
 void fan_draw(){
@@ -32,11 +32,12 @@ void fan_draw(){
   if(controlPoint == currPoints->count){
     render_rotate_shape_points(currPoints, currCenter, currAngle);
     resolve(currShape, stickX, stickY);
+    render_move_shape_points(currPoints, stickX, -stickY);
   }
 
   // Should be as easy as generate verts, set color, draw    
   set_render_color(currShapeColor);
-  draw_fan(currPoints, currCenter);
+  draw_rdp_fan(currPoints, currCenter);
 
   // Draw selected control point
   if ( controlPoint < currPoints->count){

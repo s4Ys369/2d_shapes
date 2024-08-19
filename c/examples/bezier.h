@@ -124,7 +124,7 @@ void bezier_draw(){
   );
 
   // Fill strips
-  set_render_color(BLUE);
+  set_render_color(T_BLUE);
   draw_filled_beziers(
     &bezierPoints->points[0], &bezierPoints->points[1], &bezierPoints->points[2], &bezierPoints->points[3],
     &basePoints->points[0], &basePoints->points[1], &basePoints->points[2], &basePoints->points[3],

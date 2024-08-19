@@ -1,10 +1,28 @@
 #include <libdragon.h>
+#include "rdpq/rdpq_fan.h"
 #include "point.h"
 #include "shapes.h"
 #include "render.h"
 
 void set_render_color(color_t color){
   rdpq_set_prim_color(color);
+}
+
+void set_random_render_color() {
+  const color_t colors[] = {
+    RED,
+    ORANGE,
+    YELLOW,
+    GREEN,
+    BLUE,
+    INDIGO,
+    VIOLET
+  };
+    
+  int index = rand() % 7;
+    
+  // Set the render color to the selected color
+  set_render_color(colors[index]);
 }
 
 void render_move_point(PointArray* pa, size_t index, float dx, float dy) {
@@ -110,15 +128,39 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
     }
 
     // Retrieve vertex coordinates
-    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1], 1.0f };
-    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1], 1.0f };
-    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1], 1.0f };
+    float v1[] = { vertices[idx1 * 2], vertices[idx1 * 2 + 1] };
+    float v2[] = { vertices[idx2 * 2], vertices[idx2 * 2 + 1] };
+    float v3[] = { vertices[idx3 * 2], vertices[idx3 * 2 + 1] };
 
     // Draw the triangle
-    rdpq_triangle(&TRIFMT_ZBUF, v1, v2, v3);
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
     triCount++;
     vertCount++;
   }
+}
+
+void draw_rdp_fan(const PointArray* pa, const Point center) {
+
+  float cv[] = { center.x, center.y };
+  float v1[] = { pa->points[0].x, pa->points[0].y };
+
+  rdpq_fan_begin(&TRIFMT_FILL, cv);
+  rdpq_fan_add_vertex(v1);
+  vertCount += 2;
+
+  for (size_t i = 0; i < pa->count; ++i) {
+    float vertex[] = { pa->points[i].x, pa->points[i].y };
+    //set_random_render_color();
+    rdpq_fan_add_vertex(vertex);
+    triCount++;
+    vertCount += 2;
+  }
+
+  //set_random_render_color();
+  rdpq_fan_end();
+  triCount++;
+  vertCount++;
+
 }
 
 // Function to draw a triangle fan from an array of points
@@ -154,12 +196,74 @@ void draw_fan(const PointArray* pa, const Point center) {
 // Function to draw a triangle fan from an array of points
 void draw_strip(float* v1, float* v2, float* v3, float* v4) {
 
-  rdpq_triangle(&TRIFMT_ZBUF, v1, v2, v3);
-  rdpq_triangle(&TRIFMT_ZBUF, v2, v4, v3);
+  rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+  rdpq_triangle(&TRIFMT_FILL, v2, v4, v3);
   triCount += 2;
   vertCount += 4;
 
 
+}
+
+// Function to draw a strip of triangles from an array of vertices
+void draw_strip_from_array(float* vertices, int vertexCount, float width) {
+  if (vertexCount < 2) {
+    debugf("Not enough vertices to draw a strip\n");
+    return;
+  }
+
+  // Calculate the number of quads and the total number of vertices needed
+  int quadCount = vertexCount - 1;
+  int totalVertices = quadCount * 8; // 8 floats per quad (4 vertices, 2 coords each)
+  float* stripVertices = (float*)malloc(totalVertices * sizeof(float));
+
+  if (!stripVertices) {
+    debugf("Strip vertices allocation failed\n");
+    return;
+  }
+
+  // Calculate perpendicular vectors for the width
+  for (int i = 0; i < vertexCount - 1; ++i) {
+    float dx = vertices[(i + 1) * 2] - vertices[i * 2];
+    float dy = vertices[(i + 1) * 2 + 1] - vertices[i * 2 + 1];
+    float length = sqrtf(dx * dx + dy * dy);
+    if (length == 0) {
+      continue; // Avoid division by zero for overlapping points
+    }
+    float ux = dy / length; // Unit perpendicular vector x
+    float uy = -dx / length; // Unit perpendicular vector y
+
+    // Calculate the offset for width
+    float offsetX = ux * width * 0.5f;
+    float offsetY = uy * width * 0.5f;
+
+    // Set vertices for the quad
+    int index = i * 8;
+    stripVertices[index] = vertices[i * 2] + offsetX;
+    stripVertices[index + 1] = vertices[i * 2 + 1] + offsetY;
+    stripVertices[index + 2] = vertices[i * 2] - offsetX;
+    stripVertices[index + 3] = vertices[i * 2 + 1] - offsetY;
+    stripVertices[index + 4] = vertices[(i + 1) * 2] + offsetX;
+    stripVertices[index + 5] = vertices[(i + 1) * 2 + 1] + offsetY;
+    stripVertices[index + 6] = vertices[(i + 1) * 2] - offsetX;
+    stripVertices[index + 7] = vertices[(i + 1) * 2 + 1] - offsetY;
+  }
+
+  // Draw the quads
+  for (int i = 0; i < quadCount; ++i) {
+    float v1[] = { stripVertices[i * 8], stripVertices[i * 8 + 1] };
+    float v2[] = { stripVertices[i * 8 + 2], stripVertices[i * 8 + 3] };
+    float v3[] = { stripVertices[i * 8 + 4], stripVertices[i * 8 + 5] };
+    float v4[] = { stripVertices[i * 8 + 6], stripVertices[i * 8 + 7] };
+
+    // Draw the two triangles for each quad
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
+    rdpq_triangle(&TRIFMT_FILL, v2, v4, v3);
+    triCount += 2;
+    vertCount += 4;
+  }
+
+  // Free the allocated memory
+  free(stripVertices);
 }
 
 // Draw a uniformed circle of any number of vertices as a triangle fan
@@ -234,10 +338,12 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   float cos_angle = fm_cosf(angle);
   float sin_angle = fm_sinf(angle);
 
-  // Initialize vert arrays
-  float* vertices = NULL;
-  int vertex_count = 0;
-  add_vertex(&vertices, &vertex_count, cx, cy);
+  // Initialize PointArray
+  PointArray pa = { .count = segments, .points = malloc(segments * sizeof(Point)) };
+  if (!pa.points) {
+    debugf("Point array allocation failed\n");
+    return;
+  }
 
   // Calculate perimeter vertices
   float x = rx;
@@ -249,7 +355,8 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
     // Apply rotation
     float rotatedX = x * cos_angle - y * sin_angle;
     float rotatedY = x * sin_angle + y * cos_angle;
-    add_vertex(&vertices, &vertex_count, cx + rotatedX, cy+ rotatedY);
+    pa.points[i].x = cx + rotatedX;
+    pa.points[i].y = cy + rotatedY;
 
     // Calculate next position from rotation matrix
     float nextX = cos_theta * x - sin_theta * y;
@@ -262,63 +369,11 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   }
 
   //debugf("Total vertices: %d\n", vertex_count);
+  draw_rdp_fan(&pa, pa.points[0]);
 
-  // Create indices for a triangle fan
-  int* indices = NULL;
-  int index_count = 0;
-  indices = create_triangle_fan_indices(indices, segments, &index_count);
+  free(pa.points);
 
-  //debugf("Total indices: %d\n", index_count);
 
-  // Draw the indexed vertices
-  draw_indexed_triangles(vertices, vertex_count, indices, index_count);
-
-  free(vertices);
-  free_uncached(indices);
-
-}
-
-// Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
-void draw_line_z(float x1, float y1, float x2, float y2, float thickness, float zDepth) {
-
-  // Check for subpixel thickness
-  if(thickness <= 0.9f){
-    thickness = 1.0f;
-  }
-
-  // Define points
-  Point start = point_new(x1, y1);
-  Point end = point_new(x2, y2);
-
-  // Calculate direction vector
-  Point direction = point_sub(&end, &start);
-  float length =  point_magnitude(&direction);
-
-  // Check for non-zero length and normalize
-  if (length != 0) {
-    point_normalize(&direction);
-  } else {
-    debugf("Line length cannot be 0");  
-    return;
-  }
-
-  // Calculate the perpendicular vector for the thickness
-  Point perp = point_new(-direction.y, direction.x); // Perpendicular to direction
-  perp = point_set_mag(&perp, thickness / 2); // Set the magnitude to half of the thickness
-
-  // Compute the points for the line
-  Point p1_left = { start.x + perp.x, start.y + perp.y };
-  Point p1_right = { start.x - perp.x, start.y - perp.y };
-  Point p2_left = { end.x + perp.x, end.y + perp.y };
-  Point p2_right = { end.x - perp.x, end.y - perp.y };
-
-  // Define vertices for two triangles to form the line with thickness
-  float v1[] = { p1_left.x, p1_left.y, zDepth};
-  float v2[] = { p1_right.x, p1_right.y, zDepth};
-  float v3[] = { p2_left.x, p2_left.y, zDepth};
-  float v4[] = { p2_right.x, p2_right.y, zDepth};
-
-  draw_strip(v1,v2,v3,v4);
 }
 
 // Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
@@ -362,10 +417,7 @@ void draw_line(float x1, float y1, float x2, float y2, float thickness) {
   float v4[] = { p2_right.x, p2_right.y };
 
   // Draw two triangles to form the line
-  rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
-  rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
-  triCount += 2; // Increment triangle count
-  vertCount += 4; // Increment vertex count
+  draw_strip(v1,v2,v3,v4);
 }
 
 // Function to draw a quad/rectangle of certain thickness with rotation and scale, using a 2 triangle strip
@@ -422,10 +474,7 @@ void draw_quad(float x1, float y1, float x2, float y2, float angle, float thickn
   float v4[] = { p2_right.x, p2_right.y };
 
   // Draw two triangles to form the line
-  rdpq_triangle(&TRIFMT_FILL, v1, v2, v3); // First triangle
-  rdpq_triangle(&TRIFMT_FILL, v2, v4, v3); // Second triangle
-  triCount += 2; // Increment triangle count
-  vertCount += 4; // Increment vertex count
+  draw_strip(v1,v2,v3,v4);
 }
 
 
