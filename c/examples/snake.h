@@ -217,11 +217,6 @@ void init_snakes(){
 }
 
 void draw_snakes(){
-    if(currShape != NULL) {
-        free(currShape->currPoints);
-        free_uncached(currShape);
-        currShape = NULL;
-    }
     snake_resolve(snake1, stickX, stickY);
     snake_resolve(snake2, -stickX, -stickY);
     snake_resolve(snake3, -stickX, stickY);

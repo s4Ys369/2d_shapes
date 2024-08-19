@@ -111,7 +111,7 @@ void reset_example() {
     set_lod(currShape, 0.05f);
     set_segments(currShape, 3);
     currPoints = get_points(fan);
-    controlPoint = currPoints->count;
+    controlPoint = 0;
   } else if (currShape == curve) {
     set_center(currShape, screenCenter);
     set_scaleX(currShape, 20.0f);
@@ -203,10 +203,17 @@ int main() {
     }
 
     if(example != SNAKES){
-      if(keysDown.a){
-        currAngle += rotation;
-      } else if (keysDown.b) {
-        currAngle -= rotation;
+
+      if(currShape == circle){
+        if(keys.a){
+          set_fill_color(circle, get_random_render_color());
+        }
+      } else {
+        if(keysDown.a){
+          currAngle += rotation;
+        } else if (keysDown.b) {
+          currAngle -= rotation;
+        }
       }
 
       if(currShape != curve) {
@@ -226,14 +233,7 @@ int main() {
         }
       }
 
-      if(currShape == circle){
-        if(keysDown.c_left){
-          increase_lod(currShape);
-        }
-        if(keysDown.c_down){
-          decrease_lod(currShape);
-        }
-      } else if(currShape != curve) {
+      if(currShape != curve) {
         // Fine tunes individual scales
         if(keysDown.c_up){
           increase_y_scale(currShape);
@@ -291,23 +291,20 @@ int main() {
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, 
         "Circle\n\n"
         "Diameter: %.0fpx\n"
-        "Rotation: %.0f\n"
         "Verts: %u\n"
         "LOD: %.2f\n"
         "Tris: %u\n"
         "FPS: %.2f\n"
         "CPU Time: %lldms\n\n"
-        "Stick to Move\n"
+        "Control Stick: Move\n"
         "R/Z: Scale\n"
-        "CL/CD: LOD\n"
-        "A/B: Rotate\n"
+        "A: Color\n"
         "Start: Reset Example\n"
-        "L: Switch Example\n"
+        "L: Switch Example\n\n"
         "RAM %dKB/%dKB",
         currRadiusX*2, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
-        rotationDegrees,
-        vertCount+1, // All triangles in the fan use the center vertex and previous vertex, so only accumulate 1 per draw, then add center here
-        currLOD,
+        vertCount,
+        triCount * 0.01f,
         triCount,
         display_get_fps(),
         drawTime ,
@@ -324,7 +321,7 @@ int main() {
         "Tris: %u\n"
         "FPS: %.2f\n"
         "CPU Time: %lldms\n"
-        "Stick to Move\n"
+        "Control Stick: Move\n"
         "R/Z: Scale\n"
         "CL/CR: X Scale\n"
         "CU/CD: Y Scale\n"
@@ -352,7 +349,7 @@ int main() {
         "Curve Tris: %u\n"
         "FPS: %.2f\n"
         "CPU Time: %lldms\n\n"
-        "Stick to Move\n"
+        "Control Stick: Move\n"
         "Z/R: Cycle Segments\n"
         "CL/CD: Cycle Control\n"
         "A/B: Rotate\n"
@@ -382,7 +379,7 @@ int main() {
         "Tris: %u\n"
         "FPS: %.2f\n"
         "CPU Time: %lldms\n"
-        "Stick to Move\n"
+        "Control Stick: Move\n"
         "R/Z: Scale\n"
         "CL/CR: X Scale\n"
         "CU/CD: Y Scale\n"
@@ -398,7 +395,7 @@ int main() {
         currSegments,
         controlPoint+1, // Point being transformed, where the last of the current Points is the center of the fan
         vertCount - 14, // Subtract the UX circle's verts
-        triCount - 13, // Subtract the UX circle's tris
+        triCount - 12, // Subtract the UX circle's tris
         display_get_fps(),
         drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)
