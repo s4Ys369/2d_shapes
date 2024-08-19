@@ -2,10 +2,14 @@
 
 #include "examples/globals.h"
 #include "examples/control.h"
+
 #include "examples/bezier.h"
 #include "examples/circle.h"
 #include "examples/quad.h"
 #include "examples/fan.h"
+
+#include "examples/chain.h"
+#include "examples/snake.h"
 
 #include "rspq_constants.h"
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
@@ -64,29 +68,31 @@ void setup() {
   create_quad();
   create_fan();
   create_bezier();
+  init_snakes();
 
   // For quick fan testing
-  example = 2;
+  example = CIRCLE;
 
-  
-  
 }
 
 // Main rendering function
 void draw() {
   
   switch (example) {
-    case 0:
+    case CIRCLE:
       circle_draw();
       break;
-    case 1:
+    case QUAD:
       quad_draw();
       break;
-    case 2:
+    case FAN:
       fan_draw();
       break;
-    case 3:
+    case BEZIER:
       bezier_draw();
+      break;
+    case SNAKES:
+      draw_snakes();
       break;
   }
 
@@ -114,18 +120,20 @@ void reset_example() {
     set_segments(currShape, 10);
     controlPoint = 0;
     resetCurve = 1;
-  } else { // Quad
+  } else  if (currShape == quad) { // Quad
     set_center(currShape, screenCenter);
     set_scaleX(currShape, 20.0f);
     set_scaleY(currShape, 20.0f);
     set_thickness(currShape, 0.01f);
+  } else {
+    return;
   }
 }
 
 void switch_example() {
   reset_example();
-  if (++example > 3) {
-    example = 0;
+  if (++example > SNAKES) {
+    example = CIRCLE;
   }
 }
 
@@ -172,6 +180,12 @@ int main() {
       reset_example();
     }
 
+    if(example != SNAKES){
+      if(currShape == NULL) {
+        shape_control_init();
+      }
+    }
+
 
 //=========== ~ UPDATE ~ ==============//
 
@@ -188,74 +202,78 @@ int main() {
       rotationDegrees = 0;
     }
 
-    if(keysDown.a){
-      currAngle += rotation;
-    } else if (keysDown.b) {
-      currAngle -= rotation;
-    }
-
-    if(currShape != curve) {
-      // Adjust single scale shape
-      if(keysDown.r){
-        increase_scale(currShape);
-      }
-      if(keysDown.z){ // CHANGE: Z for console
-        decrease_scale(currShape);
-      }
-    } else {
-      if(keys.r){
-        decrease_segments(currShape);
-      }
-      if(keys.z){ // CHANGE: Z for console
-        increase_segments(currShape);
-      }
-    }
-
-    if(currShape == circle){
-      if(keysDown.c_left){
-        increase_lod(currShape);
-      }
-      if(keysDown.c_down){
-        decrease_lod(currShape);
-      }
-    } else if(currShape != curve) {
-      // Fine tunes individual scales
-      if(keysDown.c_up){
-        increase_y_scale(currShape);
-      }
-      if(keysDown.c_down){
-        decrease_y_scale(currShape);
-      }
-      if(keysDown.c_right){
-        increase_x_scale(currShape);
-      }  
-      if(keysDown.c_left){
-        decrease_x_scale(currShape);
+    if(example != SNAKES){
+      if(keysDown.a){
+        currAngle += rotation;
+      } else if (keysDown.b) {
+        currAngle -= rotation;
       }
 
-      // Specific to fan example
-      if(currShape == fan) {
-        if(keys.d_up){
-          increase_segments(currShape);
+      if(currShape != curve) {
+        // Adjust single scale shape
+        if(keysDown.r){
+          increase_scale(currShape);
         }
-        if(keys.d_down){
+        if(keysDown.z){ // CHANGE: Z for console
+          decrease_scale(currShape);
+        }
+      } else {
+        if(keys.r){
           decrease_segments(currShape);
         }
-        if(keys.d_right){
-          cycle_control_point();
-        }  
-        if(keys.d_left){
-          cycle_control_point();
+        if(keys.z){ // CHANGE: Z for console
+          increase_segments(currShape);
         }
       }
 
+      if(currShape == circle){
+        if(keysDown.c_left){
+          increase_lod(currShape);
+        }
+        if(keysDown.c_down){
+          decrease_lod(currShape);
+        }
+      } else if(currShape != curve) {
+        // Fine tunes individual scales
+        if(keysDown.c_up){
+          increase_y_scale(currShape);
+        }
+        if(keysDown.c_down){
+          decrease_y_scale(currShape);
+        }
+        if(keysDown.c_right){
+          increase_x_scale(currShape);
+        }  
+        if(keysDown.c_left){
+          decrease_x_scale(currShape);
+        }
+
+        // Specific to fan example
+        if(currShape == fan) {
+          if(keys.d_up){
+            increase_segments(currShape);
+          }
+          if(keys.d_down){
+            decrease_segments(currShape);
+          }
+          if(keys.d_right){
+            cycle_control_point();
+          }  
+          if(keys.d_left){
+            cycle_control_point();
+          }
+        }
+
+      } else {
+        if(keys.c_down){
+          cycle_bezier_points();
+        }
+        if(keys.c_left){
+          cycle_bezier_points();
+        }
+      }
     } else {
-      if(keys.c_down){
-        cycle_bezier_points();
-      }
-      if(keys.c_left){
-        cycle_bezier_points();
-      }
+      if(keysDown.a)chain_display(snake1->spine, 3.0f);
     }
 
 
@@ -268,7 +286,7 @@ int main() {
 
 
 
-    if(currShape == circle){
+    if(example == CIRCLE){
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, 
         "Circle\n\n"
@@ -295,7 +313,7 @@ int main() {
         drawTime ,
         (ramUsed / 1024), (get_memory_size() / 1024)
       );
-    } else if (currShape == quad) {
+    } else if (example == QUAD) {
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
         "Quad\n"
@@ -323,7 +341,7 @@ int main() {
         drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)
       );
-    } else if (currShape == curve) {
+    } else if (example == BEZIER) {
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
         "Bezier Curves with Fill\n\n"
@@ -353,7 +371,7 @@ int main() {
         drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)
       );
-    } else {
+    } else if (example == FAN) {
 
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 14, // sorry overscan sufferers
         "Triangle Fan\n"
@@ -384,6 +402,25 @@ int main() {
         display_get_fps(),
         drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)
+      );
+    } else if (example == SNAKES) {
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 32,
+        "Snakes\n"
+        "(Triangle Strip\n"
+        "per Joint)\n\n"
+        "Total Tris: %u\n"
+        "Joints: %d\n\n"
+        "RAM: %dKB/%dKB\n"
+        "FPS: %.2f\n"
+        "CPU Time: %lldms\n\n"
+        "Control Stick: Move\n"
+        "A: Display Spine\n"
+        "L: Switch Example\n",
+        triCount,
+        snake1->spine->joints->count,
+        (ramUsed / 1024), (get_memory_size() / 1024),
+        display_get_fps(),
+        drawTime
       );
     }
 

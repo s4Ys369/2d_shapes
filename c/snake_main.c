@@ -99,31 +99,32 @@ int main() {
 
     jpTime = get_ticks_ms() - secondTime; // set input time
 
-//=========== ~ UPDATE ~ ==============//
     snake_resolve(snake1, stickX, stickY);
-    draw_snake_shape(snake1);
     snake_resolve(snake2, -stickX, -stickY);
-    draw_snake_shape(snake2);
     snake_resolve(snake3, -stickX, stickY);
-    draw_snake_shape(snake3);
     snake_resolve(snake4, stickX, -stickY);
+    draw_snake_shape(snake1);
+    draw_snake_shape(snake2);
+    draw_snake_shape(snake3);
     draw_snake_shape(snake4);
-//=========== ~ CONTROLS ~ ==============//
-    if(keysDown.a)chain_display(snake1->spine, 2.0f);
+    if(keysDown.a)chain_display(snake1->spine, 3.0f);
+
 //=========== ~ UI ~ =============//
 
     if(frameCounter > 59){
       drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // CPU time after draw and transform
       frameCounter = 0;
     }
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 100,
+    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 50,
       "Snakes\n"
       "(Triangle Strip\n"
       "per Joint)\n\n"
       "Total Tris: %u\n"
       "Joints: %d\n\n"
       "RAM: %dKB/%dKB\n"
-      "FPS: %.2f\n",
+      "FPS: %.2f\n\n"
+      "Control Stick: Move\n"
+      "A: Display Spine\n",
       triCount,
       snake1->spine->joints->count,
       (ramUsed / 1024), (get_memory_size() / 1024),

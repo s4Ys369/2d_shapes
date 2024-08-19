@@ -101,35 +101,26 @@ void chain_display(Chain* chain, float width) {
     }
 
     int jointCount = chain->joints->count;
-    if (jointCount < 2) {
-        debugf("Not enough joints to display\n");
+    if (jointCount < 4) {
+        debugf("Not enough joints to display Bézier curves\n");
         return;
     }
 
-    // Prepare vertices for the strip
-    float* vertices = (float*)malloc(jointCount * 2 * sizeof(float));
-    if (!vertices) {
-        debugf("Vertices allocation failed\n");
-        return;
-    }
 
-    for (int i = 0; i < jointCount; ++i) {
-        vertices[i * 2] = chain->joints->points[i].x;
-        vertices[i * 2 + 1] = chain->joints->points[i].y;
-    }
+    // Loop through joints in groups of 4 to draw Bézier curves
+    set_render_color(YELLOW);
+    for (int i = 0; i < jointCount - 3; i += 3) { // Increment by 3 for the Bézier curves
+        // Control points for the Bézier curve
+        Point* p0 = &chain->joints->points[i];
+        Point* p1 = &chain->joints->points[i + 1];
+        Point* p2 = &chain->joints->points[i + 2];
+        Point* p3 = &chain->joints->points[i + 3];
 
-    // Draw the chain as a wide strip
-    set_render_color(BLACK);
-    draw_strip_from_array(vertices, jointCount, width);
-
-    // Draw circles at each joint
-    for (int i = 0; i < jointCount; ++i) {
+        set_render_color(BLACK);
+        draw_bezier_curve(p0, p1, p2, p3, 1, 0.0f, width*2.0f);
         set_render_color(YELLOW);
-        draw_circle(chain->joints->points[i].x, chain->joints->points[i].y, 1.5f, 1.0f, 0.0f, 0.05f);
+        draw_bezier_curve(p0, p1, p2, p3, 1, 0.0f, width);
     }
-
-    // Free the allocated memory
-    free(vertices);
 }
 
 #endif // CHAIN_H

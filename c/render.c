@@ -338,10 +338,12 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   float cos_angle = fm_cosf(angle);
   float sin_angle = fm_sinf(angle);
 
-  // Initialize vert arrays
-  float* vertices = NULL;
-  int vertex_count = 0;
-  add_vertex(&vertices, &vertex_count, cx, cy);
+  // Initialize PointArray
+  PointArray pa = { .count = segments, .points = malloc(segments * sizeof(Point)) };
+  if (!pa.points) {
+    debugf("Point array allocation failed\n");
+    return;
+  }
 
   // Calculate perimeter vertices
   float x = rx;
@@ -353,7 +355,8 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
     // Apply rotation
     float rotatedX = x * cos_angle - y * sin_angle;
     float rotatedY = x * sin_angle + y * cos_angle;
-    add_vertex(&vertices, &vertex_count, cx + rotatedX, cy+ rotatedY);
+    pa.points[i].x = cx + rotatedX;
+    pa.points[i].y = cy + rotatedY;
 
     // Calculate next position from rotation matrix
     float nextX = cos_theta * x - sin_theta * y;
@@ -366,19 +369,10 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   }
 
   //debugf("Total vertices: %d\n", vertex_count);
+  draw_rdp_fan(&pa, pa.points[0]);
 
-  // Create indices for a triangle fan
-  int* indices = NULL;
-  int index_count = 0;
-  indices = create_triangle_fan_indices(indices, segments, &index_count);
+  free(pa.points);
 
-  //debugf("Total indices: %d\n", index_count);
-
-  // Draw the indexed vertices
-  draw_indexed_triangles(vertices, vertex_count, indices, index_count);
-
-  free(vertices);
-  free_uncached(indices);
 
 }
 

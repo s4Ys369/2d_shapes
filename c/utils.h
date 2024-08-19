@@ -8,7 +8,7 @@
 
 
 // Define whether to use RDPQ Validate
-#define DEBUG_RDPQ
+//#define DEBUG_RDPQ
 
 // Math constants
 #ifndef M_PI
@@ -59,6 +59,8 @@ Point constrain_distance(Point pos, Point anchor, float constraint);
 float simplify_angle(float angle);
 float rel_angle_diff(float angle, float anchor);
 float constrain_angle(float angle, float anchor, float constraint);
+
+void get_perp(const Point* p1, const Point* p2, float* perpX, float* perpY);
 
 // Controller specific
 extern const float DEADZONE;

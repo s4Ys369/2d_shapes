@@ -97,6 +97,19 @@ float constrain_angle(float angle, float anchor, float constraint) {
 
 // End of anim-proc-anim functions //
 
+// Function to compute the perpendicular vector
+void get_perp(const Point* p1, const Point* p2, float* perpX, float* perpY) {
+    float dx = p2->x - p1->x;
+    float dy = p2->y - p1->y;
+    float length = sqrtf(dx * dx + dy * dy);
+
+    // Normalize and then compute the perpendicular
+    if(length != 0) {
+        *perpX = -dy / length;
+        *perpY = dx / length;
+    }
+}
+
 // Function to apply deadzone to a joystick axis input
 const float DEADZONE = 20.0f;
 float apply_deadzone(float value) {
