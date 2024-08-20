@@ -214,8 +214,14 @@ int main() {
       case QUAD:
         rdpq_sync_pipe();
         // Scale
-        if(keysDown.r)increase_scale(currShape);
-        if(keysDown.z)decrease_scale(currShape);
+        if(keysDown.r){
+          increase_x_scale(currShape);
+          increase_y_scale(currShape);
+        }
+        if(keysDown.z) {
+          decrease_x_scale(currShape);
+          decrease_y_scale(currShape);
+        }
         if(keysDown.c_up)increase_y_scale(currShape);
         if(keysDown.c_down)decrease_y_scale(currShape);
         if(keysDown.c_right)increase_x_scale(currShape);
@@ -230,8 +236,14 @@ int main() {
       case FAN:
         rdpq_sync_pipe();
         // Scale
-        if(keysDown.r)increase_scale(currShape);
-        if(keysDown.z)decrease_scale(currShape);
+        if(keysDown.r){
+          increase_x_scale(currShape);
+          increase_y_scale(currShape);
+        }
+        if(keysDown.z) {
+          decrease_x_scale(currShape);
+          decrease_y_scale(currShape);
+        }
         if(keysDown.c_up)increase_y_scale(currShape);
         if(keysDown.c_down)decrease_y_scale(currShape);
         if(keysDown.c_right)increase_x_scale(currShape);
@@ -315,9 +327,9 @@ int main() {
         "FPS: %.2f\n"
         "CPU Time: %lldms\n"
         "Control Stick: Move\n"
-        "R/Z: Length\n"
-        "CL/CR: X Scale\n"
-        "CU/CD: Y Scale\n"
+        "R/Z: Scale\n"
+        "CL/CR: Width\n"
+        "CU/CD: Height\n"
         "A/B: Rotate\n"
         "Start: Reset Example\n"
         "L: Switch Example\n"
