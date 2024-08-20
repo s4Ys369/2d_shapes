@@ -197,6 +197,7 @@ void draw_strip(float* v1, float* v2, float* v3, float* v4) {
 
   rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
   rdpq_triangle(&TRIFMT_FILL, v2, v4, v3);
+  rdpq_sync_pipe();
   triCount += 2;
   vertCount += 4;
 
