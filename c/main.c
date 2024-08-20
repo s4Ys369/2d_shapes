@@ -153,7 +153,7 @@ int main() {
     rdpq_sync_pipe();
     rdpq_set_mode_standard();
     rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
-    if(example == FAN || example == BEZIER){
+    if(example == FAN || example == BEZIER || example == SNAKES){
       rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
     } else {
       rdpq_mode_blender(0);
