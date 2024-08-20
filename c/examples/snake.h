@@ -91,8 +91,26 @@ void snake_resolve(Snake* snake, float stickX, float stickY) {
     Point direction = point_new(adjustedX, -adjustedY);
     point_normalize(&direction);
 
+    // Limit movement to inside screen with offset
+    float offset = 16.0f;
+    float width = (float)screenWidth;
+    float height = (float)screenHeight;
+
+    if (headPos.x < offset) {
+        headPos.x = offset;
+    }
+    if (headPos.x > width - offset) {
+        headPos.x = width - offset;
+    }
+    if (headPos.y < offset) {
+        headPos.y = offset;
+    }
+    if (headPos.y > height - offset) {
+        headPos.y = height - offset;
+    }
+
     // Determine the target position based on the direction and a fixed magnitude
-    float move_mag = 3.0f;
+    float move_mag = 6.9f; // ;]
     direction = point_set_mag(&direction, move_mag);
     Point targetPos = point_sub(&headPos, &direction);
     chain_resolve(snake->spine, targetPos);
@@ -204,22 +222,22 @@ void draw_snake_shape(Snake* snake, Point* verts, Point* shadowVerts) {
 
 void init_snakes(){
     snake1 = (Snake*)malloc_uncached(sizeof(Snake));
-    snake_init(snake1, screenCenter, SNAKE_SEGMENTS, RED);
+    snake_init(snake1, screenCenter, SNAKE_SEGMENTS, N_RED);
     snake1Verts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
     snake1ShadowVerts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
 
     snake2 = (Snake*)malloc_uncached(sizeof(Snake));
-    snake_init(snake2, screenCenter, SNAKE_SEGMENTS, BLUE);
+    snake_init(snake2, screenCenter, SNAKE_SEGMENTS, N_GREEN);
     snake2Verts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
     snake2ShadowVerts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
 
     snake3 = (Snake*)malloc_uncached(sizeof(Snake));
-    snake_init(snake3, screenCenter, SNAKE_SEGMENTS, ORANGE);
+    snake_init(snake3, screenCenter, SNAKE_SEGMENTS, N_YELLOW);
     snake3Verts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
     snake3ShadowVerts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
 
     snake4 = (Snake*)malloc_uncached(sizeof(Snake));
-    snake_init(snake4, screenCenter, SNAKE_SEGMENTS, INDIGO);
+    snake_init(snake4, screenCenter, SNAKE_SEGMENTS, N_BLUE);
     snake4Verts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
     snake4ShadowVerts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
 }

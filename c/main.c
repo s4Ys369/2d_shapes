@@ -71,7 +71,7 @@ void setup() {
   init_snakes();
 
   // For quick fan testing
-  example = CIRCLE;
+  example = SNAKES;
 
 }
 
@@ -143,6 +143,12 @@ int main() {
   bootTime = get_ticks_ms();
 
   for (;;) {
+
+    if(example == SNAKES) {
+      display_set_fps_limit(30.0f); // FIXME TODO YOU WILL BE 60 MY LITTLE FRIENDS
+    } else {
+      display_set_fps_limit(0); // Disable limiter
+    }
 
     firstTime = get_ticks_ms();// set loop time
 
@@ -294,7 +300,7 @@ int main() {
         triCount * 0.01f,
         triCount,
         display_get_fps(),
-        drawTime ,
+        drawTime,
         (ramUsed / 1024), (get_memory_size() / 1024)
       );
     } else if (example == QUAD) {
@@ -404,7 +410,7 @@ int main() {
         snake1->spine->joints->count,
         (ramUsed / 1024), (get_memory_size() / 1024),
         display_get_fps(),
-        drawTime
+        (drawTime + (drawTime % 2)) / 2 // Because of the frame limiter
       );
     }
 

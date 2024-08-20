@@ -50,6 +50,11 @@ const color_t T_GREY = (color_t){192, 192, 192, 200};
 const color_t DARK_RED = (color_t){130, 0, 0, 255};
 const color_t DARK_GREEN = (color_t){0, 100, 0, 255};
 
+const color_t N_RED = (color_t){225, 9, 22, 255};
+const color_t N_YELLOW = (color_t){245, 178, 1, 255};
+const color_t N_GREEN = (color_t){50, 153, 0, 255};
+const color_t N_BLUE = (color_t){1, 0, 154, 255};
+
 // Start of anim-proc-anim functions //
 
 // Function to adjust a point's position to be within a certain range relative to an anchor point, constrained by a given amount
