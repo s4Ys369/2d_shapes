@@ -21,6 +21,8 @@
 #include <libdragon.h>
 #include "chain.h"
 
+#define SNAKE_SEGMENTS 32
+#define SNAKE_MAX_VERTS (SNAKE_SEGMENTS*4)
 
 typedef struct {
     Chain* spine;
@@ -30,9 +32,20 @@ typedef struct {
 } Snake;
 
 Snake* snake1;
+Point* snake1Verts;
+Point* snake1ShadowVerts;
+
 Snake* snake2;
+Point* snake2Verts;
+Point* snake2ShadowVerts;
+
 Snake* snake3;
+Point* snake3Verts;
+Point* snake3ShadowVerts;
+
 Snake* snake4;
+Point* snake4Verts;
+Point* snake4ShadowVerts;
 
 void snake_init(Snake* snake, Point origin, int jointCount, color_t color) {
 
@@ -98,36 +111,29 @@ float snake_get_posY(Snake* snake, int i, float angleOffset, float lengthOffset)
 }
 
 
-void draw_snake_shape(Snake* snake) {
-
+void draw_snake_shape(Snake* snake, Point* verts, Point* shadowVerts) {
     int vertexCount = 0;
-    // 2 verts per joint (1 for each side), as well as 1 vert for each the start, midpoint, and end of the loop
-    int maxVertices = (snake->spine->joints->count * 2) + 3; 
 
-    Point* vertices = (Point*)malloc(maxVertices * sizeof(Point));
-    
-    if (!vertices) {
-        debugf("Vertics allocation falied\n");
-        return;
-    }
+    Point* vertices = verts;
+    Point* scaled_vertices = shadowVerts;
 
     // Right half of the snake
     for (size_t i = 0; i < snake->spine->joints->count; i++) {
-      vertices[vertexCount].x = snake_get_posX(snake, i, M_PI / 2, 0);
-      vertices[vertexCount].y = snake_get_posY(snake, i, M_PI / 2, 0);
-      vertexCount++;
+        vertices[vertexCount].x = snake_get_posX(snake, i, M_PI / 2, 0);
+        vertices[vertexCount].y = snake_get_posY(snake, i, M_PI / 2, 0);
+        vertexCount++;
     }
 
-    // Top of the head (completes the loop)
+    // Top of the head
     vertices[vertexCount].x = snake_get_posX(snake, snake->spine->joints->count - 1, M_PI, 0);
     vertices[vertexCount].y = snake_get_posY(snake, snake->spine->joints->count - 1, M_PI, 0);
     vertexCount++;
 
     // Left half of the snake
     for (int i = snake->spine->joints->count - 1; i >= 1; --i) {
-      vertices[vertexCount].x = snake_get_posX(snake, i, -M_PI / 2, 0);
-      vertices[vertexCount].y = snake_get_posY(snake, i, -M_PI / 2, 0);
-      vertexCount++;
+        vertices[vertexCount].x = snake_get_posX(snake, i, -M_PI / 2, 0);
+        vertices[vertexCount].y = snake_get_posY(snake, i, -M_PI / 2, 0);
+        vertexCount++;
     }
 
     // Add vertices to complete the loop
@@ -152,19 +158,13 @@ void draw_snake_shape(Snake* snake) {
 
     // Scale the vertices outward for shadow
     float e = 0.1f;
-    Point* scaled_vertices = (Point*)malloc(vertexCount * sizeof(Point));
-    if (!scaled_vertices) {
-        debugf("Scaled vertices allocation failed\n");
-        free(vertices);
-        return;
-    }
     float scale = 1.0f + e;
     for (int i = 0; i < vertexCount; ++i) {
         scaled_vertices[i] = point_scale(&center, &vertices[i], scale);
     }
 
+    // Draw drop shadow and snake body
     for (int i = 0; i < snake->spine->joints->count - 1; ++i) {
-
         float v1S[] = { scaled_vertices[i].x, scaled_vertices[i].y };
         float v2S[] = { scaled_vertices[i + 1].x, scaled_vertices[i + 1].y };
         float v3S[] = { scaled_vertices[vertexCount - 1 - i].x, scaled_vertices[vertexCount - 1 - i].y };
@@ -172,59 +172,70 @@ void draw_snake_shape(Snake* snake) {
 
         // Draw drop shadow
         set_render_color(T_BLACK);
-        draw_strip(v1S,v2S,v3S,v4S); 
+        draw_strip(v1S, v2S, v3S, v4S);
     }
 
+    // It is necessary to draw the shadow and body in separate loops, or they interlace
     for (int i = 0; i < snake->spine->joints->count - 1; ++i) {
-        // Draw a triangle between two points on the right edge and two points on the left edge
+        // Draw snake body
         float v1[] = { vertices[i].x, vertices[i].y };
         float v2[] = { vertices[i + 1].x, vertices[i + 1].y };
         float v3[] = { vertices[vertexCount - 1 - i].x, vertices[vertexCount - 1 - i].y };
         float v4[] = { vertices[vertexCount - 2 - i].x, vertices[vertexCount - 2 - i].y };
         
-        // Draw snake body
         set_render_color(snake->color); 
-        draw_strip(v1,v2,v3,v4);     
-        
+        draw_strip(v1, v2, v3, v4);
     }
 
-
-    // Draw eye outline
-    set_render_color(DARK_GREEN);
-    draw_circle(snake_get_posX(snake, 0, M_PI / 2, -2), snake_get_posY(snake, 0, M_PI / 2, -2), 2.0f, 1.0f, 0.0f, 0.05f);
-    draw_circle(snake_get_posX(snake, 0, -M_PI / 2, -2), snake_get_posY(snake,0, -M_PI / 2, -2), 2.0f, 1.0f, 0.0f, 0.05f);
-
     // Draw eyes
+    float rightEyeOffsetX = snake_get_posX(snake, 0, M_PI / 2, -2);
+    float rightEyeOffsetY = snake_get_posY(snake, 0, M_PI / 2, -2);
+    float leftEyeOffsetX = snake_get_posX(snake, 0, -M_PI / 2, -2);
+    float leftEyeOffsetY = snake_get_posY(snake, 0, -M_PI / 2, -2);
+
+    set_render_color(DARK_GREEN);
+    draw_circle(rightEyeOffsetX, rightEyeOffsetY, 2.0f, 1.0f, 0.0f, 0.05f);
+    draw_circle(leftEyeOffsetX, leftEyeOffsetY, 2.0f, 1.0f, 0.0f, 0.05f);
+
     set_render_color(GREEN);
-    draw_circle(snake_get_posX(snake, 0, M_PI / 2, -2), snake_get_posY(snake, 0, M_PI / 2, -2), 1.0f, 1.0f, 0.0f, 0.05f);
-    draw_circle(snake_get_posX(snake, 0, -M_PI / 2, -2), snake_get_posY(snake, 0, -M_PI / 2, -2), 1.0f, 1.0f, 0.0f, 0.05f);
-
-    // Free vertices after drawing
-    free(vertices);
-    free(scaled_vertices);
-
+    draw_circle(rightEyeOffsetX, rightEyeOffsetY, 1.0f, 1.0f, 0.0f, 0.05f);
+    draw_circle(leftEyeOffsetX, leftEyeOffsetY, 1.0f, 1.0f, 0.0f, 0.05f);
 }
 
 void init_snakes(){
     snake1 = (Snake*)malloc_uncached(sizeof(Snake));
-    snake_init(snake1, screenCenter, 32, RED);
+    snake_init(snake1, screenCenter, SNAKE_SEGMENTS, RED);
+    snake1Verts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
+    snake1ShadowVerts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
+
     snake2 = (Snake*)malloc_uncached(sizeof(Snake));
-    snake_init(snake2, screenCenter, 32, BLUE);
+    snake_init(snake2, screenCenter, SNAKE_SEGMENTS, BLUE);
+    snake2Verts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
+    snake2ShadowVerts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
+
     snake3 = (Snake*)malloc_uncached(sizeof(Snake));
-    snake_init(snake3, screenCenter, 32, ORANGE);
+    snake_init(snake3, screenCenter, SNAKE_SEGMENTS, ORANGE);
+    snake3Verts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
+    snake3ShadowVerts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
+
     snake4 = (Snake*)malloc_uncached(sizeof(Snake));
-    snake_init(snake4, screenCenter, 32, INDIGO);
+    snake_init(snake4, screenCenter, SNAKE_SEGMENTS, INDIGO);
+    snake4Verts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
+    snake4ShadowVerts = malloc(sizeof(Point) * SNAKE_MAX_VERTS);
 }
 
 void draw_snakes(){
     snake_resolve(snake1, stickX, stickY);
+    draw_snake_shape(snake1, snake1Verts, snake1ShadowVerts);
+
     snake_resolve(snake2, -stickX, -stickY);
+    draw_snake_shape(snake2, snake2Verts, snake2ShadowVerts);
+
     snake_resolve(snake3, -stickX, stickY);
+    draw_snake_shape(snake3, snake3Verts, snake3ShadowVerts);
+
     snake_resolve(snake4, stickX, -stickY);
-    draw_snake_shape(snake1);
-    draw_snake_shape(snake2);
-    draw_snake_shape(snake3);
-    draw_snake_shape(snake4);
+    draw_snake_shape(snake4, snake4Verts, snake4ShadowVerts);
     
 }
 

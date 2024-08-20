@@ -5,6 +5,7 @@
 #include "render.h"
 
 void set_render_color(color_t color){
+  rdpq_sync_pipe();
   rdpq_set_prim_color(color);
 }
 

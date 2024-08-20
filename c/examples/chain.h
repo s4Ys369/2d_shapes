@@ -57,23 +57,39 @@ void chain_init(Chain* chain, Point origin, size_t jointCount, int linkSize, flo
 }
 
 void chain_resolve(Chain* chain, Point pos) {
-    if (chain->joints->count > 0) {
-        chain->angles[0] = point_heading(point_sub(&pos, &chain->joints->points[1]));
-        chain->joints->points[0] = pos;
 
-        float precomputedLinkSize = chain->linkSize; // Assuming chain->linkSize doesn't change
-        float precomputedConstraint = chain->angleConstraint; // Assuming chain->angleConstraint doesn't change
-
-        for (size_t i = 1; i < chain->joints->count; i++) {
-            // Use precomputed values
-            float currAngle = point_heading(point_sub(&chain->joints->points[i - 1], &chain->joints->points[i]));
-            chain->angles[i] = constrain_angle(currAngle, chain->angles[i - 1], precomputedConstraint);
-            Point anglePoint = point_from_angle(chain->angles[i]);
-            Point offset = point_set_mag(&anglePoint, precomputedLinkSize);
-            chain->joints->points[i] = point_sub(&chain->joints->points[i - 1], &offset);
-        }
-    } else {
+    // 0 length check
+    if (chain->joints->count == 0) {
         debugf("Error: Chain has no joints\n");
+        return;
+    }
+
+    // Initialize the first joint's angle and position
+    chain->angles[0] = point_heading(point_sub(&pos, &chain->joints->points[1]));
+    chain->joints->points[0] = pos;
+
+    // In the snake example, these are constants
+    float precomputedLinkSize = chain->linkSize; 
+    float precomputedConstraint = chain->angleConstraint;
+
+    // Pointers to chain arrays
+    Point* points = chain->joints->points;
+    float* angles = chain->angles;
+
+    // For every count except the first
+    for (size_t i = 1; i < chain->joints->count; i++) {
+        // Get the distance to the last point
+        Point diff = point_sub(&points[i - 1], &points[i]);
+
+        // Calculate angle from direction to last point
+        angles[i] = constrain_angle(point_heading(diff), angles[i - 1], precomputedConstraint);
+
+        // Calculate the translation offest
+        Point offset = point_from_angle(angles[i]);
+        point_set_mag_in_place(&offset, precomputedLinkSize);
+
+        // Get next position from difference
+        points[i] = point_sub(&points[i - 1], &offset);
     }
 }
 

@@ -153,7 +153,11 @@ int main() {
     rdpq_sync_pipe();
     rdpq_set_mode_standard();
     rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
-    rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+    if(example == FAN || example == BEZIER){
+      rdpq_mode_blender(RDPQ_BLENDER_MULTIPLY);
+    } else {
+      rdpq_mode_blender(0);
+    }
 
     dispTime = get_ticks_ms() - firstTime; // set display time
     secondTime = get_ticks_ms();
@@ -195,12 +199,14 @@ int main() {
     switch(example){
       case CIRCLE:
         // Color
-          if(keys.a)set_fill_color(currShape, get_random_render_color());
+        rdpq_sync_pipe();
+        if(keys.a)set_fill_color(currShape, get_random_render_color());
         // Scale
         if(keysDown.r)increase_scale(currShape);
         if(keysDown.z)decrease_scale(currShape);
         break;
       case QUAD:
+        rdpq_sync_pipe();
         // Scale
         if(keysDown.r)increase_scale(currShape);
         if(keysDown.z)decrease_scale(currShape);
@@ -216,6 +222,7 @@ int main() {
         }
         break;
       case FAN:
+        rdpq_sync_pipe();
         // Scale
         if(keysDown.r)increase_scale(currShape);
         if(keysDown.z)decrease_scale(currShape);
@@ -236,6 +243,7 @@ int main() {
         }
         break;
       case BEZIER:
+        rdpq_sync_pipe();
         // Segments
         if(keys.r)decrease_segments(currShape);
         if(keys.z)increase_segments(currShape);
@@ -250,6 +258,7 @@ int main() {
         }
         break;
       case SNAKES:
+        rdpq_sync_pipe();
         if(keysDown.a)chain_display(snake1->spine, 3.0f);
         break;
     }
@@ -300,7 +309,7 @@ int main() {
         "FPS: %.2f\n"
         "CPU Time: %lldms\n"
         "Control Stick: Move\n"
-        "R/Z: Scale\n"
+        "R/Z: Length\n"
         "CL/CR: X Scale\n"
         "CU/CD: Y Scale\n"
         "A/B: Rotate\n"

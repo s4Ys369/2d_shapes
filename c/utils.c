@@ -66,33 +66,20 @@ Point constrain_distance(Point pos, Point anchor, float constraint) {
 
 // Function to normalize an angle to be within the range [0,2pi]
 float simplify_angle(float angle) {
-  // Modulus operation to bring the angle within [0, 2*pi)
-  angle = fmodf(angle, TWO_PI);
-    
-  // If the angle is negative, bring it to the positive equivalent within [0, 2*pi)
-  angle += (angle < 0) ? TWO_PI : 0;
-    
-  return angle;
+  return angle - TWO_PI * fm_floorf(angle / TWO_PI);
 }
 
 // Function to compute the relative angular difference between a given angle and an anchor angle, adjusted by pi
 float rel_angle_diff(float angle, float anchor) {
-  float diff = simplify_angle(angle - anchor);
-  return fmodf(diff + M_PI, TWO_PI) - M_PI; // Normalize within [-π, π]
+  float diff = angle - anchor;
+  return diff - TWO_PI * roundf(diff / TWO_PI);
 }
 
 // Function to adjust an angle to be within a certain angular range relative to an anchor angle, constrained by a given amount
 float constrain_angle(float angle, float anchor, float constraint) {
-  float diff = rel_angle_diff(angle, anchor);
-
-  // Calculate the clamped difference using mathematical operations
-  float clampedDiff = fminf(fmaxf(diff, -constraint), constraint);
-
-  // Compute the constrained angle based on the clamped difference
-  float constrainedAngle = anchor + clampedDiff;
-
-  // Normalize the constrained angle within [0, 2*pi)
-  return simplify_angle(constrainedAngle);
+  float diff = angle - anchor;
+  float clampedDiff = fminf(fmaxf(diff - TWO_PI * roundf(diff / TWO_PI), -constraint), constraint);
+  return anchor + clampedDiff;
 }
 
 // End of anim-proc-anim functions //
