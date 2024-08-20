@@ -73,6 +73,11 @@ void setup() {
   // For quick fan testing
   example = SNAKES;
 
+  // RAM usage
+  mem_info = mallinfo(); // Setting this every frame leads to memory leak
+  ldRAM = 916; // Precalculated RAM used by Libdragon
+  totalRAM = (get_memory_size() / 1024); // Either 4096 or 8192
+
 }
 
 // Main rendering function
@@ -134,6 +139,8 @@ void reset_example() {
 
 void switch_example() {
   reset_example();
+  mem_info = mallinfo();
+  ramUsed = 0;
   if (++example > SNAKES) {
     example = CIRCLE;
   }
@@ -176,8 +183,8 @@ int main() {
     joypad_buttons_t keysDown = joypad_get_buttons_held(JOYPAD_PORT_1);
 
     // RAM used from RDPQ Demo
-    struct mallinfo mem_info = mallinfo();
     ramUsed = mem_info.uordblks - (size_t) (((display_get_width() * display_get_height()) * 2) - ((unsigned int) HEAP_START_ADDR - 0x80000000) - 0x10000);
+    ramUsed = (ramUsed / 1024);
 
     stickX = (float)input.stick_x;
     stickY = (float)input.stick_y;
@@ -281,7 +288,14 @@ int main() {
 
 //=========== ~ UI ~ =============//
 
-    if(frameCounter > 59){
+    uint32_t frameLimit = 0;
+    if(example == SNAKES){
+      frameLimit = 29;
+    } else {
+      frameLimit = 59;
+    }
+
+    if(frameCounter > frameLimit){
       drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // CPU time after draw and transform
       frameCounter = 0;
     }
@@ -303,14 +317,14 @@ int main() {
         "A: Color\n"
         "Start: Reset Example\n"
         "L: Switch Example\n\n"
-        "RAM %dKB/%dKB",
+        "RAM: %dKB/%dKB",
         currRadiusX*2, // For a ellipse, both scale values are the same and used to change the diameter of the polygon
         vertCount,
         triCount * 0.01f,
         triCount,
         display_get_fps(),
         drawTime,
-        (ramUsed / 1024), (get_memory_size() / 1024)
+        ramUsed, totalRAM
       );
     } else if (example == QUAD) {
 
@@ -330,7 +344,7 @@ int main() {
         "A/B: Rotate\n"
         "Start: Reset Example\n"
         "L: Switch Example\n"
-        "RAM %dKB/%dKB",
+        "RAM: %dKB/%dKB",
         currRadiusX*2,
         currRadiusY*2,
         rotationDegrees,
@@ -338,7 +352,7 @@ int main() {
         triCount, // Always 2 triangles per quad
         display_get_fps(),
         drawTime,
-        (ramUsed / 1024), (get_memory_size() / 1024)
+        ramUsed, totalRAM
       );
     } else if (example == BEZIER) {
 
@@ -357,7 +371,7 @@ int main() {
         "A/B: Rotate\n"
         "Start: Reset Example\n"
         "L: Switch Example\n"
-        "RAM %dKB/%dKB",
+        "RAM: %dKB/%dKB",
         controlPoint+1, // Point being transformed, where the last of the current Points is the center of the fan
         5,
         rotationDegrees,
@@ -368,7 +382,7 @@ int main() {
         currTris,
         display_get_fps(),
         drawTime,
-        (ramUsed / 1024), (get_memory_size() / 1024)
+        ramUsed, totalRAM
       );
     } else if (example == FAN) {
 
@@ -390,7 +404,7 @@ int main() {
         "A/B: Rotate\n"
         "Start: Reset Example\n"
         "L: Switch Example\n"
-        "RAM %dKB/%dKB",
+        "RAM: %dKB/%dKB",
         currRadiusX*2,
         currRadiusY*2,
         rotationDegrees,
@@ -400,7 +414,7 @@ int main() {
         triCount - 12, // Subtract the UX circle's tris
         display_get_fps(),
         drawTime,
-        (ramUsed / 1024), (get_memory_size() / 1024)
+        ramUsed, totalRAM
       );
     } else if (example == SNAKES) {
       rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 32,
@@ -417,23 +431,14 @@ int main() {
         "L: Switch Example\n",
         triCount,
         snake1->spine->joints->count,
-        (ramUsed / 1024), (get_memory_size() / 1024),
+        ramUsed, totalRAM,
         display_get_fps(),
         (drawTime + (drawTime % 2)) / 2 // Because of the frame limiter
       );
     }
 
     // Reset acummulators
-    triCount = 0;
-    vertCount = 0;
-    currTris = 0;
-    fillTris = 0;
-    currVerts = 0;
-    firstTime = 0;
-    secondTime = 0;
-    jpTime = 0;
-    dispTime = 0;
-    resetCurve = 0;
+    accums_reset();
 
     frameCounter++;
     
@@ -443,10 +448,11 @@ int main() {
     rspq_profile_next_frame();
 
   // Every second we profile the RSPQ
-    if(frameCounter > 59){
+    if(frameCounter > frameLimit){
       rspq_profile_dump();
       rspq_profile_reset();    
     }
+  
 
     rspq_profile_get_data(&profile_data);
 #endif // RSPQ_PROFILE

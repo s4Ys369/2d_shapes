@@ -1,7 +1,15 @@
 #include <libdragon.h>
-#include "point.h"
-#include "render.h"
-#include "shapes.h"
+
+#include "examples/globals.h"
+#include "examples/control.h"
+
+#include "examples/bezier.h"
+#include "examples/circle.h"
+#include "examples/quad.h"
+#include "examples/fan.h"
+
+#include "examples/chain.h"
+#include "examples/snake.h"
 
 #include "rspq_constants.h"
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
@@ -9,14 +17,8 @@
 static rspq_profile_data_t profile_data;
 #endif // RSPQ_PROFILE
 
-// Global variables
-surface_t disp;
-int example, triCount, vertCount, currVerts, currTris, fillTris;
-float stickX, stickY;
-uint64_t bootTime, firstTime, secondTime, dispTime, jpTime, drawTime;
-uint32_t screenWidth, screenHeight, frameCounter;
-Point screenCenter;
-int ramUsed = 0;
+//DEFINE_RSP_UCODE(rsp_rdpq_fan);
+//uint32_t fan_add_id;
 
 // Initialize libdragon
 void setup() {
@@ -37,6 +39,11 @@ void setup() {
   rdpq_debug_start();
 #endif // DEBUG_RDPQ
 
+  //rspq_init();
+  //void* ovlState  = UncachedAddr(rspq_overlay_get_state(&rsp_rdpq_fan));
+  //memset(ovlState, 0, 0x10); // One vertex is 0x7, so doubled and aligned to 4
+  //fan_add_id = rspq_overlay_register(&rsp_rdpq_fan);
+
 #if defined(RSPQ_PROFILE) && RSPQ_PROFILE
   profile_data.frame_count = 0;
   rspq_profile_start();
@@ -48,21 +55,12 @@ void setup() {
 
 
   // Initialize acummulators
-  bootTime= 0;
-  firstTime = 0;
-  secondTime = 0;
-  jpTime = 0;
-  dispTime = 0;
-  drawTime = 0;
-  frameCounter = 0;
-  example = 0;
-  triCount = 0;
-  vertCount = 0;
-  currTris = 0;
-  fillTris = 0;
-  currVerts = 0;
-  stickX = 0.0f;
-  stickY = 0.0f;
+  accums_init();
+
+  // Calculated available RAM
+  mem_info = mallinfo(); // Setting this every frame leads to memory leak
+  ldRAM = 916; // Precalculated RAM used by Libdragon
+  totalRAM = (get_memory_size() / 1024) - ldRAM; // Either 3180 or 7276
 
 }
 
@@ -73,6 +71,8 @@ int main() {
 
   for (;;) {
 
+    display_set_fps_limit(0); // Disable limiter
+
     firstTime = get_ticks_ms();// set loop time
 
     rdpq_attach(display_get(), &disp);
@@ -82,6 +82,7 @@ int main() {
     rdpq_sync_pipe();
     rdpq_set_mode_standard();
     rdpq_mode_combiner(RDPQ_COMBINER_FLAT);
+    rdpq_mode_blender(0);
 
     dispTime = get_ticks_ms() - firstTime; // set display time
     secondTime = get_ticks_ms();
@@ -92,12 +93,8 @@ int main() {
     joypad_buttons_t keysDown = joypad_get_buttons_held(JOYPAD_PORT_1);
 
     // RAM used from RDPQ Demo
-    struct mallinfo mem_info = mallinfo();
-    ramUsed = mem_info.uordblks - (size_t) (((screenWidth * screenHeight) * 2) - ((unsigned int) HEAP_START_ADDR - 0x80000000) - 0x10000);
-    if (ramUsed < 0) {
-      debugf("Calculated RAM usage is negative: %d\n", ramUsed);
-      ramUsed = 0; // Set to zero or handle the error as needed
-    }
+    ramUsed = mem_info.uordblks - (size_t) (((display_get_width() * display_get_height()) * 2) - ((unsigned int) HEAP_START_ADDR - 0x80000000) - 0x10000);
+    ramUsed = (ramUsed / 1024) - ldRAM;
 
     stickX = (float)input.stick_x;
     stickY = (float)input.stick_y;
@@ -106,28 +103,33 @@ int main() {
 
 //=========== ~ UPDATE ~ ==============//
 
-
-
 //=========== ~ CONTROLS ~ ==============//
 
 //=========== ~ UI ~ =============//
 
-    if(frameCounter > 59){
+    uint32_t frameLimit = 59;
+
+    if(frameCounter > frameLimit){
       drawTime = ((get_ticks_ms() - secondTime) + dispTime + jpTime); // CPU time after draw and transform
       frameCounter = 0;
     }
-    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20, "RAM %dKB/%dKB", (ramUsed / 1024), (get_memory_size() / 1024));
+    rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
+      "Verts: %u\n"
+      "Tris: %u\n"
+      "FPS: %.2f\n"
+      "CPU Time: %lldms\n"
+      "RAM:\n"
+      " Used/Free:\n"
+      " %dKB/%dKB\n",
+      vertCount,
+      triCount,
+      display_get_fps(),
+      drawTime,
+      ramUsed, totalRAM
+    );
     
     // Reset acummulators
-    triCount = 0;
-    vertCount = 0;
-    currTris = 0;
-    fillTris = 0;
-    currVerts = 0;
-    firstTime = 0;
-    secondTime = 0;
-    jpTime = 0;
-    dispTime = 0;
+    accums_reset();
 
     frameCounter++;
     
@@ -137,7 +139,7 @@ int main() {
     rspq_profile_next_frame();
 
   // Every second we profile the RSPQ
-    if(frameCounter > 59){
+    if(frameCounter > frameLimit){
       rspq_profile_dump();
       rspq_profile_reset();    
     }
