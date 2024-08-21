@@ -200,11 +200,11 @@ void fan_update(){
   renderer.rotate_point(currPoints, controlPoint, currCenter, currAngle);
   if(controlPoint == currPoints.size()){
     renderer.move_shape_points(currPoints, stickX, -stickY);
-    renderer.rotate_shape_points(currPoints, currCenter, currAngle);
+    fan->resolve(stickX, stickY);
   }
       
   renderer.set_fill_color(currShapeColor);
-  renderer.draw_fan(currPoints);
+  renderer.draw_fan(currPoints, currCenter);
 
   if ( controlPoint < currPoints.size()){
     renderer.set_fill_color(BLACK);
@@ -478,7 +478,7 @@ void increase_segments(Shape *currShape) {
     if(currShape->get_segments() < 20){
       currShape->set_segments(currShape->get_segments() + 1);
     } else {
-      currShape->set_segments(5);
+      currShape->set_segments(3);
     }
   } else {
     increase_lod(currShape);
@@ -487,7 +487,7 @@ void increase_segments(Shape *currShape) {
 
 void decrease_segments(Shape *currShape) {
   if(currShape != ellipse){
-    if(currShape->get_segments() > 5){
+    if(currShape->get_segments() > 3){
       currShape->set_segments(currShape->get_segments() - 1);
     } else {
       currShape->set_segments(20);
@@ -769,7 +769,7 @@ int main() {
       );
     } else {
 
-      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 20,
+      rdpq_text_printf(NULL, FONT_BUILTIN_DEBUG_MONO, 20, 14, // sorry overscan sufferers
         "Triangle Fan\n"
         "Scale: (%.0fpx,%.0fpx)\n"
         "Rotation: %.0f\n"

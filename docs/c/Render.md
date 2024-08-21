@@ -71,12 +71,13 @@ Draws triangles from vertex and index arrays.
 - `index_count` - Number of indices.
 
 
-### void draw_fan(const PointArray* pa);
+### void draw_fan(const PointArray* pa, const Point center);
 Draws a triangle fan from an array of points.
 
 **Parameters:**
 
 - `pa` - Pointer to the PointArray containing the fan points.
+- `center` - Center of the triangle fan as a Point.
 
 ### void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod);
 Draws a circle as a triangle fan.

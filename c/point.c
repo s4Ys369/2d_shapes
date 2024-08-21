@@ -71,6 +71,11 @@ Point point_set_mag(Point* p, float newMag) {
     return point_multiply(&normalized, newMag);
 }
 
+void point_set_mag_in_place(Point* p, float newMag) {
+    Point normalized = point_normalized(p);
+    *p = point_multiply(&normalized, newMag);
+}
+
 Point point_copy(const Point* p) {
     return point_new(p->x, p->y);
 }

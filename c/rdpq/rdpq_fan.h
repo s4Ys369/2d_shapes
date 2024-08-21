@@ -58,8 +58,21 @@ typedef struct rdpq_fan_s {
 
 rdpq_fan_t* state; // TODO: This will eventually be a argument in the higher level functions to allow for multiple fans
 
+// Re-implementation of internal auto sync
+void rdpq_tri_auto_sync(const rdpq_trifmt_t *fmt){
+
+    rdpq_sync_pipe();
+    if (fmt->tex_offset >= 0) {
+        rdpq_sync_tile();
+        rdpq_sync_load();
+    }
+
+}
+
 // This is the higher level call for RSP code
 void rdpq_fan_add_new(const rdpq_trifmt_t *fmt, const float* vtx) {
+
+    rdpq_tri_auto_sync(fmt);
 
     // Follow the normal steps for getting the vertex data
     uint32_t cmd_id = RDPQ_CMD_TRI;
@@ -112,6 +125,8 @@ void rdpq_add_tri_data(const float* vtx, int triDataSlot) {
         debugf("rdpq_add_tri_data: Invalid arguments\n");
         return;
     }
+
+    rdpq_tri_auto_sync(state->fmt);
 
     const int TRI_DATA_LEN = ROUND_UP((2+1+1+3)*4, 16);
 
@@ -223,6 +238,8 @@ void rdpq_fan_add_vertex(const float* v) {
 
         // Move last position and store current vertex
         rdpq_fan_add_new_triangle_cpu(state->pv, v);
+
+        rdpq_tri_auto_sync(state->fmt);
 
         rspq_write(RDPQ_OVL_ID, RDPQ_CMD_TRIANGLE, 
                 0xC000 | (state->cmd_id << 8) | 

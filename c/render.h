@@ -9,6 +9,7 @@
 
 void set_render_color(color_t color);
 void set_random_render_color();
+color_t get_random_render_color();
 void render_move_point(PointArray* points, size_t index, float dx, float dy);
 void render_move_shape_points(PointArray* points, float dx, float dy);
 void render_rotate_point(PointArray* points, size_t index, Point center, float angle);

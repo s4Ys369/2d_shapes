@@ -85,21 +85,32 @@ void Render::draw_indexed_triangles(float* vertices, int vertex_count, int* indi
 }
 
 // Function to draw a triangle fan from an array of points
-void Render::draw_fan(const std::vector<Point>& points) {
-  if (points.size() < 3){ debugf("Need at least 3 points to form a triangle"); return; }
+void Render::draw_fan(const std::vector<Point>& points, const Point center) {
+  if (points.size() < 2){ debugf("Need at least 3 points to form a triangle"); return; }
 
-  // First point is the center of the fan
-  Point center = points[0];
+  for (size_t i = 0; i < points.size() - 1; ++i) {
+    Point p2 = points[i];
+    Point p3 = points[i + 1];
 
-  for (size_t i = 1; i < points.size() - 1; ++i) {
-    Point v1 = center;
-    Point v2 = points[i];
-    Point v3 = points[i + 1];
+    float v1[] = { center.x, center.y };
+    float v2[] = { p2.x, p2.y };
+    float v3[] = { p3.x, p3.y };
 
-    rdpq_triangle(&TRIFMT_FILL, &v1.x, &v2.x, &v3.x);
+    rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
     triCount++;
-    vertCount++;
+    vertCount +=2;
   }
+
+  // Add a final triangle to close the loop
+  Point lastPoint = points[points.size() - 1];
+  Point firstPoint = points[0];
+
+  float lastV1[] = { center.x, center.y };
+  float lastV2[] = { lastPoint.x, lastPoint.y };
+  float lastV3[] = { firstPoint.x, firstPoint.y };
+
+  rdpq_triangle(&TRIFMT_FILL, lastV1, lastV2, lastV3);
+  triCount++;
 
 }
 
@@ -143,51 +154,27 @@ void Render::draw_ellipse(float cx, float cy, float rx, float ry, float angle, f
 
   //debugf("Area %.0f\n", area);
 
-  if(area <= 0.9f) {
-
+  if (area <= 0.9f) {
     // If only drawing subpixels, exit
     debugf("Do you really need subpixels?\n");
     return;
-
   } else if (area >= 1.0f && area < 2.9f) {
-
     // If only drawing ~4 pixels or less, just draw a quad to save triangles
-    draw_line(cx-offset,cy-offset,cx+offset,cy+offset,angle,1.0f);
-    //debugf("Simpilifed to quad\n");
+    draw_line(cx - offset, cy - offset, cx + offset, cy + offset, angle, 1.0f);
     return;
+  } else {
+    // Default segments calculation for areas > 2.9f
+    segments = (int)((area < 3.0f) ? 3.0f : area) / ((area >= 9.9f) ? 2 : 3);
 
-  } else  if (area >= 3.0f && area <= 4.9f) {
+    // Enforce a minimum of 6 segments
+    segments = segments < 6 ? 6 : segments;
 
-    segments = (int)(area)/2;
-    if(segments < 6){
-      segments = 6;
-    }
-    //debugf("Segments %u\n", segments);
-
-  } else  if (area > 5.0f && area <= 9.9f) {
-
-    segments = (int)(area)/3;
-  
-    if(segments < 6){
-      segments = 6;
+    // Enforce a maximum of 200 segments for high detail levels
+    if (area > 9.9f) {
+      segments = (segments > 200 || lod > 2.0f) ? 200 : segments;
     }
 
-    //debugf("Segments %u\n", segments);
-
-  } else  if (area > 9.9f) {
-
-    segments = (int)(area)/2;
-
-    if(segments < 6){
-      segments = 6;
-    }
-
-    // CHANGE: Set highest level of detail, currently 100 triangles
-    if(segments > 200 || lod > 2.0f){
-      segments = 200;
-    }
-
-    //debugf("Segments %u\n", segments);
+    // debugf("Segments %u\n", segments);
   }
 
   // Calculate angles for position

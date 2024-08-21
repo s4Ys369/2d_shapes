@@ -5,10 +5,11 @@
 #include "render.h"
 
 void set_render_color(color_t color){
+  rdpq_sync_pipe();
   rdpq_set_prim_color(color);
 }
 
-void set_random_render_color() {
+color_t get_random_render_color() {
   const color_t colors[] = {
     RED,
     ORANGE,
@@ -20,9 +21,11 @@ void set_random_render_color() {
   };
     
   int index = rand() % 7;
-    
-  // Set the render color to the selected color
-  set_render_color(colors[index]);
+  return colors[index];
+}
+
+void set_random_render_color() {
+  set_render_color(get_random_render_color());
 }
 
 void render_move_point(PointArray* pa, size_t index, float dx, float dy) {
@@ -146,20 +149,16 @@ void draw_rdp_fan(const PointArray* pa, const Point center) {
 
   rdpq_fan_begin(&TRIFMT_FILL, cv);
   rdpq_fan_add_vertex(v1);
-  vertCount += 2;
+  vertCount++;
 
   for (size_t i = 0; i < pa->count; ++i) {
     float vertex[] = { pa->points[i].x, pa->points[i].y };
-    //set_random_render_color();
     rdpq_fan_add_vertex(vertex);
     triCount++;
     vertCount++;
   }
 
-  //set_random_render_color();
   rdpq_fan_end();
-  triCount++;
-  vertCount++;
 
 }
 
@@ -198,6 +197,7 @@ void draw_strip(float* v1, float* v2, float* v3, float* v4) {
 
   rdpq_triangle(&TRIFMT_FILL, v1, v2, v3);
   rdpq_triangle(&TRIFMT_FILL, v2, v4, v3);
+  rdpq_sync_pipe();
   triCount += 2;
   vertCount += 4;
 

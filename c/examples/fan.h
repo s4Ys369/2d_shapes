@@ -31,8 +31,8 @@ void fan_draw(){
   render_move_point(currPoints, controlPoint, stickX, -stickY);
   if(controlPoint == currPoints->count){
     render_rotate_shape_points(currPoints, currCenter, currAngle);
+    resolve(currShape, stickX, stickY);
     render_move_shape_points(currPoints, stickX, -stickY);
-    resolve(fan, stickX, stickY);
   }
 
   // Should be as easy as generate verts, set color, draw    

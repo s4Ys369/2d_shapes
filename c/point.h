@@ -33,6 +33,7 @@ Point point_from_angle(float angle);
 float point_magnitude(const Point* p);
 void point_normalize(Point* p);
 Point point_set_mag(Point* p, float newMag);
+void point_set_mag_in_place(Point* p, float newMag);
 Point point_copy(const Point* p);
 Point point_scale(const Point* center, const Point* point, float scale);
 Point point_translate(Point p, float dx, float dy);
