@@ -10,7 +10,7 @@ Shape* quad;
 void create_quad(){
 // Quad as a strip
   quad = (Shape*)malloc_uncached(sizeof(Shape));
-  strip_init(quad, screenCenter, 160.0f, 120.0f, 32.0f, 1, DARK_GREEN);
+  strip_init(quad, screenCenter, 20.0f, 20.0f, 10.0f, 1, DARK_GREEN);
 }
 
 void quad_draw(){
@@ -24,7 +24,7 @@ void quad_draw(){
   currShapeColor = get_fill_color(currShape);
   currSegments = get_segments(currShape);
   set_render_color(currShapeColor);
-  draw_quad_outline(
+  draw_rounded_quad_outline(
     currCenter.x-currRadiusX, currCenter.y-currRadiusY, 
     currCenter.x+currRadiusX, currCenter.y+currRadiusY, 
     currAngle,

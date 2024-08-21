@@ -514,6 +514,189 @@ void draw_quad_outline(float x1, float y1, float x2, float y2, float angle, floa
 
 }
 
+void draw_rounded_quad(float x1, float y1, float x2, float y2, float angle, float thickness) {
+
+  // Check for subpixel thickness
+  if(thickness <= 0.9f){
+    thickness = 1.0f;
+  }
+
+  // Define points
+  Point start = point_new(x1, y1);
+  Point end = point_new(x2, y2);
+
+  // Calculate the center of the line segment
+  Point center = point_new((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
+
+  // Calculate direction vector
+  Point direction = point_sub(&end, &start);
+  float length =  point_magnitude(&direction);
+
+  // Check for non-zero length and normalize
+  if (length != 0) {
+    point_normalize(&direction);
+  } else {
+    debugf("Line length cannot be 0");  
+    return;
+  }
+
+  // Calculate the perpendicular vector for the thickness
+  Point perp = point_new(-direction.y, direction.x); // Perpendicular to direction
+  perp = point_set_mag(&perp, thickness / 2); // Set the magnitude to half of the thickness
+
+  // Rotation matrix
+  float cos_angle = fm_cosf(angle);
+  float sin_angle = fm_sinf(angle);
+
+  // Compute the points for the line
+  Point p1_left = { start.x , start.y - perp.y };
+  Point p1_right = { end.x , start.y - perp.y };
+  Point p2_left = { start.x , end.y};
+  Point p2_right = end;
+
+  // Rotate the trapezoid vertices
+  rotate_line_point(&p1_left,  &center, cos_angle, sin_angle);
+  rotate_line_point(&p1_right, &center, cos_angle, sin_angle);
+  rotate_line_point(&p2_left,  &center, cos_angle, sin_angle);
+  rotate_line_point(&p2_right, &center, cos_angle, sin_angle);
+
+  Point cornerTopLeft = point_new(p1_left.x, p1_left.y+(thickness/4));
+  PointArray* cornerTopLeftPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  init_point_array(cornerTopLeftPoints);
+  render_get_ellipse_points(cornerTopLeftPoints, cornerTopLeft, (thickness/4), (thickness/4), 21, 0.26f);
+  render_rotate_shape_points(cornerTopLeftPoints,cornerTopLeft, M_PI);
+  draw_rdp_fan(cornerTopLeftPoints, cornerTopLeft, false);
+  free(cornerTopLeftPoints->points);
+  free_uncached(cornerTopLeftPoints);
+
+  Point cornerBottomLeft = point_new(p2_left.x, p2_left.y-(thickness/4));
+  PointArray* cornerBottomLeftPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  init_point_array(cornerBottomLeftPoints);
+  render_get_ellipse_points(cornerBottomLeftPoints, cornerBottomLeft, (thickness/4), (thickness/4), 21, 0.26f);
+  render_rotate_shape_points(cornerBottomLeftPoints,cornerBottomLeft, M_PI/2);
+  draw_rdp_fan(cornerBottomLeftPoints, cornerBottomLeft, false);
+  free(cornerBottomLeftPoints->points);
+  free_uncached(cornerBottomLeftPoints);
+
+  Point cornerTopRight = point_new(p1_right.x, p1_right.y+(thickness/4));
+  PointArray* cornerTopRightPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  init_point_array(cornerTopRightPoints);
+  render_get_ellipse_points(cornerTopRightPoints, cornerTopRight, (thickness/4), (thickness/4), 21, 0.26f);
+  render_rotate_shape_points(cornerTopRightPoints,cornerTopRight, -M_PI/2);
+  draw_rdp_fan(cornerTopRightPoints, cornerTopRight, false);
+  free(cornerTopRightPoints->points);
+  free_uncached(cornerTopRightPoints);
+
+  Point cornerBottomRight = point_new(p2_right.x, p2_right.y-(thickness/4));
+  PointArray* cornerBottomRightPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  init_point_array(cornerBottomRightPoints);
+  render_get_ellipse_points(cornerBottomRightPoints, cornerBottomRight, (thickness/4), (thickness/4), 21, 0.26f);
+  draw_rdp_fan(cornerBottomRightPoints, cornerBottomRight, false);
+  free(cornerBottomRightPoints->points);
+  free_uncached(cornerBottomRightPoints);
+
+  draw_quad(p1_left.x-(thickness/4), p1_left.y+(thickness/5), p2_left.x, p2_left.y-(thickness/5), angle, 1);  // Left side outline
+  draw_quad(p1_right.x+(thickness/4), p1_right.y+(thickness/5), p2_right.x, p2_right.y-(thickness/5), angle, 1); 
+
+  // Define vertices for two triangles to form the line with thickness
+  float v1[] = { p1_left.x-1.0f, p1_left.y };
+  float v2[] = { p1_right.x+1.0f, p1_right.y };
+  float v3[] = { p2_left.x-1.0f, p2_left.y };
+  float v4[] = { p2_right.x+1.0f, p2_right.y };
+
+  // Draw two triangles to form the line
+  draw_strip(v1,v2,v3,v4);
+}
+
+// Function to draw a quad/rectangle outline with rotation and thickness
+void draw_rounded_quad_outline(float x1, float y1, float x2, float y2, float angle, float thickness) {
+
+  // Check for subpixel thickness
+  if(thickness <= 0.9f){
+    thickness = 1.0f;
+  }
+
+  // Define points
+  Point start = point_new(x1, y1);
+  Point end = point_new(x2, y2);
+
+  // Calculate the center of the line segment
+  Point center = point_new((x1 + x2) / 2.0f, (y1 + y2) / 2.0f);
+
+  // Calculate direction vector
+  Point direction = point_sub(&end, &start);
+  float length =  point_magnitude(&direction);
+
+  // Check for non-zero length and normalize
+  if (length != 0) {
+    point_normalize(&direction);
+  } else {
+    debugf("Line length cannot be 0");  
+    return;
+  }
+
+  // Calculate the perpendicular vector for the thickness
+  Point perp = point_new(-direction.y, direction.x); // Perpendicular to direction
+  perp = point_set_mag(&perp, thickness / 2); // Set the magnitude to half of the thickness
+
+  // Rotation matrix
+  float cos_angle = fm_cosf(angle);
+  float sin_angle = fm_sinf(angle);
+
+  // Compute the points for the line
+  Point p1_left = { start.x , start.y - perp.y };
+  Point p1_right = { end.x , start.y - perp.y };
+  Point p2_left = { start.x , end.y};
+  Point p2_right = end;
+
+  // Rotate the trapezoid vertices
+  rotate_line_point(&p1_left,  &center, cos_angle, sin_angle);
+  rotate_line_point(&p1_right, &center, cos_angle, sin_angle);
+  rotate_line_point(&p2_left,  &center, cos_angle, sin_angle);
+  rotate_line_point(&p2_right, &center, cos_angle, sin_angle);
+
+  draw_quad(p1_left.x-(thickness/4), p1_left.y+(thickness/5), p2_left.x+(thickness/4), p2_left.y-(thickness/5), angle, 1);  // Left side outline
+  draw_quad(p1_right.x+(thickness/4), p1_right.y+(thickness/5), p2_right.x-(thickness/4), p2_right.y-(thickness/5), angle, 1);
+  draw_quad(p1_left.x-1.0f, p1_left.y+(thickness/2), p1_right.x+1.0f, p1_right.y+(thickness/2), angle, thickness);
+  draw_quad(p2_left.x-1.0f, p2_left.y, p2_right.x+1.0f, p2_right.y, angle, thickness);
+
+  Point cornerTopLeft = point_new(p1_left.x, p1_left.y+(thickness/4));
+  PointArray* cornerTopLeftPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  init_point_array(cornerTopLeftPoints);
+  render_get_ellipse_points(cornerTopLeftPoints, cornerTopLeft, (thickness/4), (thickness/4), 21, 0.26f);
+  render_rotate_shape_points(cornerTopLeftPoints,cornerTopLeft, M_PI);
+  draw_rdp_fan(cornerTopLeftPoints, cornerTopLeft, false);
+  free(cornerTopLeftPoints->points);
+  free_uncached(cornerTopLeftPoints);
+
+  Point cornerBottomLeft = point_new(p2_left.x, p2_left.y-(thickness/4));
+  PointArray* cornerBottomLeftPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  init_point_array(cornerBottomLeftPoints);
+  render_get_ellipse_points(cornerBottomLeftPoints, cornerBottomLeft, (thickness/4), (thickness/4), 21, 0.26f);
+  render_rotate_shape_points(cornerBottomLeftPoints,cornerBottomLeft, M_PI/2);
+  draw_rdp_fan(cornerBottomLeftPoints, cornerBottomLeft, false);
+  free(cornerBottomLeftPoints->points);
+  free_uncached(cornerBottomLeftPoints);
+
+  Point cornerTopRight = point_new(p1_right.x, p1_right.y+(thickness/4));
+  PointArray* cornerTopRightPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  init_point_array(cornerTopRightPoints);
+  render_get_ellipse_points(cornerTopRightPoints, cornerTopRight, (thickness/4), (thickness/4), 21, 0.26f);
+  render_rotate_shape_points(cornerTopRightPoints,cornerTopRight, -M_PI/2);
+  draw_rdp_fan(cornerTopRightPoints, cornerTopRight, false);
+  free(cornerTopRightPoints->points);
+  free_uncached(cornerTopRightPoints);
+
+  Point cornerBottomRight = point_new(p2_right.x, p2_right.y-(thickness/4));
+  PointArray* cornerBottomRightPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
+  init_point_array(cornerBottomRightPoints);
+  render_get_ellipse_points(cornerBottomRightPoints, cornerBottomRight, (thickness/4), (thickness/4), 21, 0.26f);
+  draw_rdp_fan(cornerBottomRightPoints, cornerBottomRight, false);
+  free(cornerBottomRightPoints->points);
+  free_uncached(cornerBottomRightPoints);
+
+}
+
 
 // Function to draw a Bézier curve as a triangle strip with a given thickness
 void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const Point* p3, int segments, float angle, float thickness) {

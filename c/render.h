@@ -25,6 +25,8 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
 void draw_line(float x1, float y1, float x2, float y2, float thickness);
 void draw_quad(float x1, float y1, float x2, float y2, float angle, float thickness);
 void draw_quad_outline(float x1, float y1, float x2, float y2, float angle, float thickness);
+void draw_rounded_quad(float x1, float y1, float x2, float y2, float angle, float thickness);
+void draw_rounded_quad_outline(float x1, float y1, float x2, float y2, float angle, float thickness);
 void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const Point* p3, int segments, float angle, float thickness);
 void fill_between_beziers(const PointArray* curve1, const PointArray* curve2);
 void draw_filled_beziers(const Point* p0, const Point* p1, const Point* p2, const Point* p3, 
