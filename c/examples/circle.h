@@ -15,7 +15,7 @@ void circle_draw(){
   currShape = circle;
 
   // Get ellipse points and store them in currPoints
-  render_get_ellipse_points(currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
+  render_get_ellipse_points(currPoints, currCenter, currRadiusX, currRadiusY, currSegments, 1.0f);
 
   // Resolve the shape based on joystick inputs
   resolve(currShape, stickX, stickY);

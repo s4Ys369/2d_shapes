@@ -55,7 +55,7 @@ void render_rotate_shape_points(PointArray* pa, Point center, float angle) {
 }
 
 // Function to get points around an ellipse
-void render_get_ellipse_points(PointArray* previousPoints, Point center, float rx, float ry, int segments) {
+void render_get_ellipse_points(PointArray* previousPoints, Point center, float rx, float ry, int segments, float fraction) {
   // Ensure previousPoints is properly initialized
   if (previousPoints == NULL) {
     debugf("point array is NULL\n");
@@ -77,8 +77,11 @@ void render_get_ellipse_points(PointArray* previousPoints, Point center, float r
   }
   previousPoints->count = 0;
 
+  // Compute the angle range based on the fraction
+  float maxAngle = 2.0f * M_PI * fraction; // Adjust the angle range
+
   // Compute points for the ellipse
-  float angleStep = 2.0f * M_PI / (float)segments;
+  float angleStep = maxAngle / (float)segments;
   for (int i = 0; i < segments; ++i) {
     float angle = i * angleStep;
     float x = center.x + rx * fm_cosf(angle);
@@ -142,7 +145,7 @@ void draw_indexed_triangles(float* vertices, int vertex_count, int* indices, int
   }
 }
 
-void draw_rdp_fan(const PointArray* pa, const Point center) {
+void draw_rdp_fan(const PointArray* pa, const Point center, bool closed) {
 
   float cv[] = { center.x, center.y };
   float v1[] = { pa->points[0].x, pa->points[0].y };
@@ -158,7 +161,12 @@ void draw_rdp_fan(const PointArray* pa, const Point center) {
     vertCount++;
   }
 
-  rdpq_fan_end();
+  if (closed){
+    rdpq_fan_end();
+  } else {
+    rdpq_fan_destroy();
+  }
+  
 
 }
 
@@ -369,7 +377,7 @@ void draw_circle(float cx, float cy, float rx, float ry, float angle, float lod)
   }
 
   //debugf("Total vertices: %d\n", vertex_count);
-  draw_rdp_fan(&pa, pa.points[0]);
+  draw_rdp_fan(&pa, pa.points[0], true);
 
   free(pa.points);
 

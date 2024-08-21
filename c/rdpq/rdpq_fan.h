@@ -261,5 +261,12 @@ void rdpq_fan_end() {
     state = NULL;
 }
 
+// Function to free fan state
+void rdpq_fan_destroy() {
+
+    free_uncached(state);
+    state = NULL;
+}
+
 
 #endif // RDPQ_FAN_H

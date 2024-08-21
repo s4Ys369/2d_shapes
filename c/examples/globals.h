@@ -14,6 +14,10 @@ uint32_t screenWidth, screenHeight, frameCounter;
 Point screenCenter;
 size_t controlPoint;
 
+float halfCircle = 0.527f;
+float quarterCircle = 0.26f;
+
+
 typedef enum {
   CIRCLE,
   QUAD,

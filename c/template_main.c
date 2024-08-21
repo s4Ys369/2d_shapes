@@ -56,6 +56,8 @@ void setup() {
 
   // Initialize acummulators
   accums_init();
+  shape_control_init();
+  // Shape init functions here
 
   // Calculated available RAM
   mem_info = mallinfo(); // Setting this every frame leads to memory leak
@@ -102,7 +104,8 @@ int main() {
     jpTime = get_ticks_ms() - secondTime; // set input time
 
 //=========== ~ UPDATE ~ ==============//
-
+    // Draw functions here
+    rdpq_sync_pipe(); 
 //=========== ~ CONTROLS ~ ==============//
 
 //=========== ~ UI ~ =============//
@@ -121,11 +124,11 @@ int main() {
       "RAM:\n"
       " Used/Free:\n"
       " %dKB/%dKB\n",
-      vertCount,
-      triCount,
+      vertCount+currVerts,
+      triCount+currTris+fillTris,
       display_get_fps(),
       drawTime,
-      ramUsed, totalRAM
+      ramUsed, (totalRAM-ramUsed)
     );
     
     // Reset acummulators

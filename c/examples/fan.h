@@ -16,7 +16,7 @@ void fan_draw(){
   currShape = fan;
 
   // Get ellipse points and store them in currPoints
-  render_get_ellipse_points(currPoints, currCenter, currRadiusX, currRadiusY, currSegments);
+  render_get_ellipse_points(currPoints, currCenter, currRadiusX, currRadiusY, currSegments, quarterCircle);
 
   // Update current shape properties
   currCenter = get_center(currShape);
@@ -37,7 +37,7 @@ void fan_draw(){
 
   // Should be as easy as generate verts, set color, draw    
   set_render_color(currShapeColor);
-  draw_rdp_fan(currPoints, currCenter);
+  draw_rdp_fan(currPoints, currCenter, false);
 
   // Draw selected control point
   if ( controlPoint < currPoints->count){
