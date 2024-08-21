@@ -485,6 +485,35 @@ void draw_quad(float x1, float y1, float x2, float y2, float angle, float thickn
   draw_strip(v1,v2,v3,v4);
 }
 
+// Function to draw a quad/rectangle outline with rotation and thickness
+void draw_quad_outline(float x1, float y1, float x2, float y2, float angle, float thickness) {
+
+  // Check for subpixel thickness
+  if (thickness <= 0.9f) {
+    thickness = 1.0f;
+  }
+
+  // Define points for the corners of the quad
+  Point start = point_new(x1, y1);
+  Point end = point_new(x2, y2);
+
+  // Calculate the perpendicular vector for the thickness
+  Point perp = point_new((thickness/2.0f), (thickness/2.0f));
+
+  // Compute the points for the four corners of the quad (p1 to p4)
+  Point p1 = { start.x , start.y - perp.y };
+  Point p2 = { end.x , start.y - perp.y };
+  Point p3 = { start.x , end.y};
+  Point p4 = end;
+
+  // Draw the outline by connecting the four points
+  draw_quad(p1.x+(thickness/2), p1.y+(thickness/2), p3.x, p3.y-(thickness/2), angle, 1);  // Left side outline
+  draw_quad(p2.x-(thickness/2), p2.y+(thickness/2), p4.x, p4.y-(thickness/2), angle, 1);  // Right side outline
+  draw_quad(p1.x, p1.y+(thickness), p2.x, p2.y+(thickness), angle, thickness);  // Top cap outline (start)
+  draw_quad(p3.x, p3.y, p4.x, p4.y, angle, thickness);  // Bottom cap outline (end)
+
+}
+
 
 // Function to draw a Bézier curve as a triangle strip with a given thickness
 void draw_bezier_curve(const Point* p0, const Point* p1, const Point* p2, const Point* p3, int segments, float angle, float thickness) {

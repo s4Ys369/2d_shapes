@@ -57,7 +57,8 @@ void setup() {
   // Initialize acummulators
   accums_init();
   shape_control_init();
-  // Shape init functions here
+  create_quad();
+  
 
   // Calculated available RAM
   mem_info = mallinfo(); // Setting this every frame leads to memory leak
@@ -105,6 +106,7 @@ int main() {
 
 //=========== ~ UPDATE ~ ==============//
     // Draw functions here
+    quad_draw();
     rdpq_sync_pipe(); 
 //=========== ~ CONTROLS ~ ==============//
 

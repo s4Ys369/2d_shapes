@@ -25,7 +25,7 @@ N64_CFLAGS += -mno-check-zero-division \
 
 ASM = rdpq/rsp_rdpq_fan.S
 
-SRC = main.c \
+SRC = template_main.c \
 	point.c \
 	render.c \
 	shapes.c \
