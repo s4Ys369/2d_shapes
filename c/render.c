@@ -560,10 +560,12 @@ void draw_rounded_quad(float x1, float y1, float x2, float y2, float angle, floa
   rotate_line_point(&p2_left,  &center, cos_angle, sin_angle);
   rotate_line_point(&p2_right, &center, cos_angle, sin_angle);
 
+  float e = 1.0f;
+
   Point cornerTopLeft = point_new(p1_left.x, p1_left.y+(thickness/4));
   PointArray* cornerTopLeftPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array(cornerTopLeftPoints);
-  render_get_ellipse_points(cornerTopLeftPoints, cornerTopLeft, (thickness/4), (thickness/4), 21, 0.26f);
+  render_get_ellipse_points(cornerTopLeftPoints, cornerTopLeft, (thickness/4), (thickness/4), 21, (0.25f + (e*0.01f)));
   render_rotate_shape_points(cornerTopLeftPoints,cornerTopLeft, M_PI);
   draw_rdp_fan(cornerTopLeftPoints, cornerTopLeft, false);
   free(cornerTopLeftPoints->points);
@@ -572,7 +574,7 @@ void draw_rounded_quad(float x1, float y1, float x2, float y2, float angle, floa
   Point cornerBottomLeft = point_new(p2_left.x, p2_left.y-(thickness/4));
   PointArray* cornerBottomLeftPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array(cornerBottomLeftPoints);
-  render_get_ellipse_points(cornerBottomLeftPoints, cornerBottomLeft, (thickness/4), (thickness/4), 21, 0.26f);
+  render_get_ellipse_points(cornerBottomLeftPoints, cornerBottomLeft, (thickness/4), (thickness/4), 21, (0.25f + (e*0.01f)));
   render_rotate_shape_points(cornerBottomLeftPoints,cornerBottomLeft, M_PI/2);
   draw_rdp_fan(cornerBottomLeftPoints, cornerBottomLeft, false);
   free(cornerBottomLeftPoints->points);
@@ -581,7 +583,7 @@ void draw_rounded_quad(float x1, float y1, float x2, float y2, float angle, floa
   Point cornerTopRight = point_new(p1_right.x, p1_right.y+(thickness/4));
   PointArray* cornerTopRightPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array(cornerTopRightPoints);
-  render_get_ellipse_points(cornerTopRightPoints, cornerTopRight, (thickness/4), (thickness/4), 21, 0.26f);
+  render_get_ellipse_points(cornerTopRightPoints, cornerTopRight, (thickness/4), (thickness/4), 21, (0.25f + (e*0.01f)));
   render_rotate_shape_points(cornerTopRightPoints,cornerTopRight, -M_PI/2);
   draw_rdp_fan(cornerTopRightPoints, cornerTopRight, false);
   free(cornerTopRightPoints->points);
@@ -590,19 +592,19 @@ void draw_rounded_quad(float x1, float y1, float x2, float y2, float angle, floa
   Point cornerBottomRight = point_new(p2_right.x, p2_right.y-(thickness/4));
   PointArray* cornerBottomRightPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array(cornerBottomRightPoints);
-  render_get_ellipse_points(cornerBottomRightPoints, cornerBottomRight, (thickness/4), (thickness/4), 21, 0.26f);
+  render_get_ellipse_points(cornerBottomRightPoints, cornerBottomRight, (thickness/4), (thickness/4), 21, (0.25f + (e*0.01f)));
   draw_rdp_fan(cornerBottomRightPoints, cornerBottomRight, false);
   free(cornerBottomRightPoints->points);
   free_uncached(cornerBottomRightPoints);
 
-  draw_quad(p1_left.x-(thickness/4), p1_left.y+(thickness/5), p2_left.x, p2_left.y-(thickness/5), angle, 1);  // Left side outline
-  draw_quad(p1_right.x+(thickness/4), p1_right.y+(thickness/5), p2_right.x, p2_right.y-(thickness/5), angle, 1); 
+  draw_quad(p1_left.x-(thickness/4.0f), p1_left.y+(thickness/4.0f+e), p2_left.x, p2_left.y-(thickness/4.0f+e), angle, 1);  // Left side outline
+  draw_quad(p1_right.x+(thickness/4.0f), p1_right.y+(thickness/4.0f+e), p2_right.x, p2_right.y-(thickness/4.0f+e), angle, 1);
 
   // Define vertices for two triangles to form the line with thickness
-  float v1[] = { p1_left.x-1.0f, p1_left.y };
-  float v2[] = { p1_right.x+1.0f, p1_right.y };
-  float v3[] = { p2_left.x-1.0f, p2_left.y };
-  float v4[] = { p2_right.x+1.0f, p2_right.y };
+  float v1[] = { p1_left.x-e, p1_left.y };
+  float v2[] = { p1_right.x+e, p1_right.y };
+  float v3[] = { p2_left.x-e, p2_left.y };
+  float v4[] = { p2_right.x+e, p2_right.y };
 
   // Draw two triangles to form the line
   draw_strip(v1,v2,v3,v4);
@@ -655,15 +657,17 @@ void draw_rounded_quad_outline(float x1, float y1, float x2, float y2, float ang
   rotate_line_point(&p2_left,  &center, cos_angle, sin_angle);
   rotate_line_point(&p2_right, &center, cos_angle, sin_angle);
 
-  draw_quad(p1_left.x-(thickness/4), p1_left.y+(thickness/5), p2_left.x+(thickness/4), p2_left.y-(thickness/5), angle, 1);  // Left side outline
-  draw_quad(p1_right.x+(thickness/4), p1_right.y+(thickness/5), p2_right.x-(thickness/4), p2_right.y-(thickness/5), angle, 1);
-  draw_quad(p1_left.x-1.0f, p1_left.y+(thickness/2), p1_right.x+1.0f, p1_right.y+(thickness/2), angle, thickness);
-  draw_quad(p2_left.x-1.0f, p2_left.y, p2_right.x+1.0f, p2_right.y, angle, thickness);
+  float e = 1.0f;
+
+  draw_quad(p1_left.x-(thickness/4), p1_left.y+(thickness/4.0f+e), p2_left.x+(thickness/4), p2_left.y-(thickness/4.0f+e), angle, 1);  // Left side outline
+  draw_quad(p1_right.x+(thickness/4), p1_right.y+(thickness/4.0f+e), p2_right.x-(thickness/4), p2_right.y-(thickness/4.0f+e), angle, 1);
+  draw_quad(p1_left.x-e, p1_left.y+(thickness/2), p1_right.x+e, p1_right.y+(thickness/2), angle, thickness);
+  draw_quad(p2_left.x-e, p2_left.y, p2_right.x+e, p2_right.y, angle, thickness);
 
   Point cornerTopLeft = point_new(p1_left.x, p1_left.y+(thickness/4));
   PointArray* cornerTopLeftPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array(cornerTopLeftPoints);
-  render_get_ellipse_points(cornerTopLeftPoints, cornerTopLeft, (thickness/4), (thickness/4), 21, 0.26f);
+  render_get_ellipse_points(cornerTopLeftPoints, cornerTopLeft, (thickness/4), (thickness/4), 21, (0.25f + (e*0.01f))); // quarter + epsilon
   render_rotate_shape_points(cornerTopLeftPoints,cornerTopLeft, M_PI);
   draw_rdp_fan(cornerTopLeftPoints, cornerTopLeft, false);
   free(cornerTopLeftPoints->points);
@@ -672,7 +676,7 @@ void draw_rounded_quad_outline(float x1, float y1, float x2, float y2, float ang
   Point cornerBottomLeft = point_new(p2_left.x, p2_left.y-(thickness/4));
   PointArray* cornerBottomLeftPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array(cornerBottomLeftPoints);
-  render_get_ellipse_points(cornerBottomLeftPoints, cornerBottomLeft, (thickness/4), (thickness/4), 21, 0.26f);
+  render_get_ellipse_points(cornerBottomLeftPoints, cornerBottomLeft, (thickness/4), (thickness/4), 21, (0.25f + (e*0.01f))); // quarter + epsilon
   render_rotate_shape_points(cornerBottomLeftPoints,cornerBottomLeft, M_PI/2);
   draw_rdp_fan(cornerBottomLeftPoints, cornerBottomLeft, false);
   free(cornerBottomLeftPoints->points);
@@ -681,7 +685,7 @@ void draw_rounded_quad_outline(float x1, float y1, float x2, float y2, float ang
   Point cornerTopRight = point_new(p1_right.x, p1_right.y+(thickness/4));
   PointArray* cornerTopRightPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array(cornerTopRightPoints);
-  render_get_ellipse_points(cornerTopRightPoints, cornerTopRight, (thickness/4), (thickness/4), 21, 0.26f);
+  render_get_ellipse_points(cornerTopRightPoints, cornerTopRight, (thickness/4), (thickness/4), 21, (0.25f + (e*0.01f))); // quarter + epsilon
   render_rotate_shape_points(cornerTopRightPoints,cornerTopRight, -M_PI/2);
   draw_rdp_fan(cornerTopRightPoints, cornerTopRight, false);
   free(cornerTopRightPoints->points);
@@ -690,7 +694,7 @@ void draw_rounded_quad_outline(float x1, float y1, float x2, float y2, float ang
   Point cornerBottomRight = point_new(p2_right.x, p2_right.y-(thickness/4));
   PointArray* cornerBottomRightPoints = (PointArray*)malloc_uncached(sizeof(PointArray));
   init_point_array(cornerBottomRightPoints);
-  render_get_ellipse_points(cornerBottomRightPoints, cornerBottomRight, (thickness/4), (thickness/4), 21, 0.26f);
+  render_get_ellipse_points(cornerBottomRightPoints, cornerBottomRight, (thickness/4), (thickness/4), 21, (0.25f + (e*0.01f))); // quarter + epsilon
   draw_rdp_fan(cornerBottomRightPoints, cornerBottomRight, false);
   free(cornerBottomRightPoints->points);
   free_uncached(cornerBottomRightPoints);
